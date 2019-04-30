@@ -24,7 +24,6 @@ AUTO_ANNOTATED_DATASET_DIR = /data/dataset-auto-annotated
 GCP_PROJECT = elife-ml
 GROBID_TAG = 0.5.4
 GROBID_REPO = lfoppiano/grobid
-GROBID_TRAINER_TOOLS_IMAGE_REPO = gcr.io/$(GCP_PROJECT)/grobid-trainer-tools--dev
 GROBID_TRAINED_MODEL_IMAGE_REPO = gcr.io/$(GCP_PROJECT)/grobid-trained-model--dev
 
 TRAIN_LIMIT = 5
