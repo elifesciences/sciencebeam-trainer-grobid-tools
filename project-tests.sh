@@ -3,10 +3,10 @@
 set -e
 
 echo "running flake8"
-python -m flake8 grobid_training tests
+python -m flake8 sciencebeam_trainer_grobid_tools tests
 
 echo "running pylint"
-python -m pylint grobid_training tests
+python -m pylint sciencebeam_trainer_grobid_tools tests
 
 echo "running pytest"
 python -m pytest

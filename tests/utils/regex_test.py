@@ -1,4 +1,4 @@
-from grobid_training.utils.regex import (
+from sciencebeam_trainer_grobid_tools.utils.regex import (
     regex_change_name
 )
 

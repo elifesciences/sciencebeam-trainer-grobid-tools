@@ -6,11 +6,11 @@ import pytest
 from lxml import etree
 from lxml.builder import E
 
-from grobid_training.structured_document.grobid_training_tei import (
+from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei import (
     GrobidTrainingTeiStructuredDocument
 )
 
-from grobid_training.structured_document.annotator import (
+from sciencebeam_trainer_grobid_tools.structured_document.annotator import (
     annotate_structured_document_inplace
 )
 

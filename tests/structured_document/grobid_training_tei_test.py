@@ -5,7 +5,7 @@ import logging
 from lxml import etree
 from lxml.builder import E
 
-from grobid_training.structured_document.grobid_training_tei import (
+from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei import (
     GrobidTrainingTeiStructuredDocument,
     TeiTagNames,
     _to_text_tokens,

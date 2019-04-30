@@ -6,8 +6,8 @@ import pytest
 
 from sciencebeam_utils.utils.file_list import save_file_list
 
-import grobid_training.download_source_files as download_source_files_module
-from grobid_training.download_source_files import (
+import sciencebeam_trainer_grobid_tools.download_source_files as download_source_files_module
+from sciencebeam_trainer_grobid_tools.download_source_files import (
     get_relative_output_file_list,
     get_output_file_list,
     FileList,
