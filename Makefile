@@ -80,19 +80,19 @@ build-docker:
 generate-raw-grobid-training-data:
 	$(RUN_GROBID_TRAINER) generate-raw-grobid-training-data.sh \
 		"${PDF_DATA_DIR}" \
-    "$(RAW_TRAINING_DATA_DIR)"
+		"$(RAW_TRAINING_DATA_DIR)"
 
 
 copy-raw-training-data-to-file-structure:
 	$(RUN_GROBID_TRAINER) copy-raw-training-data-to-file-structure.sh \
 		"${RAW_TRAINING_DATA_DIR}" \
-    "$(DATASET_DIR)"
+		 "$(DATASET_DIR)"
 
 
 generate-grobid-training-data:
 	$(RUN_GROBID_TRAINER) generate-grobid-training-data.sh \
 		"${PDF_DATA_DIR}" \
-    "$(DATASET_DIR)"
+		"$(DATASET_DIR)"
 
 
 download-dataset-pdf:
@@ -109,7 +109,7 @@ train-header-model:
 	@echo you could also train using remote dataset,
 	@echo e.g. 'make DATASET_DIR=gs://.../grobid-training-data train-header-model'
 	$(RUN_GROBID_TRAINER) train-header-model.sh \
-    --dataset "$(DATASET_DIR)" \
+		--dataset "$(DATASET_DIR)" \
 		$(TRAIN_ARGS)
 
 
