@@ -1,0 +1,51 @@
+version: '3'
+
+services:
+  grobid-trainer:
+    image: elifesciences/sciencebeam-trainer-grobid_unstable:${GROBID_TRAINER_TAG}
+    volumes:
+      - gradle:/opt/grobid-source/.gradle
+      - data:/data
+
+  tools:
+    build:
+      context: .
+      dockerfile: Dockerfile.tools
+    image: elifesciences/grobid-trainer-tools:${IMAGE_TAG}
+    volumes:
+      - data:/data
+
+  tools-dev-base-image:
+    build:
+      context: .
+      dockerfile: Dockerfile.tools
+      args:
+        install_dev: y
+    image: elifesciences/grobid-trainer-tools-dev-base:${IMAGE_TAG}
+
+  tools-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.tools-dev
+      args:
+        base_image: elifesciences/grobid-trainer-tools-dev-base:${IMAGE_TAG}
+    image: elifesciences/grobid-trainer-tools-dev:${IMAGE_TAG}
+    depends_on:
+      - tools-dev-base-image
+    volumes:
+      - data:/data
+
+  tools-docker:
+    build:
+      context: .
+      dockerfile: Dockerfile.tools
+      args:
+        install_docker: y
+    image: elifesciences/grobid-trainer-tools-docker:${IMAGE_TAG}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - data:/data
+
+volumes:
+  gradle:
+  data:

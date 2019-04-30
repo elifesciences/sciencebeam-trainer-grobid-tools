@@ -1,0 +1,6 @@
+/venv
+/.temp
+
+*.lst
+.config
+*.pyc
