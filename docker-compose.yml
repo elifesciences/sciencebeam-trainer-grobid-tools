@@ -11,7 +11,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.tools
-    image: elifesciences/grobid-trainer-tools:${IMAGE_TAG}
+    image: elifesciences/sciencebeam-trainer-grobid-tools:${IMAGE_TAG}
     volumes:
       - data:/data
 
@@ -21,15 +21,15 @@ services:
       dockerfile: Dockerfile.tools
       args:
         install_dev: y
-    image: elifesciences/grobid-trainer-tools-dev-base:${IMAGE_TAG}
+    image: elifesciences/sciencebeam-trainer-grobid-tools-dev-base:${IMAGE_TAG}
 
   tools-dev:
     build:
       context: .
       dockerfile: Dockerfile.tools-dev
       args:
-        base_image: elifesciences/grobid-trainer-tools-dev-base:${IMAGE_TAG}
-    image: elifesciences/grobid-trainer-tools-dev:${IMAGE_TAG}
+        base_image: elifesciences/sciencebeam-trainer-grobid-tools-dev-base:${IMAGE_TAG}
+    image: elifesciences/sciencebeam-trainer-grobid-tools-dev:${IMAGE_TAG}
     depends_on:
       - tools-dev-base-image
     volumes:
@@ -41,7 +41,7 @@ services:
       dockerfile: Dockerfile.tools
       args:
         install_docker: y
-    image: elifesciences/grobid-trainer-tools-docker:${IMAGE_TAG}
+    image: elifesciences/sciencebeam-trainer-grobid-tools-docker:${IMAGE_TAG}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - data:/data
