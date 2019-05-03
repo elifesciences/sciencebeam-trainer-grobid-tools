@@ -1,0 +1,23 @@
+version: '3'
+
+services:
+  grobid-trainer:
+    volumes:
+      - ~/.config/gcloud:/root/.config/gcloud
+
+  tools:
+    volumes:
+      - ~/.config/gcloud:/root/.config/gcloud
+
+  tools-dev:
+    volumes:
+      - ./grobid_training:/opt/grobid-training/grobid_training
+      - ./tests:/opt/grobid-training/tests
+    environment:
+        # avoid issues with .pyc/pyo files when mounting source directory
+        PYTHONOPTIMIZE: ""
+        PYTHONDONTWRITEBYTECODE: "1"
+
+  tools-docker:
+    volumes:
+      - ~/.config/gcloud:/root/.config/gcloud
