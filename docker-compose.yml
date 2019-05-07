@@ -1,47 +1,54 @@
 version: '3'
 
 services:
+  # we are using the sciencebeam-trainer-grobid image to test the whole processing steps
+  # (which switches between that and the tools image depending on the step)
   grobid-trainer:
     image: elifesciences/sciencebeam-trainer-grobid_unstable:${GROBID_TRAINER_TAG}
     volumes:
       - gradle:/opt/grobid-source/.gradle
       - data:/data
 
+  # the main tools image that we are going to push
   tools:
     build:
       context: .
       dockerfile: Dockerfile.tools
-    image: elifesciences/grobid-trainer-tools:${IMAGE_TAG}
+    image: elifesciences/sciencebeam-trainer-grobid-tools:${IMAGE_TAG}
     volumes:
       - data:/data
 
+  # same as tools but with dev dependencies
   tools-dev-base-image:
     build:
       context: .
       dockerfile: Dockerfile.tools
       args:
         install_dev: y
-    image: elifesciences/grobid-trainer-tools-dev-base:${IMAGE_TAG}
+    image: elifesciences/sciencebeam-trainer-grobid-tools-dev-base:${IMAGE_TAG}
 
+  # with added dev tools and tests
   tools-dev:
     build:
       context: .
       dockerfile: Dockerfile.tools-dev
       args:
-        base_image: elifesciences/grobid-trainer-tools-dev-base:${IMAGE_TAG}
-    image: elifesciences/grobid-trainer-tools-dev:${IMAGE_TAG}
+        base_image: elifesciences/sciencebeam-trainer-grobid-tools-dev-base:${IMAGE_TAG}
+    image: elifesciences/sciencebeam-trainer-grobid-tools-dev:${IMAGE_TAG}
     depends_on:
       - tools-dev-base-image
     volumes:
       - data:/data
 
+  # only used when building a docker image locally (with the trained model)
+  # usually we will use gcloud builds instead
   tools-docker:
     build:
       context: .
       dockerfile: Dockerfile.tools
       args:
         install_docker: y
-    image: elifesciences/grobid-trainer-tools-docker:${IMAGE_TAG}
+    image: elifesciences/sciencebeam-trainer-grobid-tools-docker:${IMAGE_TAG}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - data:/data
