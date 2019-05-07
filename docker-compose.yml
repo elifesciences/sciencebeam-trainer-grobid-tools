@@ -1,12 +1,15 @@
 version: '3'
 
 services:
+  # we are using the sciencebeam-trainer-grobid image to test the whole processing steps
+  # (which switches between that and the tools image depending on the step)
   grobid-trainer:
     image: elifesciences/sciencebeam-trainer-grobid_unstable:${GROBID_TRAINER_TAG}
     volumes:
       - gradle:/opt/grobid-source/.gradle
       - data:/data
 
+  # the main tools image that we are going to push
   tools:
     build:
       context: .
@@ -15,6 +18,7 @@ services:
     volumes:
       - data:/data
 
+  # same as tools but with dev dependencies
   tools-dev-base-image:
     build:
       context: .
@@ -23,6 +27,7 @@ services:
         install_dev: y
     image: elifesciences/sciencebeam-trainer-grobid-tools-dev-base:${IMAGE_TAG}
 
+  # with added dev tools and tests
   tools-dev:
     build:
       context: .
@@ -35,6 +40,8 @@ services:
     volumes:
       - data:/data
 
+  # only used when building a docker image locally (with the trained model)
+  # usually we will use gcloud builds instead
   tools-docker:
     build:
       context: .
