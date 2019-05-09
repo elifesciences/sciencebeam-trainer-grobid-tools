@@ -262,7 +262,7 @@ def parse_args(argv=None):
 
     process_cloud_args(
         parsed_args, parsed_args.output_path,
-        name='grobid-training'
+        name='sciencebeam-grobid-trainer-tools'
     )
 
     get_logger().info('parsed_args: %s', parsed_args)
