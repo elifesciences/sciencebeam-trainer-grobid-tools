@@ -33,3 +33,7 @@ COPY annot-xml-front.conf ./
 COPY docker ./docker
 COPY scripts /opt/scripts
 ENV PATH /opt/scripts:$PATH
+
+ARG revision
+LABEL org.opencontainers.image.revision="${revision}"
+LABEL org.opencontainers.image.source=https://github.com/elifesciences/sciencebeam-trainer-grobid-tools

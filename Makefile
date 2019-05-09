@@ -244,7 +244,7 @@ grobid-trained-model-build-cloud: .grobid-trained-model-image-tag build
 
 
 ci-build-and-test:
-	make DOCKER_COMPOSE="$(DOCKER_COMPOSE_CI)" tools-test
+	make DOCKER_COMPOSE="$(DOCKER_COMPOSE_CI)" build tools-test
 
 
 ci-clean:
