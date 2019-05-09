@@ -14,7 +14,7 @@ RUN if [ "${install_docker}" = "y" ]; then curl -sSL https://get.docker.com/ | s
 
 ENV PATH /root/.local/bin:$PATH
 
-WORKDIR /opt/grobid-training
+WORKDIR /opt/sciencebeam-grobid-trainer-tools
 
 COPY requirements.txt ./
 RUN pip install --user -r requirements.txt
