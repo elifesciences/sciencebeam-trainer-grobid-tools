@@ -48,7 +48,6 @@ dev-venv:
 example-data-processing-end-to-end: \
 	get-example-data \
 	generate-grobid-training-data \
-	upload-dataset \
 	auto-annotate-header \
 	copy-auto-annotate-header-training-data-to-tei \
 	train-header-model
@@ -133,7 +132,7 @@ grobid-shell:
 
 
 get-example-data: build
-	$(RUN_TOOLS) python -m grobid_training.download_source_files \
+	$(RUN_TOOLS) python -m sciencebeam_trainer_grobid_tools.download_source_files \
 		--document-file-list "$(SAMPLE_DATA_PATH)/$(SAMPLE_FILE_LIST)" \
 		--document-file-column "source_url" \
 		--target-file-list "$(SAMPLE_DATA_PATH)/$(SAMPLE_FILE_LIST)" \
@@ -149,7 +148,7 @@ get-example-data: build
 
 
 get-example-data-cloud: build
-	$(RUN_TOOLS) python -m grobid_training.download_source_files \
+	$(RUN_TOOLS) python -m sciencebeam_trainer_grobid_tools.download_source_files \
 		--document-file-list "$(SAMPLE_DATA_PATH)/$(SAMPLE_FILE_LIST)" \
 		--document-file-column "source_url" \
 		--target-file-list "$(SAMPLE_DATA_PATH)/$(SAMPLE_FILE_LIST)" \
@@ -166,7 +165,7 @@ get-example-data-cloud: build
 
 auto-annotate-header: build
 	$(RUN_TOOLS) bash -c 'grep "titlePart" "$(DATASET_DIR)/header/corpus/tei-raw/"*.xml'
-	$(RUN_TOOLS) python -m grobid_training.auto_annotate_header \
+	$(RUN_TOOLS) python -m sciencebeam_trainer_grobid_tools.auto_annotate_header \
 			--source-base-path "$(DATASET_DIR)/header/corpus/tei-raw" \
 			--output-path "$(DATASET_DIR)/header/corpus/tei-auto" \
 			--xml-path "$(XML_DATA_DIR)" \
@@ -176,7 +175,7 @@ auto-annotate-header: build
 
 
 auto-annotate-header-cloud: build
-	$(RUN_TOOLS) python -m grobid_training.auto_annotate_header \
+	$(RUN_TOOLS) python -m sciencebeam_trainer_grobid_tools.auto_annotate_header \
 			--source-base-path "$(SAMPLE_CLOUD_DATASET_PATH)/header/corpus/tei-raw" \
 			--output-path "$(SAMPLE_CLOUD_DATASET_PATH)/header/corpus/tei-auto" \
 			--xml-path "$(SAMPLE_CLOUD_DATASET_PATH)/xml" \

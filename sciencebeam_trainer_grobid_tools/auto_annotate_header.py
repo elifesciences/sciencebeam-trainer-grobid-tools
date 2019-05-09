@@ -262,7 +262,7 @@ def parse_args(argv=None):
 
     process_cloud_args(
         parsed_args, parsed_args.output_path,
-        name='grobid-training'
+        name='sciencebeam-grobid-trainer-tools'
     )
 
     get_logger().info('parsed_args: %s', parsed_args)
@@ -274,7 +274,7 @@ def run(argv=None):
     args = parse_args(argv)
 
     if args.debug:
-        logging.getLogger('grobid_training').setLevel('DEBUG')
+        logging.getLogger('sciencebeam_trainer_grobid_tools').setLevel('DEBUG')
         logging.getLogger('sciencebeam_gym').setLevel('DEBUG')
 
     # We use the save_main_session option because one or more DoFn's in this
