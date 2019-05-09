@@ -19,7 +19,7 @@ elifePipeline {
                     returnStdout: true
                 ).trim()
                 echo "revision label: ${actualRevision} (expected: ${commit})"
-                assert actualGrobidTag == grobidTag
+                assert actualRevision == grobidTag
             } finally {
                 sh "make ci-clean"
             }
