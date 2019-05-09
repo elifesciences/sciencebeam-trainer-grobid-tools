@@ -11,7 +11,7 @@ services:
 
   tools-dev:
     volumes:
-      - ./grobid_training:/opt/grobid-training/grobid_training
+      - ./sciencebeam_trainer_grobid_tools:/opt/grobid-training/sciencebeam_trainer_grobid_tools
       - ./tests:/opt/grobid-training/tests
     environment:
         # avoid issues with .pyc/pyo files when mounting source directory
