@@ -9,7 +9,7 @@ elifePipeline {
 
         stage 'Build and run tests', {
             try {
-                sh "make ci-build-and-test"
+                sh "make IMAGE_TAG=${commit} REVISION=${commit} ci-build-and-test"
 
                 echo "Checking revision label..."
                 def image = DockerImage.elifesciences(this, 'sciencebeam-trainer-grobid-tools', commit)
