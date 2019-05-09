@@ -10,6 +10,16 @@ elifePipeline {
         stage 'Build and run tests', {
             try {
                 sh "make ci-build-and-test"
+
+                echo "Checking revision label..."
+                def image = DockerImage.elifesciences(this, 'sciencebeam-trainer-grobid-tools', commit)
+                echo "Reading revision label of image: ${image.toString()}"
+                def actualRevision = sh(
+                    script: "./ci/docker-read-local-label.sh ${image.toString()} org.opencontainers.image.revision",
+                    returnStdout: true
+                ).trim()
+                echo "revision label: ${actualRevision} (expected: ${commit})"
+                assert actualGrobidTag == grobidTag
             } finally {
                 sh "make ci-clean"
             }
