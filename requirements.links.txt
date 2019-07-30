@@ -1,1 +1,2 @@
-git+https://github.com/elifesciences/sciencebeam-gym.git@develop#egg=sciencebeam-gym
+# google dataflow doesn't have git installed
+sciencebeam-gym @ https://github.com/elifesciences/sciencebeam-gym/archive/develop.zip
