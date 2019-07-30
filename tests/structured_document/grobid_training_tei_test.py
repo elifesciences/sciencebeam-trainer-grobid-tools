@@ -12,7 +12,8 @@ from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei im
     _lines_to_tei as _original_lines_to_tei,
     TeiLine,
     TeiText,
-    TAG_ATTRIB_NAME
+    TAG_ATTRIB_NAME,
+    DEFAULT_TAG_KEY
 )
 
 
@@ -286,7 +287,8 @@ class TestGrobidTrainingStructuredDocument(object):
         LOGGER.debug('original tei xml: %s', etree.tostring(original_tei_xml))
         doc = GrobidTrainingTeiStructuredDocument(
             original_tei_xml,
-            preserve_tags=True
+            preserve_tags=True,
+            tag_to_tei_path_mapping={}
         )
         LOGGER.debug('doc: %s', doc)
 
@@ -487,3 +489,14 @@ class TestLinesToTei(object):
                 token1=TOKEN_1, token2=TOKEN_2
             )
         )
+
+    def test_should_apply_default_tag(self):
+        tei_parent = _lines_to_tei(
+            'front',
+            [TeiLine([_tei_text(TOKEN_1, '')])],
+            tag_to_tei_path_mapping={
+                DEFAULT_TAG_KEY: 'other'
+            }
+        )
+        child_elements = list(tei_parent)
+        assert [c.tag for c in child_elements] == ['other']
