@@ -23,7 +23,7 @@ def _iter_all_tokens(structured_document):
 
 def _map_token_tags(structured_document, tag_fn):
     for token in _iter_all_tokens(structured_document):
-        tag = structured_document.get_tag(token)
+        tag = structured_document.get_tag_or_preserved_tag(token)
         updated_tag = tag_fn(tag, token)
         if updated_tag != tag:
             structured_document.set_tag(token, updated_tag)

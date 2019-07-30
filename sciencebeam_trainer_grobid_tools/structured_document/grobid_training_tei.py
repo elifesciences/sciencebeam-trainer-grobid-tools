@@ -25,6 +25,7 @@ from sciencebeam_gym.structured_document import (
 
 
 TAG_ATTRIB_NAME = 'tag'
+PRESERVED_TAG_ATTRIB_NAME = 'preserved_tag'
 
 
 DEFAULT_TAG_KEY = ''
@@ -54,10 +55,12 @@ class TeiText(object):
         self.attrib = attrib if attrib is not None else {}
         if tag is not None:
             self.attrib[TAG_ATTRIB_NAME] = tag
+        self.line = None
 
     def __repr__(self):
-        return '%s(%s, tag=%s)' % (
-            type(self).__name__, json.dumps(self.text), self.attrib.get(TAG_ATTRIB_NAME)
+        return '%s(%s, tag=%s, preserved_tag=%s)' % (
+            type(self).__name__, json.dumps(self.text), self.attrib.get(TAG_ATTRIB_NAME),
+            self.attrib.get(PRESERVED_TAG_ATTRIB_NAME)
         )
 
 
@@ -69,6 +72,8 @@ class TeiLine(object):
     def __init__(self, tokens):
         self.tokens = tokens
         self.non_space_tokens = [t for t in tokens if not isinstance(t, TeiSpace)]
+        for token in tokens:
+            token.line = self
 
     def __repr__(self):
         return 'TeiLine(%s)' % self.tokens
@@ -233,6 +238,8 @@ def _lines_to_tei(tag_name, lines, tag_to_tei_path_mapping=None):
             current_element.append(E(TeiTagNames.LB))
         for token in line.tokens:
             tag = token.attrib.get(TAG_ATTRIB_NAME)
+            if not tag:
+                tag = token.attrib.get(PRESERVED_TAG_ATTRIB_NAME)
             if tag:
                 required_path = tag_to_tei_path_mapping.get(tag, tag).split('/')
             else:
@@ -289,17 +296,15 @@ class GrobidTrainingTeiStructuredDocument(AbstractStructuredDocument):
             else DEFAULT_TAG_TO_TEI_PATH_MAPPING
         )
         rev_tag_to_tei_path_mapping = {v: k for k, v in self._tag_to_tei_path_mapping.items()}
-        if not preserve_tags:
-            for line in self._lines:
-                for token in line.tokens:
-                    self.set_tag(token, None)
-        else:
+        if preserve_tags:
             for line in self._lines:
                 for token in line.tokens:
                     existing_tag = self.get_tag(token)
                     mapped_tag = rev_tag_to_tei_path_mapping.get(existing_tag, existing_tag)
-                    if mapped_tag != existing_tag:
-                        self.set_tag(token, mapped_tag)
+                    self._set_preserved_tag(token, mapped_tag)
+        for line in self._lines:
+            for token in line.tokens:
+                self.set_tag_only(token, None)
 
     @property
     def root(self):
@@ -332,8 +337,32 @@ class GrobidTrainingTeiStructuredDocument(AbstractStructuredDocument):
     def get_tag(self, parent, scope=None, level=None):
         return parent.attrib.get(_get_tag_attrib_name(scope, level))
 
-    def set_tag(self, parent, tag, scope=None, level=None):
+    def get_tag_or_preserved_tag(self, parent, scope=None, level=None):
+        tag = self.get_tag(parent, scope=scope, level=level)
+        if not tag:
+            tag = parent.attrib.get(PRESERVED_TAG_ATTRIB_NAME)
+        return tag
+
+    def set_tag_only(self, parent, tag, scope=None, level=None):
         set_or_remove_attrib(parent.attrib, _get_tag_attrib_name(scope, level), tag)
+
+    def set_tag(self, parent, tag, scope=None, level=None):
+        self.set_tag_only(parent, tag, scope=scope, level=level)
+        if not isinstance(parent, TeiSpace):
+            self._clear_same_preserved_tag_on_same_line(parent)
+
+    def _clear_same_preserved_tag_on_same_line(self, token):
+        preserved_tag = token.attrib.get(PRESERVED_TAG_ATTRIB_NAME)
+        if not preserved_tag:
+            return
+        line_tokens = token.line.tokens
+        get_logger().debug('clearing tokens on same line: %s (%s)', preserved_tag, line_tokens)
+        for line_token in line_tokens:
+            if line_token.attrib.get(PRESERVED_TAG_ATTRIB_NAME) == preserved_tag:
+                self._set_preserved_tag(line_token, None)
+
+    def _set_preserved_tag(self, parent, tag):
+        set_or_remove_attrib(parent.attrib, PRESERVED_TAG_ATTRIB_NAME, tag)
 
     def get_tag_by_scope(self, parent):
         return get_attrib_by_scope(parent.attrib, TAG_ATTRIB_NAME)
