@@ -236,33 +236,9 @@ def _lines_to_tei(tag_name, lines, tag_to_tei_path_mapping=None):
     for i, line in enumerate(lines):
         if i:
             current_element.append(E(TeiTagNames.LB))
-        # preserved_tags = [
-        #     token.attrib.get(PRESERVED_TAG_ATTRIB_NAME)
-        #     for token in line.tokens
-        # ]
-        # for line_preserved_tag in set(preserved_tags) - {None}:
-        #     preserved_line_tokens = [
-        #         token
-        #         for token, preserved_tag in zip(line.tokens, preserved_tags)
-        #         if preserved_tag == line_preserved_tag
-        #     ]
-        #     preserved_line_tokens_with_tags = [
-        #         token
-        #         for token in preserved_line_tokens
-        #         if token.attrib.get(TAG_ATTRIB_NAME)
-        #     ]
-        #     get_logger().debug('preserved_tags: %s', preserved_tags)
-        #     get_logger().debug('preserved_line_tokens_with_tags: %s', preserved_line_tokens_with_tags)
-        #     if preserved_line_tokens_with_tags:
-        #         preserved_tags = [
-        #             preserved_tag if preserved_tag != line_preserved_tag else None
-        #             for preserved_tag in preserved_tags
-        #         ]
-        #         get_logger().debug('preserved_tags (after clearing): %s (%s)', preserved_tags, line_preserved_tag)
         for token in line.tokens:
             tag = token.attrib.get(TAG_ATTRIB_NAME)
             if not tag:
-                # tag = preserved_tag
                 tag = token.attrib.get(PRESERVED_TAG_ATTRIB_NAME)
             if tag:
                 required_path = tag_to_tei_path_mapping.get(tag, tag).split('/')
