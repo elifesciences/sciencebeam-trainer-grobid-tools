@@ -27,7 +27,11 @@ from sciencebeam_gym.structured_document import (
 TAG_ATTRIB_NAME = 'tag'
 
 
+DEFAULT_TAG_KEY = ''
+
+
 DEFAULT_TAG_TO_TEI_PATH_MAPPING = {
+    DEFAULT_TAG_KEY: 'note[type="other"]',
     'title': 'docTitle/titlePart',
     'abstract': 'div[type="abstract"]'
 }
@@ -236,6 +240,9 @@ def _lines_to_tei(tag_name, lines, tag_to_tei_path_mapping=None):
                     pending_space_tokens.append(token)
                     continue
                 required_path = []
+                default_path_str = tag_to_tei_path_mapping.get(DEFAULT_TAG_KEY)
+                if default_path_str:
+                    required_path = default_path_str.split('/')
 
             for pending_space_token in pending_space_tokens:
                 current_element, current_path = _get_element_at_path(
