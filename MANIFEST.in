@@ -1,2 +1,2 @@
 include requirements.txt
-include requirements.links.txt
+include requirements.links.setup.txt

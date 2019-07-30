@@ -8,7 +8,7 @@ from setuptools import (
 with open(os.path.join('requirements.txt'), 'r') as f:
     REQUIRED_PACKAGES = f.readlines()
 
-with open(os.path.join('requirements.links.txt'), 'r') as f:
+with open(os.path.join('requirements.links.setup.txt'), 'r') as f:
     LINKS_PACKAGES = f.readlines()
 
 packages = find_packages()
