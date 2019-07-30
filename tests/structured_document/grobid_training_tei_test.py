@@ -348,6 +348,32 @@ class TestGrobidTrainingStructuredDocument(object):
             )
         )
 
+    def test_should_only_preserve_tags_of_not_overlapping_lines(self):
+        original_tei_xml = _tei(front_items=[
+            E.note(TOKEN_1), E.note(TOKEN_2), E.lb(),
+            E.note(TOKEN_3)
+        ])
+        LOGGER.debug('original tei xml: %s', etree.tostring(original_tei_xml))
+        doc = GrobidTrainingTeiStructuredDocument(
+            original_tei_xml,
+            preserve_tags=True,
+            tag_to_tei_path_mapping={}
+        )
+        LOGGER.debug('doc: %s', doc)
+        lines = _get_all_lines(doc)
+        token1 = list(doc.get_tokens_of_line(lines[0]))[0]
+        assert not doc.get_tag(token1)
+        doc.set_tag(token1, TAG_1)
+
+        root = doc.root
+        front = root.find('./text/front')
+        LOGGER.debug('xml: %s', etree.tostring(front))
+        assert etree.tostring(front) == (
+            '<front><{tag1}>{token1}</{tag1}>{token2}<lb/><note>{token3}</note></front>'.format(
+                token1=TOKEN_1, token2=TOKEN_2, token3=TOKEN_3, tag1=TAG_1
+            )
+        )
+
     def test_should_reverse_map_tags(self):
         tag_to_tei_path_mapping = {
             TAG_1: 'docTitle/titlePart'
