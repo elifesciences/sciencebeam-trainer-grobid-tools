@@ -25,6 +25,7 @@ from sciencebeam_gym.structured_document import (
 
 
 TAG_ATTRIB_NAME = 'tag'
+PRESERVED_TAG_ATTRIB_NAME = 'preserved_tag'
 
 
 DEFAULT_TAG_KEY = ''
@@ -233,6 +234,8 @@ def _lines_to_tei(tag_name, lines, tag_to_tei_path_mapping=None):
             current_element.append(E(TeiTagNames.LB))
         for token in line.tokens:
             tag = token.attrib.get(TAG_ATTRIB_NAME)
+            if not tag:
+                tag = token.attrib.get(PRESERVED_TAG_ATTRIB_NAME)
             if tag:
                 required_path = tag_to_tei_path_mapping.get(tag, tag).split('/')
             else:
@@ -289,17 +292,15 @@ class GrobidTrainingTeiStructuredDocument(AbstractStructuredDocument):
             else DEFAULT_TAG_TO_TEI_PATH_MAPPING
         )
         rev_tag_to_tei_path_mapping = {v: k for k, v in self._tag_to_tei_path_mapping.items()}
-        if not preserve_tags:
-            for line in self._lines:
-                for token in line.tokens:
-                    self.set_tag(token, None)
-        else:
+        if preserve_tags:
             for line in self._lines:
                 for token in line.tokens:
                     existing_tag = self.get_tag(token)
                     mapped_tag = rev_tag_to_tei_path_mapping.get(existing_tag, existing_tag)
-                    if mapped_tag != existing_tag:
-                        self.set_tag(token, mapped_tag)
+                    self._set_preserved_tag(token, mapped_tag)
+        for line in self._lines:
+            for token in line.tokens:
+                self.set_tag_only(token, None)
 
     @property
     def root(self):
@@ -332,8 +333,21 @@ class GrobidTrainingTeiStructuredDocument(AbstractStructuredDocument):
     def get_tag(self, parent, scope=None, level=None):
         return parent.attrib.get(_get_tag_attrib_name(scope, level))
 
-    def set_tag(self, parent, tag, scope=None, level=None):
+    def get_tag_or_preserved_tag(self, parent, scope=None, level=None):
+        tag = self.get_tag(parent, scope=scope, level=level)
+        if not tag:
+            tag = parent.attrib.get(PRESERVED_TAG_ATTRIB_NAME)
+        return tag
+
+    def set_tag_only(self, parent, tag, scope=None, level=None):
         set_or_remove_attrib(parent.attrib, _get_tag_attrib_name(scope, level), tag)
+
+    def set_tag(self, parent, tag, scope=None, level=None):
+        self.set_tag_only(parent, tag, scope=scope, level=level)
+        self._set_preserved_tag(parent, None)
+
+    def _set_preserved_tag(self, parent, tag):
+        set_or_remove_attrib(parent.attrib, PRESERVED_TAG_ATTRIB_NAME, tag)
 
     def get_tag_by_scope(self, parent):
         return get_attrib_by_scope(parent.attrib, TAG_ATTRIB_NAME)
