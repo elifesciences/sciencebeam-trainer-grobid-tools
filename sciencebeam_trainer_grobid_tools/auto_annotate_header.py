@@ -270,7 +270,7 @@ def parse_args(argv=None):
     return parsed_args
 
 
-def run(args):
+def run(args: argparse.Namespace):
     # We use the save_main_session option because one or more DoFn's in this
     # workflow rely on global context (e.g., a module imported at module level).
     pipeline_options = PipelineOptions.from_dictionary(vars(args))
