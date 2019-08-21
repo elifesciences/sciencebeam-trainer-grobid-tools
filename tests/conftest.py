@@ -1,5 +1,6 @@
 import logging
 from multiprocessing.dummy import Pool as ThreadPool
+from pathlib2 import Path
 
 import pytest
 
@@ -18,3 +19,7 @@ def thread_pool():
     finally:
         pool.close()
         pool.join()
+
+@pytest.fixture()
+def temp_dir(tmpdir):
+    return Path(tmpdir)
