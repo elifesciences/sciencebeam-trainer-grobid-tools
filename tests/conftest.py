@@ -1,6 +1,6 @@
 import logging
 from multiprocessing.dummy import Pool as ThreadPool
-from pathlib2 import Path
+from pathlib import Path
 
 import pytest
 
