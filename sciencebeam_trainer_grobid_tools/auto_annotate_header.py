@@ -270,13 +270,7 @@ def parse_args(argv=None):
     return parsed_args
 
 
-def run(argv=None):
-    args = parse_args(argv)
-
-    if args.debug:
-        logging.getLogger('sciencebeam_trainer_grobid_tools').setLevel('DEBUG')
-        logging.getLogger('sciencebeam_gym').setLevel('DEBUG')
-
+def run(args):
     # We use the save_main_session option because one or more DoFn's in this
     # workflow rely on global context (e.g., a module imported at module level).
     pipeline_options = PipelineOptions.from_dictionary(vars(args))
@@ -288,7 +282,17 @@ def run(argv=None):
         # Execute the pipeline and wait until it is completed.
 
 
+def main(argv=None):
+    args = parse_args(argv)
+
+    if args.debug:
+        logging.getLogger('sciencebeam_trainer_grobid_tools').setLevel('DEBUG')
+        logging.getLogger('sciencebeam_gym').setLevel('DEBUG')
+
+    run(args)
+
+
 if __name__ == '__main__':
     logging.basicConfig(level='INFO')
 
-    run()
+    main()

@@ -4,7 +4,7 @@ from lxml import etree
 from lxml.builder import E
 
 from sciencebeam_trainer_grobid_tools.auto_annotate_header import (
-    run
+    main
 )
 
 
@@ -36,7 +36,7 @@ class TestEndToEnd(object):
                 E('article-meta', E('title-group', E('article-title', TEXT_1)
             ))))
         ))
-        run([
+        main([
             '--source-base-path=%s' % tei_raw_path,
             '--output-path=%s' % tei_auto_path,
             '--xml-path=%s' % xml_path,
