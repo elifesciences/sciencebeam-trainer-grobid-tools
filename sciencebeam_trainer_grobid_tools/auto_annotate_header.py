@@ -121,6 +121,7 @@ class AnnotatePipelineFactory(object):
         self.output_path = opt.output_path
         self.xml_path = opt.xml_path
         self.xml_filename_regex = opt.xml_filename_regex
+        self.limit = opt.limit
         self.resume = opt.resume
         self.xml_mapping, self.fields = _get_xml_mapping_and_fields(
             opt.xml_mapping_path,
@@ -172,7 +173,7 @@ class AnnotatePipelineFactory(object):
         tei_xml_file_url_source = FindFiles(os.path.join(
             self.source_base_path,
             '*.header.tei.xml*'
-        ))
+        ), limit=self.limit)
 
         tei_xml_input_urls = (
             p |
