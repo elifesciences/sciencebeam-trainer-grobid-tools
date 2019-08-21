@@ -1,6 +1,6 @@
 import os
-from pathlib2 import Path
-from mock import patch, call
+from pathlib import Path
+from unittest.mock import patch, call
 
 import pytest
 

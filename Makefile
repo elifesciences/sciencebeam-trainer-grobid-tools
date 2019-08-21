@@ -45,14 +45,15 @@ venv-clean:
 
 
 venv-create:
-	# python3 -m venv $(VENV)
-	virtualenv -p python2.7 $(VENV)
+	python3 -m venv $(VENV)
 
 
 dev-install:
+	$(PIP) install -r requirements.build.txt
 	$(PIP) install -r requirements.txt
 	$(PIP) install -r requirements.dev.txt
 	SCIENCEBEAM_GYM_NO_APT=1 $(PIP) install -r requirements.links.txt
+	$(PIP) install -e . --no-deps
 
 
 dev-venv: venv-create dev-install
