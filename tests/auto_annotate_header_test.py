@@ -42,7 +42,7 @@ class TestEndToEnd(object):
             '--xml-path=%s' % xml_path,
             '--xml-filename-regex=%s' % TEI_FILENAME_REGEX,
             '--fields=title,abstract'
-        ])
+        ], save_main_session=False)
         tei_auto_file_path = tei_auto_path.joinpath(TEI_FILENAME_1)
         assert tei_auto_file_path.exists()
         tei_auto_root = etree.parse(str(tei_auto_file_path)).getroot()
