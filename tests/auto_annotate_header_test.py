@@ -33,8 +33,8 @@ class TestEndToEnd(object):
         xml_path.mkdir()
         xml_path.joinpath(XML_FILENAME_1).write_bytes(etree.tostring(
             E.article(E.front(
-                E('article-meta', E('title-group', E('article-title', TEXT_1)
-            ))))
+                E('article-meta', E('title-group', E('article-title', TEXT_1)))
+            ))
         ))
         main([
             '--source-base-path=%s' % tei_raw_path,

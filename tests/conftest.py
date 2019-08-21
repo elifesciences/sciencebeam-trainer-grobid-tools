@@ -20,6 +20,7 @@ def thread_pool():
         pool.close()
         pool.join()
 
+
 @pytest.fixture()
 def temp_dir(tmpdir):
     return Path(tmpdir)
