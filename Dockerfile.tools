@@ -1,12 +1,15 @@
-FROM python:2.7-stretch
+FROM python:3.6-stretch
 
 # install gcloud to make it easier to access cloud storage
-# gcloud sdk cli only works with Python 2 (in 2019)
-RUN mkdir -p /usr/local/gcloud \
-    && curl -q https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz -o /tmp/google-cloud-sdk.tar.gz \
-    && tar -C /usr/local/gcloud -xvf /tmp/google-cloud-sdk.tar.gz \
-    && rm /tmp/google-cloud-sdk.tar.gz \
-    && /usr/local/gcloud/google-cloud-sdk/install.sh
+ARG install_gcloud=y
+RUN if [ "${install_gcloud}" = "y" ]; then \
+      mkdir -p /usr/local/gcloud \
+      && curl -q https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz \
+        -o /tmp/google-cloud-sdk.tar.gz \
+      && tar -C /usr/local/gcloud -xvf /tmp/google-cloud-sdk.tar.gz \
+      && rm /tmp/google-cloud-sdk.tar.gz \
+      && /usr/local/gcloud/google-cloud-sdk/install.sh --usage-reporting false; \
+    fi
 ENV PATH /usr/local/gcloud/google-cloud-sdk/bin:$PATH
 
 ARG install_docker
