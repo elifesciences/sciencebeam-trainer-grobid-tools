@@ -2,6 +2,10 @@ DOCKER_COMPOSE_DEV = docker-compose
 DOCKER_COMPOSE_CI = docker-compose -f docker-compose.yml
 DOCKER_COMPOSE = $(DOCKER_COMPOSE_DEV)
 
+VENV = venv
+PIP = $(VENV)/bin/pip
+PYTHON = $(VENV)/bin/python
+
 RUN_GROBID_TRAINER = $(DOCKER_COMPOSE) run --rm grobid-trainer
 
 RUN_TOOLS = $(DOCKER_COMPOSE) run --rm tools
@@ -34,15 +38,46 @@ SAMPLE_CLOUD_DATASET_PATH = $(SAMPLE_CLOUD_BASE_OUTPUT_PATH)/grobid-dataset
 SAMPLE_CLOUD_MODELS_PATH = $(SAMPLE_CLOUD_BASE_OUTPUT_PATH)/grobid-models
 
 
-dev-venv:
-	rm -rf venv || true
+venv-clean:
+	@if [ -d "$(VENV)" ]; then \
+		rm -rf "$(VENV)"; \
+	fi
 
-	virtualenv -p python2.7 venv
 
-	venv/bin/pip install -r requirements.txt
-	venv/bin/pip install -r requirements.dev.txt
-	export SCIENCEBEAM_GYM_NO_APT=1
-	venv/bin/pip install -r requirements.links.txt
+venv-create:
+	# python3 -m venv $(VENV)
+	virtualenv -p python2.7 $(VENV)
+
+
+dev-install:
+	$(PIP) install -r requirements.txt
+	$(PIP) install -r requirements.dev.txt
+	SCIENCEBEAM_GYM_NO_APT=1 $(PIP) install -r requirements.links.txt
+
+
+dev-venv: venv-create dev-install
+
+
+dev-flake8:
+	$(PYTHON) -m flake8 sciencebeam_trainer_grobid_tools tests setup.py
+
+
+dev-pylint:
+	$(PYTHON) -m pylint sciencebeam_trainer_grobid_tools tests setup.py
+
+
+dev-lint: dev-flake8 dev-pylint
+
+
+dev-pytest:
+	$(PYTHON) -m pytest -p no:cacheprovider $(ARGS)
+
+
+dev-watch:
+	$(PYTHON) -m pytest_watch -- -p no:cacheprovider $(ARGS)
+
+
+dev-test: dev-lint dev-pytest
 
 
 example-data-processing-end-to-end: \
