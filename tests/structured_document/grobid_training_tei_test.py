@@ -56,9 +56,13 @@ def _tei_text(text, tag=None):
     })
 
 
+def _to_xml(node: etree.Element) -> str:
+    return etree.tostring(node).decode('utf-8')
+
+
 def _lines_to_tei(*args, **kwargs):
     root = _original_lines_to_tei(*args, **kwargs)
-    LOGGER.debug('root: %s', etree.tostring(root))
+    LOGGER.debug('root: %s', _to_xml(root))
     return root
 
 
@@ -247,7 +251,7 @@ class TestGrobidTrainingStructuredDocument(object):
         front = root.find('./text/front')
         child_elements = list(front)
         assert [c.tag for c in child_elements] == [TAG_1]
-        assert etree.tostring(child_elements[0]) == (
+        assert _to_xml(child_elements[0]) == (
             '<{tag1}>{token1}<{lb}/> {token2}</{tag1}>'.format(
                 tag1=TAG_1, token1=TOKEN_1, token2=TOKEN_2, lb=TeiTagNames.LB
             )
@@ -271,8 +275,8 @@ class TestGrobidTrainingStructuredDocument(object):
 
         root = doc.root
         front = root.find('./text/front')
-        LOGGER.debug('xml: %s', etree.tostring(front))
-        assert etree.tostring(front) == (
+        LOGGER.debug('xml: %s', _to_xml(front))
+        assert _to_xml(front) == (
             '<front><{tag1}>{token1}<{lb}/></{tag1}>'
             ' <{tag2}>{token2}</{tag2}></front>'.format(
                 tag1=TAG_1, tag2=TAG_2, token1=TOKEN_1, token2=TOKEN_2, lb=TeiTagNames.LB
@@ -284,7 +288,7 @@ class TestGrobidTrainingStructuredDocument(object):
             E.docTitle(E.titlePart(TOKEN_1)),
             TOKEN_2
         ])
-        LOGGER.debug('original tei xml: %s', etree.tostring(original_tei_xml))
+        LOGGER.debug('original tei xml: %s', _to_xml(original_tei_xml))
         doc = GrobidTrainingTeiStructuredDocument(
             original_tei_xml,
             preserve_tags=True,
@@ -294,8 +298,8 @@ class TestGrobidTrainingStructuredDocument(object):
 
         root = doc.root
         front = root.find('./text/front')
-        LOGGER.debug('xml: %s', etree.tostring(front))
-        assert etree.tostring(front) == (
+        LOGGER.debug('xml: %s', _to_xml(front))
+        assert _to_xml(front) == (
             '<front><docTitle><titlePart>{token1}</titlePart></docTitle>{token2}</front>'.format(
                 token1=TOKEN_1, token2=TOKEN_2
             )
@@ -306,7 +310,7 @@ class TestGrobidTrainingStructuredDocument(object):
             E.div(TOKEN_1, {'tag': TAG_1}),
             TOKEN_2
         ])
-        LOGGER.debug('original tei xml: %s', etree.tostring(original_tei_xml))
+        LOGGER.debug('original tei xml: %s', _to_xml(original_tei_xml))
         doc = GrobidTrainingTeiStructuredDocument(
             original_tei_xml,
             preserve_tags=True,
@@ -316,8 +320,8 @@ class TestGrobidTrainingStructuredDocument(object):
 
         root = doc.root
         front = root.find('./text/front')
-        LOGGER.debug('xml: %s', etree.tostring(front))
-        assert etree.tostring(front) == (
+        LOGGER.debug('xml: %s', _to_xml(front))
+        assert _to_xml(front) == (
             '<front><div tag="{TAG_1}">{token1}</div>{token2}</front>'.format(
                 token1=TOKEN_1, token2=TOKEN_2, TAG_1=TAG_1
             )
@@ -327,7 +331,7 @@ class TestGrobidTrainingStructuredDocument(object):
         original_tei_xml = _tei(front_items=[
             E.note(TOKEN_1)
         ])
-        LOGGER.debug('original tei xml: %s', etree.tostring(original_tei_xml))
+        LOGGER.debug('original tei xml: %s', _to_xml(original_tei_xml))
         doc = GrobidTrainingTeiStructuredDocument(
             original_tei_xml,
             preserve_tags=True,
@@ -341,8 +345,8 @@ class TestGrobidTrainingStructuredDocument(object):
 
         root = doc.root
         front = root.find('./text/front')
-        LOGGER.debug('xml: %s', etree.tostring(front))
-        assert etree.tostring(front) == (
+        LOGGER.debug('xml: %s', _to_xml(front))
+        assert _to_xml(front) == (
             '<front><{tag1}>{token1}</{tag1}></front>'.format(
                 token1=TOKEN_1, tag1=TAG_1
             )
@@ -353,7 +357,7 @@ class TestGrobidTrainingStructuredDocument(object):
             E.note(TOKEN_1), E.note(TOKEN_2), E.lb(),
             E.note(TOKEN_3)
         ])
-        LOGGER.debug('original tei xml: %s', etree.tostring(original_tei_xml))
+        LOGGER.debug('original tei xml: %s', _to_xml(original_tei_xml))
         doc = GrobidTrainingTeiStructuredDocument(
             original_tei_xml,
             preserve_tags=True,
@@ -367,8 +371,8 @@ class TestGrobidTrainingStructuredDocument(object):
 
         root = doc.root
         front = root.find('./text/front')
-        LOGGER.debug('xml: %s', etree.tostring(front))
-        assert etree.tostring(front) == (
+        LOGGER.debug('xml: %s', _to_xml(front))
+        assert _to_xml(front) == (
             '<front><{tag1}>{token1}</{tag1}>{token2}<lb/><note>{token3}</note></front>'.format(
                 token1=TOKEN_1, token2=TOKEN_2, token3=TOKEN_3, tag1=TAG_1
             )
@@ -381,7 +385,7 @@ class TestGrobidTrainingStructuredDocument(object):
         original_tei_xml = _tei(front_items=[
             E.docTitle(E.titlePart(TOKEN_1))
         ])
-        LOGGER.debug('original tei xml: %s', etree.tostring(original_tei_xml))
+        LOGGER.debug('original tei xml: %s', _to_xml(original_tei_xml))
         doc = GrobidTrainingTeiStructuredDocument(
             original_tei_xml,
             tag_to_tei_path_mapping=tag_to_tei_path_mapping,
@@ -451,7 +455,7 @@ class TestLinesToTei(object):
         )
         child_elements = list(tei_parent)
         assert [c.tag for c in child_elements] == [TAG_1]
-        assert etree.tostring(child_elements[0]) == (
+        assert _to_xml(child_elements[0]) == (
             '<{tag1}>{token1}<{lb}/>{token2}</{tag1}>'.format(
                 tag1=TAG_1, token1=TOKEN_1, token2=TOKEN_2, lb=TeiTagNames.LB
             )
@@ -467,7 +471,7 @@ class TestLinesToTei(object):
         )
         child_elements = list(tei_parent)
         assert [c.tag for c in child_elements] == [TAG_1]
-        assert etree.tostring(child_elements[0]) == (
+        assert _to_xml(child_elements[0]) == (
             '<{tag1}>{token1}<{lb}/> {token2}</{tag1}>'.format(
                 tag1=TAG_1, token1=TOKEN_1, token2=TOKEN_2, lb=TeiTagNames.LB
             )
@@ -481,7 +485,7 @@ class TestLinesToTei(object):
                 TeiLine([_tei_text(' ', None), _tei_text(TOKEN_2, TAG_2)])
             ]
         )
-        assert etree.tostring(tei_parent) == (
+        assert _to_xml(tei_parent) == (
             '<front><{tag1}>{token1}<{lb}/></{tag1}> <{tag2}>{token2}</{tag2}></front>'.format(
                 tag1=TAG_1, tag2=TAG_2, token1=TOKEN_1, token2=TOKEN_2, lb=TeiTagNames.LB
             )
@@ -534,7 +538,7 @@ class TestLinesToTei(object):
                 TAG_2: 'parent/child2'
             }
         )
-        assert etree.tostring(tei_parent) == (
+        assert _to_xml(tei_parent) == (
             '<front><parent><child1>{token1}</child1>'
             '<child2>{token2}</child2></parent></front>'.format(
                 token1=TOKEN_1, token2=TOKEN_2
