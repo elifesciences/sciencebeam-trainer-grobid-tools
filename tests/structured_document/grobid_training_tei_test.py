@@ -28,10 +28,10 @@ TAG_1 = 'tag1'
 TAG_2 = 'tag2'
 
 
-def _tei(front_items=None):
-    return E.tei(E.text(E.front(
-        *front_items
-    )))
+def _tei(text_items: list = None, front_items: list = None):
+    if text_items is None:
+        text_items = [E.front(*front_items)]
+    return E.tei(E.text(*text_items))
 
 
 def _tei_lb():
@@ -86,16 +86,31 @@ class TestGrobidTrainingStructuredDocument(object):
         doc = GrobidTrainingTeiStructuredDocument(root)
         assert list(doc.get_pages()) == [root]
 
-    def test_should_find_one_line_with_one_token(self):
+    def test_should_find_one_line_with_one_token_at_front_level(self):
         doc = GrobidTrainingTeiStructuredDocument(
             _tei(front_items=[
                 E.note(TOKEN_1)
-            ])
+            ]),
+            container_node_path='text/front'
         )
         lines = _get_all_lines(doc)
         assert _get_token_texts_for_lines(doc, lines) == [
             [TOKEN_1]
         ]
+        assert doc.root.find('./text/front/note').text == TOKEN_1
+
+    def test_should_find_one_line_with_one_token_at_text_level(self):
+        doc = GrobidTrainingTeiStructuredDocument(
+            _tei(text_items=[
+                E.note(TOKEN_1)
+            ]),
+            container_node_path='text'
+        )
+        lines = _get_all_lines(doc)
+        assert _get_token_texts_for_lines(doc, lines) == [
+            [TOKEN_1]
+        ]
+        assert doc.root.find('./text/note').text == TOKEN_1
 
     def test_should_find_two_lines_separated_by_lb_element(self):
         doc = GrobidTrainingTeiStructuredDocument(
@@ -402,7 +417,7 @@ class TestGrobidTrainingStructuredDocument(object):
 class TestLinesToTei(object):
     def test_should_convert_single_token(self):
         tei_parent = _lines_to_tei(
-            'front',
+            E.front(),
             [TeiLine([_tei_text(TOKEN_1, TAG_1)])]
         )
         child_elements = list(tei_parent)
@@ -411,7 +426,7 @@ class TestLinesToTei(object):
 
     def test_should_add_lb_element_before_token_with_tag(self):
         tei_parent = _lines_to_tei(
-            'front',
+            E.front(),
             [
                 TeiLine([]),
                 TeiLine([_tei_text(TOKEN_1, TAG_1)])
@@ -423,7 +438,7 @@ class TestLinesToTei(object):
 
     def test_should_add_lb_element_before_token_without_tag(self):
         tei_parent = _lines_to_tei(
-            'front',
+            E.front(),
             [
                 TeiLine([]),
                 TeiLine([_tei_text(TOKEN_1, None)])
@@ -435,7 +450,7 @@ class TestLinesToTei(object):
 
     def test_should_add_lb_element_before_tokens_without_tag(self):
         tei_parent = _lines_to_tei(
-            'front',
+            E.front(),
             [
                 TeiLine([]),
                 TeiLine([_tei_text(TOKEN_1, None), _tei_text(' ' + TOKEN_2, None)])
@@ -447,7 +462,7 @@ class TestLinesToTei(object):
 
     def test_should_add_lb_within_tokens_with_same_tag(self):
         tei_parent = _lines_to_tei(
-            'front',
+            E.front(),
             [
                 TeiLine([_tei_text(TOKEN_1, TAG_1)]),
                 TeiLine([_tei_text(TOKEN_2, TAG_1)])
@@ -463,7 +478,7 @@ class TestLinesToTei(object):
 
     def test_should_preserve_space_after_lb_within_tokens_with_same_tag(self):
         tei_parent = _lines_to_tei(
-            'front',
+            E.front(),
             [
                 TeiLine([_tei_text(TOKEN_1, TAG_1)]),
                 TeiLine([_tei_text(' ' + TOKEN_2, TAG_1)])
@@ -479,7 +494,7 @@ class TestLinesToTei(object):
 
     def test_should_not_include_standalone_space_after_lb_in_tag_before_other_different_tag(self):
         tei_parent = _lines_to_tei(
-            'front',
+            E.front(),
             [
                 TeiLine([_tei_text(TOKEN_1, TAG_1)]),
                 TeiLine([_tei_text(' ', None), _tei_text(TOKEN_2, TAG_2)])
@@ -493,7 +508,7 @@ class TestLinesToTei(object):
 
     def test_should_combine_tokens(self):
         tei_parent = _lines_to_tei(
-            'front',
+            E.front(),
             [TeiLine([
                 _tei_text(TOKEN_1, TAG_1),
                 _tei_text(' ' + TOKEN_2, TAG_1)
@@ -505,7 +520,7 @@ class TestLinesToTei(object):
 
     def test_should_map_tag_to_tei_path(self):
         tei_parent = _lines_to_tei(
-            'front',
+            E.front(),
             [TeiLine([_tei_text(TOKEN_1, TAG_1)])],
             tag_to_tei_path_mapping={
                 TAG_1: TAG_2
@@ -517,7 +532,7 @@ class TestLinesToTei(object):
 
     def test_should_map_tag_to_nested_tei_path(self):
         tei_parent = _lines_to_tei(
-            'front',
+            E.front(),
             [TeiLine([_tei_text(TOKEN_1, TAG_1)])],
             tag_to_tei_path_mapping={
                 TAG_1: 'parent/child'
@@ -531,7 +546,7 @@ class TestLinesToTei(object):
 
     def test_should_use_common_path_between_similar_nested_tag_paths(self):
         tei_parent = _lines_to_tei(
-            'front',
+            E.front(),
             [TeiLine([_tei_text(TOKEN_1, TAG_1), _tei_text(TOKEN_2, TAG_2)])],
             tag_to_tei_path_mapping={
                 TAG_1: 'parent/child1',
@@ -547,7 +562,7 @@ class TestLinesToTei(object):
 
     def test_should_apply_default_tag(self):
         tei_parent = _lines_to_tei(
-            'front',
+            E.front(),
             [TeiLine([_tei_text(TOKEN_1, '')])],
             tag_to_tei_path_mapping={
                 DEFAULT_TAG_KEY: 'other'
