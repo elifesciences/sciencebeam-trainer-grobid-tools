@@ -30,7 +30,9 @@ from .auto_annotate_utils import (
 )
 from .structured_document.grobid_training_tei import ContainerNodePaths
 from .structured_document.segmentation_annotator import (
-    SegmentationAnnotator
+    SegmentationAnnotator,
+    SegmentationConfig,
+    parse_segmentation_config
 )
 
 
@@ -40,6 +42,9 @@ LOGGER = logging.getLogger(__name__)
 SEGMENTATION_CONTAINER_NODE_PATH = ContainerNodePaths.SEGMENTATION_CONTAINER_NODE_PATH
 
 
+DEFAULT_SEGMENTATION_CONFIG = 'segmentation.conf'
+
+
 def get_logger():
     return logging.getLogger(__name__)
 
@@ -47,7 +52,8 @@ def get_logger():
 def _get_annotator(
         xml_path, xml_mapping, match_detail_reporter,
         use_tag_begin_prefix=False,
-        use_line_no_annotator=False):
+        use_line_no_annotator=False,
+        segmentation_config: SegmentationConfig = None):
 
     annotators = []
     if use_line_no_annotator:
@@ -61,7 +67,8 @@ def _get_annotator(
             target_annotations, match_detail_reporter=match_detail_reporter,
             use_tag_begin_prefix=use_tag_begin_prefix
         )]
-    annotators = annotators + [SegmentationAnnotator()]
+
+    annotators = annotators + [SegmentationAnnotator(segmentation_config)]
     annotator = Annotator(annotators)
     return annotator
 
@@ -77,13 +84,15 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
             opt.xml_mapping_path,
             opt.fields
         )
+        self.segmentation_config = parse_segmentation_config(opt.segmentation_config)
 
     def get_annotator(self, source_url: str):
         target_xml_path = self.get_target_xml_for_source_file(source_url)
         return _get_annotator(
             target_xml_path,
             self.xml_mapping,
-            match_detail_reporter=None
+            match_detail_reporter=None,
+            segmentation_config=self.segmentation_config
         )
 
 
@@ -94,6 +103,12 @@ def add_main_args(parser):
         '--fields',
         type=comma_separated_str_to_list,
         help='comma separated list of fields to annotate'
+    )
+
+    parser.add_argument(
+        '--segmentation-config',
+        default=DEFAULT_SEGMENTATION_CONFIG,
+        help='path to segmentation config'
     )
 
     add_debug_argument(parser)
