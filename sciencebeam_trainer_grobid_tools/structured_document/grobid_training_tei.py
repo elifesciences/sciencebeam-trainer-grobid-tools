@@ -40,6 +40,9 @@ DEFAULT_TAG_TO_TEI_PATH_MAPPING = {
 }
 
 
+DEFAULT_CONTAINER_NODE_PATH = 'text/front'
+
+
 class TeiTagNames(object):
     LB = 'lb'
 
@@ -296,7 +299,7 @@ class GrobidTrainingTeiStructuredDocument(AbstractStructuredDocument):
             root: etree.Element,
             tag_to_tei_path_mapping: Dict[str, str] = None,
             preserve_tags: bool = True,
-            container_node_path: str = 'text/front'):
+            container_node_path: str = DEFAULT_CONTAINER_NODE_PATH):
         self._root = root
         self._container_node_path = container_node_path
         self._lines = list(_iter_extract_lines_from_container_elements(
@@ -394,10 +397,13 @@ def load_xml_root(filename, **kwargs):
         return etree.parse(f, **kwargs).getroot()
 
 
-def load_grobid_training_tei_structured_document(filename):
+def load_grobid_training_tei_structured_document(
+        filename: str,
+        container_node_path: str = DEFAULT_CONTAINER_NODE_PATH):
     parser = etree.XMLParser(recover=True)
     return GrobidTrainingTeiStructuredDocument(
-        load_xml_root(filename, parser=parser)
+        load_xml_root(filename, parser=parser),
+        container_node_path=container_node_path
     )
 
 
