@@ -44,6 +44,10 @@ from .utils.regex import (
     regex_change_name
 )
 
+from .auto_annotate_utils import (
+    add_debug_argument,
+    process_debug_argument
+)
 from .structured_document.annotator import annotate_structured_document
 
 
@@ -247,10 +251,7 @@ def add_main_args(parser):
         help='resume conversion (skip files that already have an output file)'
     )
 
-    parser.add_argument(
-        '--debug', action='store_true', default=False,
-        help='enable debug output'
-    )
+    add_debug_argument(parser)
 
 
 def parse_args(argv=None):
@@ -285,11 +286,7 @@ def run(args: argparse.Namespace, save_main_session: bool = True):
 
 def main(argv=None, save_main_session: bool = True):
     args = parse_args(argv)
-
-    if args.debug:
-        logging.getLogger('sciencebeam_trainer_grobid_tools').setLevel('DEBUG')
-        logging.getLogger('sciencebeam_gym').setLevel('DEBUG')
-
+    process_debug_argument(args)
     run(args, save_main_session=save_main_session)
 
 
