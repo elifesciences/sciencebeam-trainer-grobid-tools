@@ -48,6 +48,7 @@ def _simple_document_with_tagged_token_lines(
     tei_items = []
     for line in lines:
         tei_items.append(' '.join(token for _, token in line))
+        tei_items.append(E.lb())
     doc = GrobidTrainingTeiStructuredDocument(
         _tei(tei_items),
         container_node_path=SEGMENTATION_CONTAINER_NODE_PATH
@@ -140,6 +141,18 @@ class TestSegmentationAnnotator:
             [
                 (None, TOKEN_1)
             ]
+        ]
+
+    def test_should_annotate_not_fail_on_empty_line(self):
+        doc = _simple_document_with_tagged_token_lines(lines=[
+            [],
+            [(None, TOKEN_1)]
+        ])
+
+        SegmentationAnnotator(DEFAULT_CONFIG, preserve_tags=True).annotate(doc)
+        assert _get_document_tagged_token_lines(doc) == [
+            [],
+            [(None, TOKEN_1)]
         ]
 
     def test_should_annotate_title_line_as_front(self):

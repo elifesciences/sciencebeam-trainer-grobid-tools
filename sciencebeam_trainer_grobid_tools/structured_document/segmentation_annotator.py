@@ -70,6 +70,8 @@ class SegmentationAnnotator(AbstractAnnotator):
                     structured_document.get_tag(token)
                     for token in structured_document.get_tokens_of_line(line)
                 )
+                if not line_tag_counts:
+                    continue
                 majority_tag_name = line_tag_counts.most_common(1)[0][0]
                 segmentation_tag = self.segmentation_tag_name_by_tag_name.get(majority_tag_name)
                 LOGGER.debug(
