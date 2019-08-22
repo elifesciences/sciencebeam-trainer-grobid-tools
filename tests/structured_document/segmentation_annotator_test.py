@@ -118,15 +118,27 @@ class TestSegmentationAnnotator:
             ]
         ]
 
-    def test_should_annotate_no_tag_as_body(self):
+    def test_should_annotate_no_tag_as_body_if_preserve_is_disabled(self):
         doc = _simple_document_with_tagged_token_lines(lines=[
             [(None, TOKEN_1)]
         ])
 
-        SegmentationAnnotator(DEFAULT_CONFIG).annotate(doc)
+        SegmentationAnnotator(DEFAULT_CONFIG, preserve_tags=False).annotate(doc)
         assert _get_document_tagged_token_lines(doc) == [
             [
                 (SegmentationTagNames.BODY, TOKEN_1)
+            ]
+        ]
+
+    def test_should_annotate_not_no_tag_as_body_if_preserve_is_enabled(self):
+        doc = _simple_document_with_tagged_token_lines(lines=[
+            [(None, TOKEN_1)]
+        ])
+
+        SegmentationAnnotator(DEFAULT_CONFIG, preserve_tags=True).annotate(doc)
+        assert _get_document_tagged_token_lines(doc) == [
+            [
+                (None, TOKEN_1)
             ]
         ]
 

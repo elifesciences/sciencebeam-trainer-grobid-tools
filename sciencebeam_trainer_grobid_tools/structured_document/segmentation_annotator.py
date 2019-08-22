@@ -53,9 +53,10 @@ def parse_segmentation_config(filename: str) -> SegmentationConfig:
 
 
 class SegmentationAnnotator(AbstractAnnotator):
-    def __init__(self, config: SegmentationConfig):
+    def __init__(self, config: SegmentationConfig, preserve_tags: bool = False):
         super().__init__()
         self.config = config
+        self.preserve_tags = preserve_tags
         self.segmentation_tag_name_by_tag_name = {
             tag_name: segmentation_tag
             for segmentation_tag, tag_names in config.segmentation_mapping.items()
@@ -75,7 +76,7 @@ class SegmentationAnnotator(AbstractAnnotator):
                     'line_tag_counts: %s (%s -> %s)',
                     line_tag_counts, majority_tag_name, segmentation_tag
                 )
-                if not segmentation_tag:
+                if not segmentation_tag and not self.preserve_tags:
                     segmentation_tag = SegmentationTagNames.BODY
                 if segmentation_tag:
                     for token in structured_document.get_all_tokens_of_line(line):

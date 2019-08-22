@@ -41,10 +41,13 @@ def get_logger():
 def _get_annotator(
         *args,
         segmentation_config: SegmentationConfig = None,
+        preserve_tags: bool = False,
         **kwargs):
 
     annotators = get_default_annotators(*args, **kwargs)
-    annotators = annotators + [SegmentationAnnotator(segmentation_config)]
+    annotators = annotators + [
+        SegmentationAnnotator(segmentation_config, preserve_tags=preserve_tags)
+    ]
     annotator = Annotator(annotators)
     return annotator
 
@@ -68,7 +71,8 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
             target_xml_path,
             self.xml_mapping,
             match_detail_reporter=None,
-            segmentation_config=self.segmentation_config
+            segmentation_config=self.segmentation_config,
+            preserve_tags=self.preserve_tags
         )
 
 
