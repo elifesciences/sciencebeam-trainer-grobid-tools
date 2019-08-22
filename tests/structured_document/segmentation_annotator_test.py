@@ -2,7 +2,6 @@ import logging
 from pathlib import Path
 from typing import List, Tuple
 
-from lxml import etree
 from lxml.builder import E
 
 from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei import (
@@ -16,10 +15,6 @@ from sciencebeam_trainer_grobid_tools.structured_document.segmentation_annotator
     SegmentationAnnotator,
     FrontTagNames,
     SegmentationTagNames
-)
-
-from .grobid_training_tei_test import (
-    _get_all_lines
 )
 
 
@@ -91,6 +86,7 @@ class TestParseSegmentationConfig:
         LOGGER.debug('config: %s', config)
         assert config.segmentation_mapping['front'] == {'title', 'abstract'}
 
+
 class TestSegmentationAnnotator:
     def test_should_not_fail_on_empty_document(self):
         structured_document = GrobidTrainingTeiStructuredDocument(
@@ -151,7 +147,6 @@ class TestSegmentationAnnotator:
                 (SegmentationTagNames.FRONT, TOKEN_3)
             ]
         ]
-
 
     def test_should_annotate_line_with_using_common_tag(self):
         doc = _simple_document_with_tagged_token_lines(lines=[

@@ -41,7 +41,7 @@ def get_logger():
 def _get_annotator(
         *args,
         segmentation_config: SegmentationConfig = None,
-         **kwargs):
+        **kwargs):
 
     annotators = get_default_annotators(*args, **kwargs)
     annotators = annotators + [SegmentationAnnotator(segmentation_config)]
