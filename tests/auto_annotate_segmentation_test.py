@@ -78,3 +78,24 @@ class TestEndToEnd(object):
         front_nodes = tei_auto_root.xpath('//text/front')
         assert front_nodes
         assert front_nodes[0].text == TOKEN_1
+
+    @log_on_exception
+    def test_should_preserve_existing_tag(
+            self, test_helper: SingleFileEndToEndTestHelper):
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            E.tei(E.text(
+                E.page(TOKEN_1)
+            ))
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            E.article(E.front(
+            ))
+        ))
+        main([
+            *test_helper.main_args
+        ], save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        page_nodes = tei_auto_root.xpath('//text/page')
+        assert page_nodes
+        assert page_nodes[0].text == TOKEN_1
