@@ -14,6 +14,7 @@ from .auto_annotate_utils import (
     add_annotation_pipeline_arguments,
     process_annotation_pipeline_arguments,
     get_default_annotators,
+    get_default_config_path,
     AbstractAnnotatePipelineFactory
 )
 from .structured_document.grobid_training_tei import ContainerNodePaths
@@ -82,7 +83,7 @@ def add_main_args(parser):
 
     parser.add_argument(
         '--segmentation-config',
-        default=DEFAULT_SEGMENTATION_CONFIG,
+        default=get_default_config_path(DEFAULT_SEGMENTATION_CONFIG),
         help='path to segmentation config'
     )
 

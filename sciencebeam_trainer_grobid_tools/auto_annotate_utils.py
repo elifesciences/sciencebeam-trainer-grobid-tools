@@ -55,6 +55,10 @@ def process_debug_argument(args: argparse.Namespace):
         logging.getLogger('sciencebeam_gym').setLevel('DEBUG')
 
 
+def get_default_config_path(filename: str):
+    return os.path.join('config', filename)
+
+
 def add_annotation_pipeline_arguments(parser):
     parser.add_argument(
         '--source-base-path', type=str, required=True,
@@ -80,7 +84,8 @@ def add_annotation_pipeline_arguments(parser):
         help='regular expression to transform source filename to target xml filename'
     )
     parser.add_argument(
-        '--xml-mapping-path', type=str, default='annot-xml-front.conf',
+        '--xml-mapping-path', type=str,
+        default=get_default_config_path('annot-xml-front.conf'),
         help='path to xml mapping file'
     )
 
