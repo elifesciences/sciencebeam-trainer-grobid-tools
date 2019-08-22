@@ -29,7 +29,7 @@ from .auto_annotate_utils import (
     process_debug_argument,
     get_xml_mapping_and_fields,
     load_xml,
-    add_annotation_pipeline_args,
+    add_annotation_pipeline_arguments,
     process_annotation_pipeline_arguments,
     AbstractAnnotatePipelineFactory
 )
@@ -94,7 +94,7 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
 
 
 def add_main_args(parser):
-    add_annotation_pipeline_args(parser)
+    add_annotation_pipeline_arguments(parser)
 
     parser.add_argument(
         '--fields',

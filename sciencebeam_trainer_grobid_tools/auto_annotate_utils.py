@@ -45,7 +45,7 @@ def process_debug_argument(args: argparse.Namespace):
         logging.getLogger('sciencebeam_gym').setLevel('DEBUG')
 
 
-def add_annotation_pipeline_args(parser):
+def add_annotation_pipeline_arguments(parser):
     parser.add_argument(
         '--source-base-path', type=str, required=True,
         help='source training data path'
