@@ -45,7 +45,7 @@ def annotate_structured_document_inplace(
         annotator,
         preserve_tags,
         fields):
-    if preserve_tags:
+    if preserve_tags and fields:
         get_logger().debug('preserving tags, except for fields: %s', fields)
         tag_fn = partial(
             _preserve_tag_fn,

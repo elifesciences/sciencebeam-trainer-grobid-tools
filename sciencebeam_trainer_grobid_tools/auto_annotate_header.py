@@ -19,6 +19,7 @@ from sciencebeam_gym.preprocess.annotation.matching_annotator import (
 
 from .utils.string import comma_separated_str_to_list
 
+from .structured_document.grobid_training_tei import ContainerNodePaths
 from .auto_annotate_utils import (
     add_debug_argument,
     process_debug_argument,
@@ -28,10 +29,12 @@ from .auto_annotate_utils import (
     process_annotation_pipeline_arguments,
     AbstractAnnotatePipelineFactory
 )
-from .structured_document.annotator import annotate_structured_document
 
 
 LOGGER = logging.getLogger(__name__)
+
+
+HEADER_CONTAINER_NODE_PATH = ContainerNodePaths.HEADER_CONTAINER_NODE_PATH
 
 
 def get_logger():
@@ -61,31 +64,24 @@ def _get_annotator(
 
 class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
     def __init__(self, opt):
-        super().__init__(opt, tei_filename_pattern='*.header.tei.xml*')
+        super().__init__(
+            opt,
+            tei_filename_pattern='*.header.tei.xml*',
+            container_node_path=HEADER_CONTAINER_NODE_PATH,
+            output_fields=opt.fields
+        )
         self.xml_mapping, self.fields = get_xml_mapping_and_fields(
             opt.xml_mapping_path,
             opt.fields
         )
 
-    def auto_annotate(self, source_url):
-        try:
-            output_xml_path = self.get_tei_xml_output_file_for_source_file(source_url)
-            target_xml_path = self.get_target_xml_for_source_file(source_url)
-            annotator = _get_annotator(
-                target_xml_path,
-                self.xml_mapping,
-                match_detail_reporter=None
-            )
-            annotate_structured_document(
-                source_url,
-                output_xml_path,
-                annotator=annotator,
-                preserve_tags=self.preserve_tags,
-                fields=self.fields
-            )
-        except Exception as e:
-            get_logger().error('failed to process %s due to %s', source_url, e, exc_info=e)
-            raise e
+    def get_annotator(self, source_url: str):
+        target_xml_path = self.get_target_xml_for_source_file(source_url)
+        return _get_annotator(
+            target_xml_path,
+            self.xml_mapping,
+            match_detail_reporter=None
+        )
 
 
 def add_main_args(parser):

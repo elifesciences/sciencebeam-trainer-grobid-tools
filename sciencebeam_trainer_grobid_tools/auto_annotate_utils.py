@@ -2,6 +2,7 @@ import argparse
 import logging
 import os
 from abc import ABC, abstractmethod
+from typing import Set
 
 from lxml import etree
 
@@ -22,6 +23,7 @@ from sciencebeam_gym.preprocess.annotation.target_annotation import (
 )
 
 from .utils.regex import regex_change_name
+from .structured_document.annotator import annotate_structured_document
 
 
 LOGGER = logging.getLogger(__name__)
@@ -126,8 +128,14 @@ def get_xml_mapping_and_fields(xml_mapping_path, fields):
 
 
 class AbstractAnnotatePipelineFactory(ABC):
-    def __init__(self, opt, tei_filename_pattern: str):
+    def __init__(
+            self,
+            opt: argparse.Namespace,
+            tei_filename_pattern: str,
+            container_node_path: str,
+            output_fields: Set[str] = None):
         self.tei_filename_pattern = tei_filename_pattern
+        self.container_node_path = container_node_path
         self.source_base_path = opt.source_base_path
         self.output_path = opt.output_path
         self.xml_path = opt.xml_path
@@ -135,9 +143,10 @@ class AbstractAnnotatePipelineFactory(ABC):
         self.limit = opt.limit
         self.resume = opt.resume
         self.preserve_tags = not opt.no_preserve_tags
+        self.output_fields = output_fields
 
     @abstractmethod
-    def auto_annotate(self, source_url):
+    def get_annotator(self, source_url: str):
         pass
 
     def get_tei_xml_output_file_for_source_file(self, source_url):
@@ -159,6 +168,22 @@ class AbstractAnnotatePipelineFactory(ABC):
                 self.xml_filename_regex
             )
         )
+
+    def auto_annotate(self, source_url: str):
+        try:
+            output_xml_path = self.get_tei_xml_output_file_for_source_file(source_url)
+            annotator = self.get_annotator(source_url)
+            annotate_structured_document(
+                source_url,
+                output_xml_path,
+                annotator=annotator,
+                preserve_tags=self.preserve_tags,
+                fields=self.output_fields,
+                container_node_path=self.container_node_path
+            )
+        except Exception as e:
+            get_logger().error('failed to process %s due to %s', source_url, e, exc_info=e)
+            raise e
 
     def run(self, args: argparse.Namespace, save_main_session: bool = True):
         # We use the save_main_session option because one or more DoFn's in this

@@ -4,13 +4,13 @@ from lxml import etree
 from lxml.builder import E
 
 from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei import (
-    GrobidTrainingTeiStructuredDocument
+    GrobidTrainingTeiStructuredDocument,
+    ContainerNodePaths
 )
 
 from sciencebeam_trainer_grobid_tools.structured_document.segmentation_annotator import (
     SegmentationAnnotator,
-    FrontTagNames,
-    SEGMENTATION_CONTAINER_NODE_PATH
+    FrontTagNames
 )
 
 from .grobid_training_tei_test import (
@@ -19,6 +19,9 @@ from .grobid_training_tei_test import (
 
 
 LOGGER = logging.getLogger(__name__)
+
+
+SEGMENTATION_CONTAINER_NODE_PATH = ContainerNodePaths.SEGMENTATION_CONTAINER_NODE_PATH
 
 
 TOKEN_1 = 'Token1'

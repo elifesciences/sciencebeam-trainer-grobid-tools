@@ -10,9 +10,6 @@ from sciencebeam_gym.preprocess.annotation.annotator import (
 LOGGER = logging.getLogger(__name__)
 
 
-SEGMENTATION_CONTAINER_NODE_PATH = 'text'
-
-
 class FrontTagNames:
     TITLE = 'title'
 

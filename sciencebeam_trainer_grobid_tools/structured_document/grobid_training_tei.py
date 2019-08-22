@@ -40,7 +40,12 @@ DEFAULT_TAG_TO_TEI_PATH_MAPPING = {
 }
 
 
-DEFAULT_CONTAINER_NODE_PATH = 'text/front'
+class ContainerNodePaths:
+    HEADER_CONTAINER_NODE_PATH = 'text/front'
+    SEGMENTATION_CONTAINER_NODE_PATH = 'text'
+
+
+DEFAULT_CONTAINER_NODE_PATH = ContainerNodePaths.HEADER_CONTAINER_NODE_PATH
 
 
 class TeiTagNames(object):
