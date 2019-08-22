@@ -3,6 +3,8 @@ import logging
 import os
 from abc import ABC, abstractmethod
 
+from lxml import etree
+
 import apache_beam as beam
 from apache_beam.io.filesystems import FileSystems
 
@@ -82,6 +84,11 @@ def _file_exists(file_url):
     result = FileSystems.exists(file_url)
     LOGGER.debug('file exists: result=%s, url=%s', result, file_url)
     return result
+
+
+def load_xml(file_url):
+    with FileSystems.open(file_url) as source_fp:
+        return etree.parse(source_fp)
 
 
 def get_xml_mapping_and_fields(xml_mapping_path, fields):

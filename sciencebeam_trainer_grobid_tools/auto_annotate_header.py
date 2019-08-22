@@ -34,6 +34,7 @@ from .auto_annotate_utils import (
     add_debug_argument,
     process_debug_argument,
     get_xml_mapping_and_fields,
+    load_xml,
     add_annotation_pipeline_args,
     AbstractAnnotatePipelineFactory
 )
@@ -56,17 +57,6 @@ class MetricCounters(object):
     CONVERT_LXML_TO_SVG_ANNOT_ERROR = 'ConvertPdfToSvgAnnot_error_count'
 
 
-def _file_exists(file_url):
-    result = FileSystems.exists(file_url)
-    LOGGER.debug('file exists: result=%s, url=%s', result, file_url)
-    return result
-
-
-def _load_xml(file_url):
-    with FileSystems.open(file_url) as source_fp:
-        return etree.parse(source_fp)
-
-
 def _get_annotator(
         xml_path, xml_mapping, match_detail_reporter,
         use_tag_begin_prefix=False,
@@ -77,7 +67,7 @@ def _get_annotator(
         annotators.append(LineAnnotator())
     if xml_path:
         target_annotations = xml_root_to_target_annotations(
-            _load_xml(xml_path).getroot(),
+            load_xml(xml_path).getroot(),
             xml_mapping
         )
         annotators = annotators + [MatchingAnnotator(
