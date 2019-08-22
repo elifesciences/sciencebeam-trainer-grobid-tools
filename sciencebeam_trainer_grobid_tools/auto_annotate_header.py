@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import argparse
-import os
 import logging
 
 from lxml import etree
@@ -10,21 +9,12 @@ import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions, SetupOptions
 from apache_beam.io.filesystems import FileSystems
 
-from sciencebeam_utils.beam_utils.utils import (
-    PreventFusion
-)
-
-from sciencebeam_utils.beam_utils.files import (
-    FindFiles
-)
-
 from sciencebeam_utils.beam_utils.main import (
     add_cloud_args,
     process_cloud_args
 )
 
 from sciencebeam_gym.preprocess.annotation.target_annotation import (
-    parse_xml_mapping,
     xml_root_to_target_annotations
 )
 
@@ -40,13 +30,12 @@ from sciencebeam_gym.preprocess.annotation.matching_annotator import (
 
 from .utils.string import comma_separated_str_to_list
 
-from .utils.regex import (
-    regex_change_name
-)
-
 from .auto_annotate_utils import (
     add_debug_argument,
-    process_debug_argument
+    process_debug_argument,
+    get_xml_mapping_and_fields,
+    add_annotation_pipeline_args,
+    AbstractAnnotatePipelineFactory
 )
 from .structured_document.annotator import annotate_structured_document
 
@@ -71,26 +60,6 @@ def _file_exists(file_url):
     result = FileSystems.exists(file_url)
     LOGGER.debug('file exists: result=%s, url=%s', result, file_url)
     return result
-
-
-def _get_xml_mapping_and_fields(xml_mapping_path, fields):
-    xml_mapping = parse_xml_mapping(xml_mapping_path)
-    if fields:
-        xml_mapping = {
-            top_level_key: {
-                k: v
-                for k, v in field_mapping.items()
-                if k in fields
-            }
-            for top_level_key, field_mapping in xml_mapping.items()
-        }
-    else:
-        fields = {
-            k
-            for top_level_key, field_mapping in xml_mapping.items()
-            for k in field_mapping.items()
-        }
-    return xml_mapping, fields
 
 
 def _load_xml(file_url):
@@ -119,38 +88,12 @@ def _get_annotator(
     return annotator
 
 
-class AnnotatePipelineFactory(object):
+class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
     def __init__(self, opt):
-        self.source_base_path = opt.source_base_path
-        self.output_path = opt.output_path
-        self.xml_path = opt.xml_path
-        self.xml_filename_regex = opt.xml_filename_regex
-        self.limit = opt.limit
-        self.resume = opt.resume
-        self.xml_mapping, self.fields = _get_xml_mapping_and_fields(
+        super().__init__(opt, tei_filename_pattern='*.header.tei.xml*')
+        self.xml_mapping, self.fields = get_xml_mapping_and_fields(
             opt.xml_mapping_path,
             opt.fields
-        )
-        self.preserve_tags = not opt.no_preserve_tags
-
-    def get_tei_xml_output_file_for_source_file(self, source_url):
-        return os.path.join(
-            self.output_path,
-            os.path.basename(source_url)
-        )
-
-    def output_file_not_exists(self, source_url):
-        return not _file_exists(
-            self.get_tei_xml_output_file_for_source_file(source_url)
-        )
-
-    def get_target_xml_for_source_file(self, source_url):
-        return os.path.join(
-            self.xml_path,
-            regex_change_name(
-                os.path.basename(source_url),
-                self.xml_filename_regex
-            )
         )
 
     def auto_annotate(self, source_url):
@@ -173,82 +116,18 @@ class AnnotatePipelineFactory(object):
             get_logger().error('failed to process %s due to %s', source_url, e, exc_info=e)
             raise e
 
-    def configure(self, p):
-        tei_xml_file_url_source = FindFiles(os.path.join(
-            self.source_base_path,
-            '*.header.tei.xml*'
-        ), limit=self.limit)
-
-        tei_xml_input_urls = (
-            p |
-            tei_xml_file_url_source |
-            PreventFusion()
-        )
-
-        if self.resume:
-            tei_xml_input_urls |= "SkipAlreadyProcessed" >> beam.Filter(
-                self.output_file_not_exists
-            )
-
-        _ = (
-            tei_xml_input_urls |
-            "Logging Input URI" >> beam.Map(lambda input_uri: get_logger().info(
-                'input uri: %s', input_uri
-            ))
-        )
-
-        _ = (
-            tei_xml_input_urls |
-            "Auto-Annotate" >> beam.Map(self.auto_annotate)
-        )
-
 
 def configure_pipeline(p, opt):
     return AnnotatePipelineFactory(opt).configure(p)
 
 
 def add_main_args(parser):
-    parser.add_argument(
-        '--source-base-path', type=str, required=True,
-        help='source training data path'
-    )
+    add_annotation_pipeline_args(parser)
 
-    parser.add_argument(
-        '--output-path', type=str, required=True,
-        help='target training data path'
-    )
-
-    parser.add_argument(
-        '--limit', type=int, required=False,
-        help='limit the number of files to process'
-    )
-
-    parser.add_argument(
-        '--xml-path', type=str, required=True,
-        help='path to xml file(s)'
-    )
-    parser.add_argument(
-        '--xml-filename-regex', type=str, required=True,
-        help='regular expression to transform source filename to target xml filename'
-    )
-    parser.add_argument(
-        '--xml-mapping-path', type=str, default='annot-xml-front.conf',
-        help='path to xml mapping file'
-    )
     parser.add_argument(
         '--fields',
         type=comma_separated_str_to_list,
         help='comma separated list of fields to annotate'
-    )
-
-    parser.add_argument(
-        '--no-preserve-tags', action='store_true', required=False,
-        help='do not preserve existing tags (tags other than the one being annotated)'
-    )
-
-    parser.add_argument(
-        '--resume', action='store_true', default=False,
-        help='resume conversion (skip files that already have an output file)'
     )
 
     add_debug_argument(parser)
