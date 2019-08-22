@@ -48,15 +48,6 @@ def get_logger():
     return logging.getLogger(__name__)
 
 
-class MetricCounters(object):
-    FILE_PAIR = 'file_pair_count'
-    PAGE = 'page_count'
-    FILTERED_PAGE = 'filtered_page_count'
-    CONVERT_PDF_TO_LXML_ERROR = 'ConvertPdfToLxml_error_count'
-    CONVERT_PDF_TO_PNG_ERROR = 'ConvertPdfToPng_error_count'
-    CONVERT_LXML_TO_SVG_ANNOT_ERROR = 'ConvertPdfToSvgAnnot_error_count'
-
-
 def _get_annotator(
         xml_path, xml_mapping, match_detail_reporter,
         use_tag_begin_prefix=False,
