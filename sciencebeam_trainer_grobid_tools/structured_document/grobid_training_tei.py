@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import copy
 import logging
 import json
 import re
@@ -281,7 +282,7 @@ def _updated_tei_with_lines(
         lines: list,
         tag_to_tei_path_mapping: Dict[str, str],
         container_node_path: str = 'text/front'):
-    updated_root = etree.fromstring(etree.tostring(original_root))
+    updated_root = copy.deepcopy(original_root)
     container_node = updated_root.find(container_node_path)
     get_logger().debug('container_node: %s', container_node)
     container_node.clear()
