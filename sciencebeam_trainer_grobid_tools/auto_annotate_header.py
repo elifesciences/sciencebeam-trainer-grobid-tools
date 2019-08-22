@@ -3,11 +3,8 @@ from __future__ import absolute_import
 import argparse
 import logging
 
-from lxml import etree
-
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions, SetupOptions
-from apache_beam.io.filesystems import FileSystems
 
 from sciencebeam_utils.beam_utils.main import (
     add_cloud_args,
