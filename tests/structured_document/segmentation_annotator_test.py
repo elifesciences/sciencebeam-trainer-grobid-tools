@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from typing import List, Tuple
 
 from lxml import etree
 from lxml.builder import E
@@ -33,13 +34,50 @@ DEFAULT_CONFIG = SegmentationConfig({
 })
 
 
-TOKEN_1 = 'Token1'
+TOKEN_1 = 'token1'
+TOKEN_2 = 'token2'
+TOKEN_3 = 'token3'
+
+
+OTHER_TAG = 'other'
 
 
 def _tei(items: list = None):
     return E.tei(E.text(
         *(items or [])
     ))
+
+
+def _simple_document_with_tagged_token_lines(
+        lines: List[List[Tuple[str, str]]]) -> GrobidTrainingTeiStructuredDocument:
+    tei_items = []
+    for line in lines:
+        tei_items.append(' '.join(token for _, token in line))
+    doc = GrobidTrainingTeiStructuredDocument(
+        _tei(tei_items),
+        container_node_path=SEGMENTATION_CONTAINER_NODE_PATH
+    )
+    doc_lines = [line for page in doc.get_pages() for line in doc.get_lines_of_page(page)]
+    for line, doc_line in zip(lines, doc_lines):
+        for (tag, token), doc_token in zip(line, doc.get_tokens_of_line(doc_line)):
+            assert token == doc.get_text(doc_token)
+            if tag:
+                doc.set_tag(doc_token, tag)
+    return doc
+
+
+def _get_document_tagged_token_lines(
+        doc: GrobidTrainingTeiStructuredDocument) -> List[List[Tuple[str, str]]]:
+    document_tagged_token_lines = [
+        [
+            (doc.get_tag(token), doc.get_text(token))
+            for token in doc.get_tokens_of_line(line)
+        ]
+        for page in doc.get_pages()
+        for line in doc.get_lines_of_page(page)
+    ]
+    LOGGER.debug('document_tagged_token_lines: %s', document_tagged_token_lines)
+    return document_tagged_token_lines
 
 
 class TestParseSegmentationConfig:
@@ -61,33 +99,74 @@ class TestSegmentationAnnotator:
         SegmentationAnnotator(DEFAULT_CONFIG).annotate(structured_document)
 
     def test_should_annotate_title_as_front(self):
-        doc = GrobidTrainingTeiStructuredDocument(
-            _tei(TOKEN_1),
-            container_node_path=SEGMENTATION_CONTAINER_NODE_PATH
-        )
-        lines = _get_all_lines(doc)
-        token1 = list(doc.get_tokens_of_line(lines[0]))[0]
-        doc.set_tag(token1, FrontTagNames.TITLE)
+        doc = _simple_document_with_tagged_token_lines(lines=[
+            [(FrontTagNames.TITLE, TOKEN_1)]
+        ])
 
         SegmentationAnnotator(DEFAULT_CONFIG).annotate(doc)
-        tei_auto_root = doc.root
-        LOGGER.info('tei_auto_root: %s', etree.tostring(tei_auto_root))
-        front_nodes = tei_auto_root.xpath('//text/front')
-        assert front_nodes
-        assert front_nodes[0].text == TOKEN_1
+        assert _get_document_tagged_token_lines(doc) == [
+            [
+                (SegmentationTagNames.FRONT, TOKEN_1)
+            ]
+        ]
 
     def test_should_annotate_other_tags_as_body(self):
-        doc = GrobidTrainingTeiStructuredDocument(
-            _tei(TOKEN_1),
-            container_node_path=SEGMENTATION_CONTAINER_NODE_PATH
-        )
-        lines = _get_all_lines(doc)
-        token1 = list(doc.get_tokens_of_line(lines[0]))[0]
-        doc.set_tag(token1, 'other')
+        doc = _simple_document_with_tagged_token_lines(lines=[
+            [(OTHER_TAG, TOKEN_1)]
+        ])
 
         SegmentationAnnotator(DEFAULT_CONFIG).annotate(doc)
-        tei_auto_root = doc.root
-        LOGGER.info('tei_auto_root: %s', etree.tostring(tei_auto_root))
-        front_nodes = tei_auto_root.xpath('//text/body')
-        assert front_nodes
-        assert front_nodes[0].text == TOKEN_1
+        assert _get_document_tagged_token_lines(doc) == [
+            [
+                (SegmentationTagNames.BODY, TOKEN_1)
+            ]
+        ]
+
+    def test_should_annotate_no_tag_as_body(self):
+        doc = _simple_document_with_tagged_token_lines(lines=[
+            [(None, TOKEN_1)]
+        ])
+
+        SegmentationAnnotator(DEFAULT_CONFIG).annotate(doc)
+        assert _get_document_tagged_token_lines(doc) == [
+            [
+                (SegmentationTagNames.BODY, TOKEN_1)
+            ]
+        ]
+
+    def test_should_annotate_title_line_as_front(self):
+        doc = _simple_document_with_tagged_token_lines(lines=[
+            [
+                (FrontTagNames.TITLE, TOKEN_1),
+                (FrontTagNames.TITLE, TOKEN_2),
+                (FrontTagNames.TITLE, TOKEN_3)
+            ]
+        ])
+
+        SegmentationAnnotator(DEFAULT_CONFIG).annotate(doc)
+        assert _get_document_tagged_token_lines(doc) == [
+            [
+                (SegmentationTagNames.FRONT, TOKEN_1),
+                (SegmentationTagNames.FRONT, TOKEN_2),
+                (SegmentationTagNames.FRONT, TOKEN_3)
+            ]
+        ]
+
+
+    def test_should_annotate_line_with_using_common_tag(self):
+        doc = _simple_document_with_tagged_token_lines(lines=[
+            [
+                (FrontTagNames.TITLE, TOKEN_1),
+                (FrontTagNames.TITLE, TOKEN_2),
+                (OTHER_TAG, TOKEN_3)
+            ]
+        ])
+
+        SegmentationAnnotator(DEFAULT_CONFIG).annotate(doc)
+        assert _get_document_tagged_token_lines(doc) == [
+            [
+                (SegmentationTagNames.FRONT, TOKEN_1),
+                (SegmentationTagNames.FRONT, TOKEN_2),
+                (SegmentationTagNames.FRONT, TOKEN_3)
+            ]
+        ]

@@ -1,5 +1,6 @@
 import logging
 from configparser import ConfigParser
+from collections import Counter
 from typing import Dict, Set
 
 from sciencebeam_utils.utils.string import parse_list
@@ -64,12 +65,19 @@ class SegmentationAnnotator(AbstractAnnotator):
     def annotate(self, structured_document: AbstractStructuredDocument):
         for page in structured_document.get_pages():
             for line in structured_document.get_lines_of_page(page):
-                for token in structured_document.get_all_tokens_of_line(line):
-                    tag_name = structured_document.get_tag(token)
-                    segmentation_tag = self.segmentation_tag_name_by_tag_name.get(tag_name)
-                    LOGGER.debug('token: %s (%s -> %s)', token, tag_name, segmentation_tag)
-                    if not segmentation_tag:
-                        segmentation_tag = SegmentationTagNames.BODY
-                    if segmentation_tag:
+                line_tag_counts = Counter(
+                    structured_document.get_tag(token)
+                    for token in structured_document.get_tokens_of_line(line)
+                )
+                majority_tag_name = line_tag_counts.most_common(1)[0][0]
+                segmentation_tag = self.segmentation_tag_name_by_tag_name.get(majority_tag_name)
+                LOGGER.debug(
+                    'line_tag_counts: %s (%s -> %s)',
+                    line_tag_counts, majority_tag_name, segmentation_tag
+                )
+                if not segmentation_tag:
+                    segmentation_tag = SegmentationTagNames.BODY
+                if segmentation_tag:
+                    for token in structured_document.get_all_tokens_of_line(line):
                         structured_document.set_tag(token, segmentation_tag)
         return structured_document
