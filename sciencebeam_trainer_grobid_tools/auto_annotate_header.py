@@ -3,11 +3,6 @@ from __future__ import absolute_import
 import argparse
 import logging
 
-from sciencebeam_utils.beam_utils.main import (
-    add_cloud_args,
-    process_cloud_args
-)
-
 from sciencebeam_gym.preprocess.annotation.target_annotation import (
     xml_root_to_target_annotations
 )
