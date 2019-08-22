@@ -7,6 +7,7 @@ from lxml import etree
 
 import apache_beam as beam
 from apache_beam.io.filesystems import FileSystems
+from apache_beam.options.pipeline_options import PipelineOptions, SetupOptions
 
 from sciencebeam_utils.beam_utils.utils import PreventFusion
 from sciencebeam_utils.beam_utils.files import FindFiles
@@ -145,6 +146,17 @@ class AbstractAnnotatePipelineFactory(ABC):
                 self.xml_filename_regex
             )
         )
+
+    def run(self, args: argparse.Namespace, save_main_session: bool = True):
+        # We use the save_main_session option because one or more DoFn's in this
+        # workflow rely on global context (e.g., a module imported at module level).
+        pipeline_options = PipelineOptions.from_dictionary(vars(args))
+        pipeline_options.view_as(SetupOptions).save_main_session = save_main_session
+
+        with beam.Pipeline(args.runner, options=pipeline_options) as p:
+            self.configure(p)
+
+            # Execute the pipeline and wait until it is completed.
 
     def configure(self, p):
         tei_xml_file_url_source = FindFiles(os.path.join(

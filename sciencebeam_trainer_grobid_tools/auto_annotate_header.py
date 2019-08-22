@@ -3,9 +3,6 @@ from __future__ import absolute_import
 import argparse
 import logging
 
-import apache_beam as beam
-from apache_beam.options.pipeline_options import PipelineOptions, SetupOptions
-
 from sciencebeam_utils.beam_utils.main import (
     add_cloud_args,
     process_cloud_args
@@ -95,10 +92,6 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
             raise e
 
 
-def configure_pipeline(p, opt):
-    return AnnotatePipelineFactory(opt).configure(p)
-
-
 def add_main_args(parser):
     add_annotation_pipeline_args(parser)
 
@@ -130,15 +123,7 @@ def parse_args(argv=None):
 
 
 def run(args: argparse.Namespace, save_main_session: bool = True):
-    # We use the save_main_session option because one or more DoFn's in this
-    # workflow rely on global context (e.g., a module imported at module level).
-    pipeline_options = PipelineOptions.from_dictionary(vars(args))
-    pipeline_options.view_as(SetupOptions).save_main_session = save_main_session
-
-    with beam.Pipeline(args.runner, options=pipeline_options) as p:
-        configure_pipeline(p, args)
-
-        # Execute the pipeline and wait until it is completed.
+    AnnotatePipelineFactory(args).run(args, save_main_session=save_main_session)
 
 
 def main(argv=None, save_main_session: bool = True):
