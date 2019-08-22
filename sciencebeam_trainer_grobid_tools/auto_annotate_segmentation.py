@@ -3,19 +3,7 @@ from __future__ import absolute_import
 import argparse
 import logging
 
-from sciencebeam_gym.preprocess.annotation.target_annotation import (
-    xml_root_to_target_annotations
-)
-
-
-from sciencebeam_gym.preprocess.annotation.annotator import (
-    Annotator,
-    LineAnnotator
-)
-
-from sciencebeam_gym.preprocess.annotation.matching_annotator import (
-    MatchingAnnotator
-)
+from sciencebeam_gym.preprocess.annotation.annotator import Annotator
 
 from .utils.string import comma_separated_str_to_list
 
@@ -23,9 +11,9 @@ from .auto_annotate_utils import (
     add_debug_argument,
     process_debug_argument,
     get_xml_mapping_and_fields,
-    load_xml,
     add_annotation_pipeline_arguments,
     process_annotation_pipeline_arguments,
+    get_default_annotators,
     AbstractAnnotatePipelineFactory
 )
 from .structured_document.grobid_training_tei import ContainerNodePaths
@@ -50,24 +38,11 @@ def get_logger():
 
 
 def _get_annotator(
-        xml_path, xml_mapping, match_detail_reporter,
-        use_tag_begin_prefix=False,
-        use_line_no_annotator=False,
-        segmentation_config: SegmentationConfig = None):
+        *args,
+        segmentation_config: SegmentationConfig = None,
+         **kwargs):
 
-    annotators = []
-    if use_line_no_annotator:
-        annotators.append(LineAnnotator())
-    if xml_path:
-        target_annotations = xml_root_to_target_annotations(
-            load_xml(xml_path).getroot(),
-            xml_mapping
-        )
-        annotators = annotators + [MatchingAnnotator(
-            target_annotations, match_detail_reporter=match_detail_reporter,
-            use_tag_begin_prefix=use_tag_begin_prefix
-        )]
-
+    annotators = get_default_annotators(*args, **kwargs)
     annotators = annotators + [SegmentationAnnotator(segmentation_config)]
     annotator = Annotator(annotators)
     return annotator

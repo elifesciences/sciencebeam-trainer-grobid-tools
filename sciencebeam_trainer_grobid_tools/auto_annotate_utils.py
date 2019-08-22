@@ -2,7 +2,7 @@ import argparse
 import logging
 import os
 from abc import ABC, abstractmethod
-from typing import Set
+from typing import List, Set
 
 from lxml import etree
 
@@ -18,6 +18,14 @@ from sciencebeam_utils.beam_utils.main import (
 from sciencebeam_utils.beam_utils.utils import PreventFusion
 from sciencebeam_utils.beam_utils.files import FindFiles
 
+from sciencebeam_gym.preprocess.annotation.target_annotation import (
+    xml_root_to_target_annotations
+)
+
+from sciencebeam_gym.preprocess.annotation.annotator import LineAnnotator
+from sciencebeam_gym.preprocess.annotation.matching_annotator import MatchingAnnotator
+
+from sciencebeam_gym.preprocess.annotation.annotator import AbstractAnnotator
 from sciencebeam_gym.preprocess.annotation.target_annotation import (
     parse_xml_mapping
 )
@@ -125,6 +133,26 @@ def get_xml_mapping_and_fields(xml_mapping_path, fields):
             for k in field_mapping.items()
         }
     return xml_mapping, fields
+
+
+def get_default_annotators(
+        xml_path, xml_mapping, match_detail_reporter,
+        use_tag_begin_prefix=False,
+        use_line_no_annotator=False) -> List[AbstractAnnotator]:
+
+    annotators = []
+    if use_line_no_annotator:
+        annotators.append(LineAnnotator())
+    if xml_path:
+        target_annotations = xml_root_to_target_annotations(
+            load_xml(xml_path).getroot(),
+            xml_mapping
+        )
+        annotators = annotators + [MatchingAnnotator(
+            target_annotations, match_detail_reporter=match_detail_reporter,
+            use_tag_begin_prefix=use_tag_begin_prefix
+        )]
+    return annotators
 
 
 class AbstractAnnotatePipelineFactory(ABC):
