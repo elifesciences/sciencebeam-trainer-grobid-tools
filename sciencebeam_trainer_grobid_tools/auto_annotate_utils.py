@@ -9,6 +9,11 @@ import apache_beam as beam
 from apache_beam.io.filesystems import FileSystems
 from apache_beam.options.pipeline_options import PipelineOptions, SetupOptions
 
+from sciencebeam_utils.beam_utils.main import (
+    add_cloud_args,
+    process_cloud_args
+)
+
 from sciencebeam_utils.beam_utils.utils import PreventFusion
 from sciencebeam_utils.beam_utils.files import FindFiles
 
@@ -78,7 +83,15 @@ def add_annotation_pipeline_args(parser):
         '--resume', action='store_true', default=False,
         help='resume conversion (skip files that already have an output file)'
     )
+    add_cloud_args(parser)
     return parser
+
+
+def process_annotation_pipeline_arguments(args: argparse.Namespace):
+    process_cloud_args(
+        args, args.output_path,
+        name='sciencebeam-grobid-trainer-tools'
+    )
 
 
 def _file_exists(file_url):

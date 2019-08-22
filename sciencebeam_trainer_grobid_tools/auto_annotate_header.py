@@ -30,6 +30,7 @@ from .auto_annotate_utils import (
     get_xml_mapping_and_fields,
     load_xml,
     add_annotation_pipeline_args,
+    process_annotation_pipeline_arguments,
     AbstractAnnotatePipelineFactory
 )
 from .structured_document.annotator import annotate_structured_document
@@ -107,18 +108,10 @@ def add_main_args(parser):
 def parse_args(argv=None):
     parser = argparse.ArgumentParser()
     add_main_args(parser)
-    add_cloud_args(parser)
 
-    # parsed_args, other_args = parser.parse_known_args(argv)
     parsed_args = parser.parse_args(argv)
-
-    process_cloud_args(
-        parsed_args, parsed_args.output_path,
-        name='sciencebeam-grobid-trainer-tools'
-    )
-
+    process_annotation_pipeline_arguments(parsed_args)
     get_logger().info('parsed_args: %s', parsed_args)
-
     return parsed_args
 
 
