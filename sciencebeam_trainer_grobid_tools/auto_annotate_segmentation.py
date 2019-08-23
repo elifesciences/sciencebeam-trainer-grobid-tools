@@ -57,7 +57,8 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
         super().__init__(
             opt,
             tei_filename_pattern='*.segmentation.tei.xml*',
-            container_node_path=SEGMENTATION_CONTAINER_NODE_PATH
+            container_node_path=SEGMENTATION_CONTAINER_NODE_PATH,
+            output_fields=opt.no_preserve_fields
         )
         self.xml_mapping, self.fields = get_xml_mapping_and_fields(
             opt.xml_mapping_path,
@@ -83,6 +84,12 @@ def add_main_args(parser):
         '--fields',
         type=comma_separated_str_to_list,
         help='comma separated list of fields to annotate'
+    )
+
+    parser.add_argument(
+        '--no-preserve-fields',
+        type=comma_separated_str_to_list,
+        help='comma separated list of output fields that should not be preserved'
     )
 
     parser.add_argument(
