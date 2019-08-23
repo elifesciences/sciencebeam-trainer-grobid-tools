@@ -2,7 +2,7 @@ import argparse
 import logging
 import os
 from abc import ABC, abstractmethod
-from typing import List, Set
+from typing import Dict, List, Set
 
 from lxml import etree
 
@@ -166,9 +166,11 @@ class AbstractAnnotatePipelineFactory(ABC):
             opt: argparse.Namespace,
             tei_filename_pattern: str,
             container_node_path: str,
+            tag_to_tei_path_mapping: Dict[str, str] = None,
             output_fields: Set[str] = None):
         self.tei_filename_pattern = tei_filename_pattern
         self.container_node_path = container_node_path
+        self.tag_to_tei_path_mapping = tag_to_tei_path_mapping
         self.source_base_path = opt.source_base_path
         self.output_path = opt.output_path
         self.xml_path = opt.xml_path
@@ -212,7 +214,8 @@ class AbstractAnnotatePipelineFactory(ABC):
                 annotator=annotator,
                 preserve_tags=self.preserve_tags,
                 fields=self.output_fields,
-                container_node_path=self.container_node_path
+                container_node_path=self.container_node_path,
+                tag_to_tei_path_mapping=self.tag_to_tei_path_mapping
             )
         except Exception as e:
             get_logger().error('failed to process %s due to %s', source_url, e, exc_info=e)

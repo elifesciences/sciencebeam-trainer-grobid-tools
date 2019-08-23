@@ -17,7 +17,11 @@ from .auto_annotate_utils import (
     get_default_config_path,
     AbstractAnnotatePipelineFactory
 )
-from .structured_document.grobid_training_tei import ContainerNodePaths
+from .structured_document.grobid_training_tei import (
+    ContainerNodePaths,
+    DEFAULT_TAG_TO_TEI_PATH_MAPPING,
+    DEFAULT_TAG_KEY
+)
 from .structured_document.segmentation_annotator import (
     SegmentationAnnotator,
     SegmentationConfig,
@@ -29,6 +33,12 @@ LOGGER = logging.getLogger(__name__)
 
 
 SEGMENTATION_CONTAINER_NODE_PATH = ContainerNodePaths.SEGMENTATION_CONTAINER_NODE_PATH
+
+
+SEGMENTATION_TAG_TO_TEI_PATH_MAPPING = {
+    **DEFAULT_TAG_TO_TEI_PATH_MAPPING,
+    DEFAULT_TAG_KEY: 'body'
+}
 
 
 DEFAULT_SEGMENTATION_CONFIG = 'segmentation.conf'
@@ -58,6 +68,7 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
             opt,
             tei_filename_pattern='*.segmentation.tei.xml*',
             container_node_path=SEGMENTATION_CONTAINER_NODE_PATH,
+            tag_to_tei_path_mapping=SEGMENTATION_TAG_TO_TEI_PATH_MAPPING,
             output_fields=opt.no_preserve_fields
         )
         self.xml_mapping, self.fields = get_xml_mapping_and_fields(

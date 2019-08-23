@@ -101,7 +101,7 @@ class TestEndToEnd(object):
         assert page_nodes[0].text == TOKEN_1
 
     @log_on_exception
-    def test_should_not_preserve_exclude_existing_tag(
+    def test_should_not_preserve_exclude_existing_tag_and_use_body_by_default(
             self, test_helper: SingleFileEndToEndTestHelper):
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
             E.tei(E.text(
@@ -120,3 +120,6 @@ class TestEndToEnd(object):
         tei_auto_root = test_helper.get_tei_auto_root()
         page_nodes = tei_auto_root.xpath('//text/page')
         assert not page_nodes
+        body_nodes = tei_auto_root.xpath('//text/body')
+        assert body_nodes
+        assert body_nodes[0].text == TOKEN_1

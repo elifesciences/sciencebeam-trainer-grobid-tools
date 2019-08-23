@@ -7,7 +7,11 @@ from sciencebeam_gym.preprocess.annotation.annotator import Annotator
 
 from .utils.string import comma_separated_str_to_list
 
-from .structured_document.grobid_training_tei import ContainerNodePaths
+from .structured_document.grobid_training_tei import (
+    ContainerNodePaths,
+    DEFAULT_TAG_TO_TEI_PATH_MAPPING
+)
+
 from .auto_annotate_utils import (
     add_debug_argument,
     process_debug_argument,
@@ -23,6 +27,9 @@ LOGGER = logging.getLogger(__name__)
 
 
 HEADER_CONTAINER_NODE_PATH = ContainerNodePaths.HEADER_CONTAINER_NODE_PATH
+
+
+HEADER_TAG_TO_TEI_PATH_MAPPING = DEFAULT_TAG_TO_TEI_PATH_MAPPING
 
 
 def get_logger():
@@ -41,6 +48,7 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
             opt,
             tei_filename_pattern='*.header.tei.xml*',
             container_node_path=HEADER_CONTAINER_NODE_PATH,
+            tag_to_tei_path_mapping=HEADER_TAG_TO_TEI_PATH_MAPPING,
             output_fields=opt.fields
         )
         self.xml_mapping, self.fields = get_xml_mapping_and_fields(

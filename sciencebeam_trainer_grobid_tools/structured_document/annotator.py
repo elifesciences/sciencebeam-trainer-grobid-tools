@@ -4,8 +4,7 @@ from functools import partial
 
 from .grobid_training_tei import (
     load_grobid_training_tei_structured_document,
-    save_grobid_training_tei_structured_document,
-    DEFAULT_CONTAINER_NODE_PATH
+    save_grobid_training_tei_structured_document
 )
 
 
@@ -69,11 +68,11 @@ def annotate_structured_document(
         annotator,
         preserve_tags: bool,
         fields,
-        container_node_path: str = DEFAULT_CONTAINER_NODE_PATH):
+        **kwargs):
     get_logger().info('loading from: %s', source_structured_document_path)
     structured_document = load_grobid_training_tei_structured_document(
         source_structured_document_path,
-        container_node_path=container_node_path
+        **kwargs
     )
 
     annotate_structured_document_inplace(

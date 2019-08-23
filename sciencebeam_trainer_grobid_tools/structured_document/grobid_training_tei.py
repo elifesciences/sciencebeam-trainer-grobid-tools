@@ -402,14 +402,9 @@ def load_xml_root(filename, **kwargs):
         return etree.parse(f, **kwargs).getroot()
 
 
-def load_grobid_training_tei_structured_document(
-        filename: str,
-        container_node_path: str = DEFAULT_CONTAINER_NODE_PATH):
+def load_grobid_training_tei_structured_document(filename: str, **kwargs):
     parser = etree.XMLParser(recover=True)
-    return GrobidTrainingTeiStructuredDocument(
-        load_xml_root(filename, parser=parser),
-        container_node_path=container_node_path
-    )
+    return GrobidTrainingTeiStructuredDocument(load_xml_root(filename, parser=parser), **kwargs)
 
 
 def save_grobid_training_tei_structured_document(
