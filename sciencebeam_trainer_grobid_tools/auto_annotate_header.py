@@ -82,7 +82,7 @@ def parse_args(argv=None):
     add_main_args(parser)
 
     parsed_args = parser.parse_args(argv)
-    process_annotation_pipeline_arguments(parsed_args)
+    process_annotation_pipeline_arguments(parser, parsed_args)
     get_logger().info('parsed_args: %s', parsed_args)
     return parsed_args
 

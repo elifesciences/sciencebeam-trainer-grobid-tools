@@ -11,7 +11,7 @@ from sciencebeam_trainer_grobid_tools.auto_annotate_segmentation import (
     main
 )
 
-from .test_utils import log_on_exception
+from .test_utils import log_on_exception, dict_to_args
 
 
 LOGGER = logging.getLogger(__name__)
@@ -23,10 +23,6 @@ TEI_FILENAME_1 = 'document1.segmentation.tei.xml'
 TEI_FILENAME_REGEX = r'/(.*).segmentation.tei.xml/\1.xml/'
 
 TOKEN_1 = 'token1'
-
-
-def _dict_to_args(args_dict: Dict[str, str]) -> List[str]:
-    return ['--%s=%s' % (key, value) for key, value in args_dict.items()]
 
 
 class SingleFileEndToEndTestHelper:
@@ -47,7 +43,7 @@ class SingleFileEndToEndTestHelper:
             'xml-filename-regex': TEI_FILENAME_REGEX,
             'fields': 'title,abstract'
         }
-        self.main_args = _dict_to_args(self.main_args_dict)
+        self.main_args = dict_to_args(self.main_args_dict)
         self.tei_auto_file_path = self.tei_auto_path.joinpath(TEI_FILENAME_1)
 
     def get_tei_auto_root(self):
@@ -98,10 +94,11 @@ class TestEndToEnd(object):
                 E('article-meta', E('title-group', E('article-title', TOKEN_1)))
             ))
         ))
-        main_args_dict = test_helper.main_args_dict.copy()
-        del main_args_dict['source-base-path']
-        main_args_dict['source-path'] = str(test_helper.tei_raw_file_path)
-        main(_dict_to_args(main_args_dict), save_main_session=False)
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'source-base-path': None,
+            'source-path': str(test_helper.tei_raw_file_path)
+        }), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
         front_nodes = tei_auto_root.xpath('//text/front')

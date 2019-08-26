@@ -1,5 +1,6 @@
 import logging
 from functools import wraps
+from typing import Dict, List
 
 
 LOGGER = logging.getLogger(__name__)
@@ -20,3 +21,7 @@ def log_on_exception(f: callable) -> callable:
             LOGGER.exception('failed due to %s', repr(e))
             raise
     return wrapper
+
+
+def dict_to_args(args_dict: Dict[str, str]) -> List[str]:
+    return ['--%s=%s' % (key, value) for key, value in args_dict.items() if value is not None]

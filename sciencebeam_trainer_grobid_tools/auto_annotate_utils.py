@@ -107,7 +107,10 @@ def add_annotation_pipeline_arguments(parser: argparse.ArgumentParser):
     return parser
 
 
-def process_annotation_pipeline_arguments(args: argparse.Namespace):
+def process_annotation_pipeline_arguments(
+        parser: argparse.ArgumentParser, args: argparse.Namespace):
+    if not (args.source_base_path or args.source_path):
+        parser.error('one of --source-base-path or --source-path required')
     process_cloud_args(
         args, args.output_path,
         name='sciencebeam-grobid-trainer-tools'
