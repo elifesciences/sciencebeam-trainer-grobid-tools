@@ -61,7 +61,7 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
         return _get_annotator(
             target_xml_path,
             self.xml_mapping,
-            match_detail_reporter=None
+            match_detail_reporter=self.get_match_detail_reporter()
         )
 
 

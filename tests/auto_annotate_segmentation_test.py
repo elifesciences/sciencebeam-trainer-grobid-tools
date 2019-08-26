@@ -58,6 +58,16 @@ def _test_helper(temp_dir: Path) -> SingleFileEndToEndTestHelper:
     return SingleFileEndToEndTestHelper(temp_dir)
 
 
+def _get_default_tei_node():
+    return E.tei(E.text(E.note(TOKEN_1)))
+
+
+def _get_default_xml_node():
+    return E.article(E.front(
+        E('article-meta', E('title-group', E('article-title', TOKEN_1)))
+    ))
+
+
 class TestEndToEnd(object):
     @log_on_exception
     def test_should_auto_annotate_title_as_front(
@@ -84,26 +94,28 @@ class TestEndToEnd(object):
     @log_on_exception
     def test_should_process_specific_file(
             self, test_helper: SingleFileEndToEndTestHelper):
-        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
-            E.tei(E.text(
-                E.note(TOKEN_1)
-            ))
-        ))
-        test_helper.xml_file_path.write_bytes(etree.tostring(
-            E.article(E.front(
-                E('article-meta', E('title-group', E('article-title', TOKEN_1)))
-            ))
-        ))
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(_get_default_tei_node()))
+        test_helper.xml_file_path.write_bytes(etree.tostring(_get_default_xml_node()))
         main(dict_to_args({
             **test_helper.main_args_dict,
             'source-base-path': None,
             'source-path': str(test_helper.tei_raw_file_path)
         }), save_main_session=False)
 
-        tei_auto_root = test_helper.get_tei_auto_root()
-        front_nodes = tei_auto_root.xpath('//text/front')
-        assert front_nodes
-        assert front_nodes[0].text == TOKEN_1
+        assert test_helper.get_tei_auto_root()
+
+    @log_on_exception
+    def test_should_write_debug_match(
+            self, test_helper: SingleFileEndToEndTestHelper, temp_dir: Path):
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(_get_default_tei_node()))
+        test_helper.xml_file_path.write_bytes(etree.tostring(_get_default_xml_node()))
+        debug_match_path = temp_dir.joinpath('debug.csv')
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'debug-match': str(debug_match_path)
+        }), save_main_session=False)
+
+        assert debug_match_path.exists()
 
     @log_on_exception
     def test_should_preserve_existing_tag(

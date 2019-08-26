@@ -15,6 +15,8 @@ from sciencebeam_utils.beam_utils.main import (
     process_cloud_args
 )
 
+from sciencebeam_utils.utils.csv import open_csv_output
+
 from sciencebeam_utils.beam_utils.utils import PreventFusion
 from sciencebeam_utils.beam_utils.files import FindFiles
 
@@ -23,7 +25,10 @@ from sciencebeam_gym.preprocess.annotation.target_annotation import (
 )
 
 from sciencebeam_gym.preprocess.annotation.annotator import LineAnnotator
-from sciencebeam_gym.preprocess.annotation.matching_annotator import MatchingAnnotator
+from sciencebeam_gym.preprocess.annotation.matching_annotator import (
+    MatchingAnnotator,
+    CsvMatchDetailReporter
+)
 
 from sciencebeam_gym.preprocess.annotation.annotator import AbstractAnnotator
 from sciencebeam_gym.preprocess.annotation.target_annotation import (
@@ -103,6 +108,12 @@ def add_annotation_pipeline_arguments(parser: argparse.ArgumentParser):
         '--resume', action='store_true', default=False,
         help='resume conversion (skip files that already have an output file)'
     )
+
+    parser.add_argument(
+        '--debug-match', type=str, required=False,
+        help='if set, path to csv or tsv file with debug matches'
+    )
+
     add_cloud_args(parser)
     return parser
 
@@ -148,6 +159,15 @@ def get_xml_mapping_and_fields(xml_mapping_path, fields):
     return xml_mapping, fields
 
 
+def get_match_detail_reporter(debug_match: str) -> CsvMatchDetailReporter:
+    if not debug_match:
+        return None
+    return CsvMatchDetailReporter(
+        open_csv_output(debug_match),
+        debug_match
+    )
+
+
 def get_default_annotators(
         xml_path, xml_mapping, match_detail_reporter,
         use_tag_begin_prefix=False,
@@ -188,10 +208,14 @@ class AbstractAnnotatePipelineFactory(ABC):
         self.resume = opt.resume
         self.preserve_tags = not opt.no_preserve_tags
         self.output_fields = output_fields
+        self.debug_match = opt.debug_match
 
     @abstractmethod
     def get_annotator(self, source_url: str):
         pass
+
+    def get_match_detail_reporter(self):
+        return get_match_detail_reporter(self.debug_match)
 
     def get_tei_xml_output_file_for_source_file(self, source_url):
         return os.path.join(
