@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from typing import Dict, List
 
 import pytest
 
@@ -24,6 +25,10 @@ TEI_FILENAME_REGEX = r'/(.*).segmentation.tei.xml/\1.xml/'
 TOKEN_1 = 'token1'
 
 
+def _dict_to_args(args_dict: Dict[str, str]) -> List[str]:
+    return ['--%s=%s' % (key, value) for key, value in args_dict.items()]
+
+
 class SingleFileEndToEndTestHelper:
     def __init__(
             self,
@@ -35,13 +40,14 @@ class SingleFileEndToEndTestHelper:
         self.xml_path.mkdir()
         self.tei_raw_file_path = self.tei_raw_path.joinpath(TEI_FILENAME_1)
         self.xml_file_path = self.xml_path.joinpath(XML_FILENAME_1)
-        self.main_args = [
-            '--source-base-path=%s' % self.tei_raw_path,
-            '--output-path=%s' % self.tei_auto_path,
-            '--xml-path=%s' % self.xml_path,
-            '--xml-filename-regex=%s' % TEI_FILENAME_REGEX,
-            '--fields=title,abstract'
-        ]
+        self.main_args_dict = {
+            'source-base-path': self.tei_raw_path,
+            'output-path': self.tei_auto_path,
+            'xml-path': self.xml_path,
+            'xml-filename-regex': TEI_FILENAME_REGEX,
+            'fields': 'title,abstract'
+        }
+        self.main_args = _dict_to_args(self.main_args_dict)
         self.tei_auto_file_path = self.tei_auto_path.joinpath(TEI_FILENAME_1)
 
     def get_tei_auto_root(self):
@@ -73,6 +79,29 @@ class TestEndToEnd(object):
         main([
             *test_helper.main_args
         ], save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        front_nodes = tei_auto_root.xpath('//text/front')
+        assert front_nodes
+        assert front_nodes[0].text == TOKEN_1
+
+    @log_on_exception
+    def test_should_process_specific_file(
+            self, test_helper: SingleFileEndToEndTestHelper):
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            E.tei(E.text(
+                E.note(TOKEN_1)
+            ))
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            E.article(E.front(
+                E('article-meta', E('title-group', E('article-title', TOKEN_1)))
+            ))
+        ))
+        main_args_dict = test_helper.main_args_dict.copy()
+        del main_args_dict['source-base-path']
+        main_args_dict['source-path'] = str(test_helper.tei_raw_file_path)
+        main(_dict_to_args(main_args_dict), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
         front_nodes = tei_auto_root.xpath('//text/front')

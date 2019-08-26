@@ -59,10 +59,15 @@ def get_default_config_path(filename: str):
     return os.path.join('config', filename)
 
 
-def add_annotation_pipeline_arguments(parser):
-    parser.add_argument(
-        '--source-base-path', type=str, required=True,
-        help='source training data path'
+def add_annotation_pipeline_arguments(parser: argparse.ArgumentParser):
+    source_group = parser.add_argument_group('source')
+    source_group.add_argument(
+        '--source-base-path', type=str,
+        help='source base data path for files to auto-annotate'
+    )
+    source_group.add_argument(
+        '--source-path', type=str,
+        help='source path to a specific file to auto-annotate'
     )
 
     parser.add_argument(
@@ -172,6 +177,7 @@ class AbstractAnnotatePipelineFactory(ABC):
         self.container_node_path = container_node_path
         self.tag_to_tei_path_mapping = tag_to_tei_path_mapping
         self.source_base_path = opt.source_base_path
+        self.source_path = opt.source_path
         self.output_path = opt.output_path
         self.xml_path = opt.xml_path
         self.xml_filename_regex = opt.xml_filename_regex
@@ -232,11 +238,16 @@ class AbstractAnnotatePipelineFactory(ABC):
 
             # Execute the pipeline and wait until it is completed.
 
-    def configure(self, p):
-        tei_xml_file_url_source = FindFiles(os.path.join(
+    def get_source_files(self):
+        if self.source_path:
+            return beam.Create([self.source_path])
+        return FindFiles(os.path.join(
             self.source_base_path,
             self.tei_filename_pattern
         ), limit=self.limit)
+
+    def configure(self, p):
+        tei_xml_file_url_source = self.get_source_files()
 
         tei_xml_input_urls = (
             p |
