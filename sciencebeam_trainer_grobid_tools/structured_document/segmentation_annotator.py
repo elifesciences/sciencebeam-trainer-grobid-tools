@@ -38,9 +38,16 @@ def _get_class_tag_names(c) -> Set[str]:
 FRONT_TAG_NAMES = _get_class_tag_names(FrontTagNames)
 
 
+DEFAULT_FRONT_MAX_START_LINE = 30
+
+
 class SegmentationConfig:
-    def __init__(self, segmentation_mapping: Dict[str, Set[str]]):
+    def __init__(
+            self,
+            segmentation_mapping: Dict[str, Set[str]],
+            front_max_start_line_index: int = DEFAULT_FRONT_MAX_START_LINE):
         self.segmentation_mapping = segmentation_mapping
+        self.front_max_start_line_index = front_max_start_line_index
 
     def __repr__(self):
         return '%s(%s)' % (type(self), self.__dict__)
@@ -50,10 +57,14 @@ def parse_segmentation_config(filename: str) -> SegmentationConfig:
     with open(filename, 'r') as f:
         config = ConfigParser()
         config.read_file(f)  # pylint: disable=no-member
+        front_max_start_line_index = config.getint(
+            'config', 'front_max_start_line_index',
+            fallback=DEFAULT_FRONT_MAX_START_LINE
+        )
         return SegmentationConfig(segmentation_mapping={
             key: set(parse_list(value))
             for key, value in config.items('tags')
-        })
+        }, front_max_start_line_index=front_max_start_line_index)
 
 
 def _iter_all_lines(structured_document: AbstractStructuredDocument):
@@ -120,6 +131,20 @@ class SegmentationAnnotator(AbstractAnnotator):
                 'line_tag_counts: %s (%s -> %s)',
                 line_tag_counts, majority_tag_name, segmentation_tag
             )
+
+            if (
+                segmentation_tag == SegmentationTagNames.FRONT
+                and segmentation_tag not in min_max_by_tag
+                and self.config.front_max_start_line_index
+                and line_index > self.config.front_max_start_line_index
+            ):
+                LOGGER.debug(
+                    'ignore front tag beyond line index threshold (%d > %d)',
+                    line_index, self.config.front_max_start_line_index
+                )
+                segmentation_tag = None
+                _clear_line_token_tags(structured_document, line)
+
             if segmentation_tag:
                 if segmentation_tag not in min_max_by_tag:
                     min_max_by_tag[segmentation_tag] = [line_index, line_index]
@@ -130,6 +155,7 @@ class SegmentationAnnotator(AbstractAnnotator):
                 if majority_tag_name is None:
                     _clear_line_token_tags(structured_document, line)
                 untagged_indexed_lines.append((line_index, line))
+
         if SegmentationTagNames.FRONT in min_max_by_tag:
             front_min_line_index, front_max_line_index = min_max_by_tag[SegmentationTagNames.FRONT]
             LOGGER.debug(
