@@ -22,6 +22,8 @@ TEI_FILENAME_1 = 'document1.segmentation.tei.xml'
 TEI_FILENAME_REGEX = r'/(.*).segmentation.tei.xml/\1.xml/'
 
 TOKEN_1 = 'token1'
+TOKEN_2 = 'token2'
+TOKEN_3 = 'token3'
 
 
 class SingleFileEndToEndTestHelper:
@@ -61,10 +63,15 @@ def _get_default_tei_node():
     return E.tei(E.text(E.note(TOKEN_1)))
 
 
+def _get_xml_node(title: str = None):
+    front_node = E.front()
+    if title:
+        front_node.append(E('article-meta', E('title-group', E('article-title', title))))
+    return E.article(front_node)
+
+
 def _get_default_xml_node():
-    return E.article(E.front(
-        E('article-meta', E('title-group', E('article-title', TOKEN_1)))
-    ))
+    return _get_xml_node(title=TOKEN_1)
 
 
 class TestEndToEnd(object):
@@ -77,9 +84,7 @@ class TestEndToEnd(object):
             ))
         ))
         test_helper.xml_file_path.write_bytes(etree.tostring(
-            E.article(E.front(
-                E('article-meta', E('title-group', E('article-title', TOKEN_1)))
-            ))
+            _get_xml_node(title=TOKEN_1)
         ))
         main([
             *test_helper.main_args
@@ -136,6 +141,32 @@ class TestEndToEnd(object):
         page_nodes = tei_auto_root.xpath('//text/page')
         assert page_nodes
         assert page_nodes[0].text == TOKEN_1
+
+    @log_on_exception
+    def test_should_always_preserve_specified_existing_tag(
+            self, test_helper: SingleFileEndToEndTestHelper):
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            E.tei(E.text(
+                E.note(TOKEN_1),
+                E.lb(),
+                E.page(TOKEN_2),
+                E.lb(),
+                E.note(TOKEN_3),
+                E.lb()
+            ))
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            _get_xml_node(title=' '.join([TOKEN_1, TOKEN_2, TOKEN_3]))
+        ))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'always-preserve-fields': 'page'
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        page_nodes = tei_auto_root.xpath('//text/page')
+        assert page_nodes
+        assert page_nodes[0].text == TOKEN_2
 
     @log_on_exception
     def test_should_not_preserve_exclude_existing_tag_and_use_body_by_default(

@@ -1,10 +1,13 @@
 import logging
 from functools import partial
+from typing import List, Set
 
+from sciencebeam_gym.structured_document import AbstractStructuredDocument
 
 from .grobid_training_tei import (
     load_grobid_training_tei_structured_document,
-    save_grobid_training_tei_structured_document
+    save_grobid_training_tei_structured_document,
+    GrobidTrainingTeiStructuredDocument
 )
 
 
@@ -62,18 +65,49 @@ def annotate_structured_document_inplace(
     annotator.annotate(structured_document)
 
 
+def _iter_all_lines(structured_document: AbstractStructuredDocument):
+    return (
+        line
+        for page in structured_document.get_pages()
+        for line in structured_document.get_lines_of_page(page)
+    )
+
+
+def _iter_all_tokens(structured_document: GrobidTrainingTeiStructuredDocument):
+    return (
+        token
+        for line in _iter_all_lines(structured_document)
+        for token in structured_document.get_all_tokens_of_line(line)
+    )
+
+
+def _apply_preserved_fields(
+        structured_document: GrobidTrainingTeiStructuredDocument,
+        always_preserve_fields: Set[str]):
+    get_logger().debug('apply preserved fields: %s', always_preserve_fields)
+    for token in _iter_all_tokens(structured_document):
+        preserved_tag = structured_document.get_tag_or_preserved_tag(token)
+        if preserved_tag in always_preserve_fields:
+            get_logger().debug('apply preserved field: %s -> %s', token, preserved_tag)
+            structured_document.set_tag(token, preserved_tag)
+
+
 def annotate_structured_document(
         source_structured_document_path: str,
         target_structured_document_path: str,
         annotator,
         preserve_tags: bool,
-        fields,
+        fields: List[str],
+        always_preserve_fields: List[str] = None,
         **kwargs):
     get_logger().info('loading from: %s', source_structured_document_path)
     structured_document = load_grobid_training_tei_structured_document(
         source_structured_document_path,
         **kwargs
     )
+
+    if always_preserve_fields:
+        _apply_preserved_fields(structured_document, set(always_preserve_fields))
 
     annotate_structured_document_inplace(
         structured_document,

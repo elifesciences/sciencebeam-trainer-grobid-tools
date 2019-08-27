@@ -41,6 +41,7 @@ from sciencebeam_gym.preprocess.annotation.target_annotation import (
     parse_xml_mapping
 )
 
+from .utils.string import comma_separated_str_to_list
 from .utils.regex import regex_change_name
 from .structured_document.annotator import annotate_structured_document
 
@@ -108,6 +109,12 @@ def add_annotation_pipeline_arguments(parser: argparse.ArgumentParser):
     parser.add_argument(
         '--no-preserve-tags', action='store_true', required=False,
         help='do not preserve existing tags (tags other than the one being annotated)'
+    )
+
+    parser.add_argument(
+        '--always-preserve-fields',
+        type=comma_separated_str_to_list,
+        help='always preserve the listed fields (they will be excluded from the matcher)'
     )
 
     parser.add_argument(
@@ -217,6 +224,7 @@ class AbstractAnnotatePipelineFactory(ABC):
         self.limit = opt.limit
         self.resume = opt.resume
         self.preserve_tags = not opt.no_preserve_tags
+        self.always_preserve_fields = opt.always_preserve_fields
         self.output_fields = output_fields
         self.debug_match = opt.debug_match
         self.matcher_score_threshold = opt.matcher_score_threshold
@@ -273,6 +281,7 @@ class AbstractAnnotatePipelineFactory(ABC):
                 annotator=annotator,
                 preserve_tags=self.preserve_tags,
                 fields=self.output_fields,
+                always_preserve_fields=self.always_preserve_fields,
                 container_node_path=self.container_node_path,
                 tag_to_tei_path_mapping=self.tag_to_tei_path_mapping
             )
