@@ -129,7 +129,7 @@ class SegmentationAnnotator(AbstractAnnotator):
                 tags = _get_line_token_tags_or_preserved_tags(structured_document, line)
                 if self.preserve_tags and SegmentationTagNames.PAGE in tags:
                     continue
-                if front_min_line_index <= line_index <= front_max_line_index:
+                if line_index <= front_max_line_index:
                     LOGGER.debug(
                         'tagging as front, within range (%d: %d -> %d)',
                         line_index, front_min_line_index, front_max_line_index
