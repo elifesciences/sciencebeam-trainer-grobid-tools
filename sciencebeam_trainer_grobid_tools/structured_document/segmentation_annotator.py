@@ -1,12 +1,15 @@
 import logging
 from configparser import ConfigParser
 from collections import Counter
-from typing import Dict, Set
+from typing import Dict, List, Set
 
 from sciencebeam_utils.utils.string import parse_list
 from sciencebeam_gym.structured_document import AbstractStructuredDocument
 from sciencebeam_gym.preprocess.annotation.annotator import (
     AbstractAnnotator
+)
+from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei import (
+    GrobidTrainingTeiStructuredDocument
 )
 
 
@@ -15,6 +18,7 @@ LOGGER = logging.getLogger(__name__)
 
 class FrontTagNames:
     TITLE = 'title'
+    PAGE = 'page'
 
 
 class SegmentationTagNames:
@@ -52,6 +56,37 @@ def parse_segmentation_config(filename: str) -> SegmentationConfig:
         })
 
 
+def _iter_all_lines(structured_document: AbstractStructuredDocument):
+    return (
+        line
+        for page in structured_document.get_pages()
+        for line in structured_document.get_lines_of_page(page)
+    )
+
+
+def _set_line_tokens_tag(
+        structured_document: AbstractStructuredDocument,
+        line,
+        tag: str):
+    for token in structured_document.get_all_tokens_of_line(line):
+        structured_document.set_tag(token, tag)
+
+
+def _get_line_token_tags(structured_document: AbstractStructuredDocument, line) -> List[str]:
+    return [
+        structured_document.get_tag(token)
+        for token in structured_document.get_tokens_of_line(line)
+    ]
+
+
+def _get_line_token_tags_or_preserved_tags(
+        structured_document: GrobidTrainingTeiStructuredDocument, line) -> List[str]:
+    return [
+        structured_document.get_tag_or_preserved_tag(token)
+        for token in structured_document.get_tokens_of_line(line)
+    ]
+
+
 class SegmentationAnnotator(AbstractAnnotator):
     def __init__(self, config: SegmentationConfig, preserve_tags: bool = False):
         super().__init__()
@@ -64,23 +99,45 @@ class SegmentationAnnotator(AbstractAnnotator):
         }
 
     def annotate(self, structured_document: AbstractStructuredDocument):
-        for page in structured_document.get_pages():
-            for line in structured_document.get_lines_of_page(page):
-                line_tag_counts = Counter(
-                    structured_document.get_tag(token)
-                    for token in structured_document.get_tokens_of_line(line)
-                )
-                if not line_tag_counts:
+        untagged_indexed_lines = []
+        min_max_by_tag = {}
+        for line_index, line in enumerate(_iter_all_lines(structured_document)):
+            line_tag_counts = Counter(_get_line_token_tags(structured_document, line))
+            if not line_tag_counts:
+                continue
+            majority_tag_name = line_tag_counts.most_common(1)[0][0]
+            segmentation_tag = self.segmentation_tag_name_by_tag_name.get(majority_tag_name)
+            LOGGER.debug(
+                'line_tag_counts: %s (%s -> %s)',
+                line_tag_counts, majority_tag_name, segmentation_tag
+            )
+            if segmentation_tag:
+                if segmentation_tag not in min_max_by_tag:
+                    min_max_by_tag[segmentation_tag] = [line_index, line_index]
+                else:
+                    min_max_by_tag[segmentation_tag][1] = line_index
+                _set_line_tokens_tag(structured_document, line, segmentation_tag)
+            else:
+                untagged_indexed_lines.append((line_index, line))
+        if SegmentationTagNames.FRONT in min_max_by_tag:
+            front_min_line_index, front_max_line_index = min_max_by_tag[SegmentationTagNames.FRONT]
+            LOGGER.debug(
+                'processing untagged lines, front (%d -> %d)',
+                front_min_line_index, front_max_line_index
+            )
+            for line_index, line in list(untagged_indexed_lines):
+                tags = _get_line_token_tags_or_preserved_tags(structured_document, line)
+                if self.preserve_tags and SegmentationTagNames.PAGE in tags:
                     continue
-                majority_tag_name = line_tag_counts.most_common(1)[0][0]
-                segmentation_tag = self.segmentation_tag_name_by_tag_name.get(majority_tag_name)
-                LOGGER.debug(
-                    'line_tag_counts: %s (%s -> %s)',
-                    line_tag_counts, majority_tag_name, segmentation_tag
-                )
-                if not segmentation_tag and not self.preserve_tags:
-                    segmentation_tag = SegmentationTagNames.BODY
-                if segmentation_tag:
-                    for token in structured_document.get_all_tokens_of_line(line):
-                        structured_document.set_tag(token, segmentation_tag)
+                if front_min_line_index <= line_index <= front_max_line_index:
+                    LOGGER.debug(
+                        'tagging as front, within range (%d: %d -> %d)',
+                        line_index, front_min_line_index, front_max_line_index
+                    )
+                    _set_line_tokens_tag(structured_document, line, SegmentationTagNames.FRONT)
+                    untagged_indexed_lines.remove((line_index, line))
+
+        if not self.preserve_tags:
+            for line_index, line in untagged_indexed_lines:
+                _set_line_tokens_tag(structured_document, line, SegmentationTagNames.BODY)
         return structured_document

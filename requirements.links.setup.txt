@@ -1,2 +1,2 @@
 # google dataflow doesn't have git installed
-sciencebeam-gym @ https://github.com/elifesciences/sciencebeam-gym/archive/e8cdfb6bd09000f000e8f2a3f0dd614f6e2df297.zip
+sciencebeam-gym @ https://github.com/elifesciences/sciencebeam-gym/archive/0d53ed91bdd9ca77b694944c461ffdebed0e88e8.zip

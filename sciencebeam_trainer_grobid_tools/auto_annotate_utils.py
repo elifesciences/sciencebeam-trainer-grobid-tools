@@ -26,8 +26,14 @@ from sciencebeam_gym.preprocess.annotation.target_annotation import (
 
 from sciencebeam_gym.preprocess.annotation.annotator import LineAnnotator
 from sciencebeam_gym.preprocess.annotation.matching_annotator import (
+    get_simple_fuzzy_match_filter,
+    MatchingAnnotatorConfig,
     MatchingAnnotator,
-    CsvMatchDetailReporter
+    CsvMatchDetailReporter,
+    DEFAULT_SEQ_MIN_MATCH_COUNT,
+    DEFAULT_SEQ_RATIO_MIN_MATCH_COUNT,
+    DEFAULT_CHOICE_MIN_MATCH_COUNT,
+    DEFAULT_CHOICE_RATIO_MIN_MATCH_COUNT
 )
 
 from sciencebeam_gym.preprocess.annotation.annotator import AbstractAnnotator
@@ -109,9 +115,14 @@ def add_annotation_pipeline_arguments(parser: argparse.ArgumentParser):
         help='resume conversion (skip files that already have an output file)'
     )
 
-    parser.add_argument(
+    matcher_group = parser.add_argument_group('matcher')
+    matcher_group.add_argument(
         '--debug-match', type=str, required=False,
         help='if set, path to csv or tsv file with debug matches'
+    )
+    matcher_group.add_argument(
+        '--matcher-score-threshold', type=float, default=0.8,
+        help='score threshold for a match to be accepted (1.0 for exact match)'
     )
 
     add_cloud_args(parser)
@@ -169,8 +180,8 @@ def get_match_detail_reporter(debug_match: str) -> CsvMatchDetailReporter:
 
 
 def get_default_annotators(
-        xml_path, xml_mapping, match_detail_reporter,
-        use_tag_begin_prefix=False,
+        xml_path, xml_mapping,
+        matching_annotator_config: MatchingAnnotatorConfig,
         use_line_no_annotator=False) -> List[AbstractAnnotator]:
 
     annotators = []
@@ -182,8 +193,7 @@ def get_default_annotators(
             xml_mapping
         )
         annotators = annotators + [MatchingAnnotator(
-            target_annotations, match_detail_reporter=match_detail_reporter,
-            use_tag_begin_prefix=use_tag_begin_prefix
+            target_annotations, matching_annotator_config=matching_annotator_config
         )]
     return annotators
 
@@ -209,6 +219,7 @@ class AbstractAnnotatePipelineFactory(ABC):
         self.preserve_tags = not opt.no_preserve_tags
         self.output_fields = output_fields
         self.debug_match = opt.debug_match
+        self.matcher_score_threshold = opt.matcher_score_threshold
 
     @abstractmethod
     def get_annotator(self, source_url: str):
@@ -216,6 +227,21 @@ class AbstractAnnotatePipelineFactory(ABC):
 
     def get_match_detail_reporter(self):
         return get_match_detail_reporter(self.debug_match)
+
+    def get_matching_annotator_config(self) -> MatchingAnnotatorConfig:
+        return MatchingAnnotatorConfig(
+            match_detail_reporter=self.get_match_detail_reporter(),
+            seq_match_filter=get_simple_fuzzy_match_filter(
+                score_threshold=self.matcher_score_threshold,
+                min_match_count=DEFAULT_SEQ_MIN_MATCH_COUNT,
+                ratio_min_match_count=DEFAULT_SEQ_RATIO_MIN_MATCH_COUNT
+            ),
+            choice_match_filter=get_simple_fuzzy_match_filter(
+                score_threshold=self.matcher_score_threshold,
+                min_match_count=DEFAULT_CHOICE_MIN_MATCH_COUNT,
+                ratio_min_match_count=DEFAULT_CHOICE_RATIO_MIN_MATCH_COUNT
+            )
+        )
 
     def get_tei_xml_output_file_for_source_file(self, source_url):
         return os.path.join(
