@@ -19,7 +19,6 @@ from .auto_annotate_utils import (
 )
 from .structured_document.grobid_training_tei import (
     ContainerNodePaths,
-    DEFAULT_TAG_TO_TEI_PATH_MAPPING,
     DEFAULT_TAG_KEY
 )
 from .structured_document.segmentation_annotator import (
