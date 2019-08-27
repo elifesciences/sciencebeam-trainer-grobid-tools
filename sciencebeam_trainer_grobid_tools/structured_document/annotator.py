@@ -65,18 +65,11 @@ def annotate_structured_document_inplace(
     annotator.annotate(structured_document)
 
 
-def _iter_all_lines(structured_document: AbstractStructuredDocument):
-    return (
-        line
-        for page in structured_document.get_pages()
-        for line in structured_document.get_lines_of_page(page)
-    )
-
-
 def _iter_all_tokens(structured_document: GrobidTrainingTeiStructuredDocument):
     return (
         token
-        for line in _iter_all_lines(structured_document)
+        for page in structured_document.get_pages()
+        for line in structured_document.get_lines_of_page(page)
         for token in structured_document.get_all_tokens_of_line(line)
     )
 
