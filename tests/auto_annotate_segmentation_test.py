@@ -101,7 +101,7 @@ class TestEndToEnd(object):
             'source-path': str(test_helper.tei_raw_file_path)
         }), save_main_session=False)
 
-        assert test_helper.get_tei_auto_root()
+        assert test_helper.get_tei_auto_root() is not None
 
     @log_on_exception
     def test_should_write_debug_match(
