@@ -87,6 +87,18 @@ class TestParseSegmentationConfig:
         LOGGER.debug('config: %s', config)
         assert config.segmentation_mapping['front'] == {'title', 'abstract'}
 
+    def test_should_parse_front_max_start_line_index(self, temp_dir: Path):
+        config_path = temp_dir.joinpath('segmentation.conf')
+        config_path.write_text('\n'.join([
+            '[tags]',
+            'front = title,abstract',
+            '[config]',
+            'front_max_start_line_index = 123 '
+        ]))
+        config = parse_segmentation_config(config_path)
+        LOGGER.debug('config: %s', config)
+        assert config.front_max_start_line_index == 123
+
 
 class TestSegmentationAnnotator:
     def test_should_not_fail_on_empty_document(self):
@@ -255,4 +267,22 @@ class TestSegmentationAnnotator:
         SegmentationAnnotator(DEFAULT_CONFIG, preserve_tags=True).annotate(doc)
         assert _get_document_tagged_token_lines(doc) == [
             [(None, TOKEN_1), (None, TOKEN_2), (None, TOKEN_3)]
+        ]
+
+    def test_should_ignore_front_if_start_line_index_beyond_threshold(self):
+        doc = _simple_document_with_tagged_token_lines(lines=[
+            [(None, TOKEN_1)],
+            [(None, TOKEN_2)],
+            [(FrontTagNames.TITLE, TOKEN_3)]
+        ])
+
+        config = SegmentationConfig(
+            DEFAULT_CONFIG.segmentation_mapping,
+            front_max_start_line_index=1
+        )
+        SegmentationAnnotator(config, preserve_tags=True).annotate(doc)
+        assert _get_document_tagged_token_lines(doc) == [
+            [(None, TOKEN_1)],
+            [(None, TOKEN_2)],
+            [(None, TOKEN_3)]
         ]
