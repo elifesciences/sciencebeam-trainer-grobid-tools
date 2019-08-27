@@ -6,6 +6,8 @@ import pytest
 from lxml import etree
 from lxml.builder import E
 
+from sciencebeam_utils.utils.xml import get_text_content
+
 from sciencebeam_trainer_grobid_tools.auto_annotate_segmentation import (
     main
 )
@@ -74,6 +76,10 @@ def _get_default_xml_node():
     return _get_xml_node(title=TOKEN_1)
 
 
+def _get_xpath_text(root: etree.Element, xpath: str, delimiter = ' ') -> str:
+    return delimiter.join(get_text_content(node) for node in root.xpath(xpath))
+
+
 class TestEndToEnd(object):
     @log_on_exception
     def test_should_auto_annotate_title_as_front(
@@ -91,9 +97,7 @@ class TestEndToEnd(object):
         ], save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
-        front_nodes = tei_auto_root.xpath('//text/front')
-        assert front_nodes
-        assert front_nodes[0].text == TOKEN_1
+        assert _get_xpath_text(tei_auto_root, '//text/front') == TOKEN_1
 
     @log_on_exception
     def test_should_process_specific_file(
@@ -138,9 +142,7 @@ class TestEndToEnd(object):
         ], save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
-        page_nodes = tei_auto_root.xpath('//text/page')
-        assert page_nodes
-        assert page_nodes[0].text == TOKEN_1
+        assert _get_xpath_text(tei_auto_root, '//text/page') == TOKEN_1
 
     @log_on_exception
     def test_should_always_preserve_specified_existing_tag(
@@ -164,9 +166,7 @@ class TestEndToEnd(object):
         }), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
-        page_nodes = tei_auto_root.xpath('//text/page')
-        assert page_nodes
-        assert page_nodes[0].text == TOKEN_2
+        assert _get_xpath_text(tei_auto_root, '//text/page') == TOKEN_2
 
     @log_on_exception
     def test_should_not_preserve_exclude_existing_tag_and_use_body_by_default(
@@ -186,8 +186,5 @@ class TestEndToEnd(object):
         ], save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
-        page_nodes = tei_auto_root.xpath('//text/page')
-        assert not page_nodes
-        body_nodes = tei_auto_root.xpath('//text/body')
-        assert body_nodes
-        assert body_nodes[0].text == TOKEN_1
+        assert _get_xpath_text(tei_auto_root, '//text/page') == ''
+        assert _get_xpath_text(tei_auto_root, '//text/body') == TOKEN_1
