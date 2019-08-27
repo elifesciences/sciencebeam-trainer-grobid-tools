@@ -75,7 +75,7 @@ dev-pytest:
 
 
 dev-watch:
-	$(PYTHON) -m pytest_watch -- -p no:cacheprovider $(ARGS)
+	$(PYTHON) -m pytest_watch -- -p no:cacheprovider -p no:warnings $(ARGS)
 
 
 dev-test: dev-lint dev-pytest
@@ -252,7 +252,7 @@ tools-test: build-dev tools-delete-pyc
 
 
 tools-watch: build-dev tools-delete-pyc
-	$(RUN_TOOLS_DEV) pytest-watch
+	$(RUN_TOOLS_DEV) pytest-watch -- -p no:cacheprovider -p no:warnings $(ARGS)
 
 
 tools-dev-shell: build-dev

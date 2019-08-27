@@ -1,8 +1,10 @@
 from __future__ import absolute_import
 
+import copy
 import logging
 import json
 import re
+from typing import Dict
 
 from apache_beam.io.filesystems import FileSystems
 
@@ -36,6 +38,14 @@ DEFAULT_TAG_TO_TEI_PATH_MAPPING = {
     'title': 'docTitle/titlePart',
     'abstract': 'div[type="abstract"]'
 }
+
+
+class ContainerNodePaths:
+    HEADER_CONTAINER_NODE_PATH = 'text/front'
+    SEGMENTATION_CONTAINER_NODE_PATH = 'text'
+
+
+DEFAULT_CONTAINER_NODE_PATH = ContainerNodePaths.HEADER_CONTAINER_NODE_PATH
 
 
 class TeiTagNames(object):
@@ -226,10 +236,12 @@ def _get_element_at_path(current_element, current_path, required_path, token):
     return current_element, current_path
 
 
-def _lines_to_tei(tag_name, lines, tag_to_tei_path_mapping=None):
+def _lines_to_tei(
+        parent: etree.Element,
+        lines: list,
+        tag_to_tei_path_mapping: Dict[str, str] = None):
     if tag_to_tei_path_mapping is None:
         tag_to_tei_path_mapping = {}
-    parent = E(tag_name)
     current_element = parent
     current_path = []
     pending_space_tokens = []
@@ -273,23 +285,30 @@ def _lines_to_tei(tag_name, lines, tag_to_tei_path_mapping=None):
     return parent
 
 
-def _updated_tei_with_lines(original_root, lines, tag_to_tei_path_mapping):
-    return E(
-        original_root.tag,
-        *[
-            E.text(_lines_to_tei('front', lines, tag_to_tei_path_mapping))
-            if element.tag == 'text'
-            else element
-            for element in original_root
-        ]
-    )
+def _updated_tei_with_lines(
+        original_root: etree.Element,
+        lines: list,
+        tag_to_tei_path_mapping: Dict[str, str],
+        container_node_path: str = 'text/front'):
+    updated_root = copy.deepcopy(original_root)
+    container_node = updated_root.find(container_node_path)
+    get_logger().debug('container_node: %s', container_node)
+    container_node.clear()
+    _lines_to_tei(container_node, lines, tag_to_tei_path_mapping)
+    return updated_root
 
 
 class GrobidTrainingTeiStructuredDocument(AbstractStructuredDocument):
-    def __init__(self, root, tag_to_tei_path_mapping=None, preserve_tags=True):
+    def __init__(
+            self,
+            root: etree.Element,
+            tag_to_tei_path_mapping: Dict[str, str] = None,
+            preserve_tags: bool = True,
+            container_node_path: str = DEFAULT_CONTAINER_NODE_PATH):
         self._root = root
+        self._container_node_path = container_node_path
         self._lines = list(_iter_extract_lines_from_container_elements(
-            root.findall('./text/front')
+            root.findall('./%s' % container_node_path)
         ))
         self._tag_to_tei_path_mapping = (
             tag_to_tei_path_mapping if tag_to_tei_path_mapping is not None
@@ -311,7 +330,8 @@ class GrobidTrainingTeiStructuredDocument(AbstractStructuredDocument):
         return _updated_tei_with_lines(
             self._root,
             self._lines,
-            self._tag_to_tei_path_mapping
+            self._tag_to_tei_path_mapping,
+            container_node_path=self._container_node_path
         )
 
     def get_pages(self):
@@ -382,11 +402,9 @@ def load_xml_root(filename, **kwargs):
         return etree.parse(f, **kwargs).getroot()
 
 
-def load_grobid_training_tei_structured_document(filename):
+def load_grobid_training_tei_structured_document(filename: str, **kwargs):
     parser = etree.XMLParser(recover=True)
-    return GrobidTrainingTeiStructuredDocument(
-        load_xml_root(filename, parser=parser)
-    )
+    return GrobidTrainingTeiStructuredDocument(load_xml_root(filename, parser=parser), **kwargs)
 
 
 def save_grobid_training_tei_structured_document(

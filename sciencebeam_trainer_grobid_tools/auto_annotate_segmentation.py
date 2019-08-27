@@ -7,11 +7,6 @@ from sciencebeam_gym.preprocess.annotation.annotator import Annotator
 
 from .utils.string import comma_separated_str_to_list
 
-from .structured_document.grobid_training_tei import (
-    ContainerNodePaths,
-    DEFAULT_TAG_TO_TEI_PATH_MAPPING
-)
-
 from .auto_annotate_utils import (
     add_debug_argument,
     process_debug_argument,
@@ -19,25 +14,50 @@ from .auto_annotate_utils import (
     add_annotation_pipeline_arguments,
     process_annotation_pipeline_arguments,
     get_default_annotators,
+    get_default_config_path,
     AbstractAnnotatePipelineFactory
+)
+from .structured_document.grobid_training_tei import (
+    ContainerNodePaths,
+    DEFAULT_TAG_TO_TEI_PATH_MAPPING,
+    DEFAULT_TAG_KEY
+)
+from .structured_document.segmentation_annotator import (
+    SegmentationAnnotator,
+    SegmentationConfig,
+    parse_segmentation_config
 )
 
 
 LOGGER = logging.getLogger(__name__)
 
 
-HEADER_CONTAINER_NODE_PATH = ContainerNodePaths.HEADER_CONTAINER_NODE_PATH
+SEGMENTATION_CONTAINER_NODE_PATH = ContainerNodePaths.SEGMENTATION_CONTAINER_NODE_PATH
 
 
-HEADER_TAG_TO_TEI_PATH_MAPPING = DEFAULT_TAG_TO_TEI_PATH_MAPPING
+SEGMENTATION_TAG_TO_TEI_PATH_MAPPING = {
+    **DEFAULT_TAG_TO_TEI_PATH_MAPPING,
+    DEFAULT_TAG_KEY: 'body'
+}
+
+
+DEFAULT_SEGMENTATION_CONFIG = 'segmentation.conf'
 
 
 def get_logger():
     return logging.getLogger(__name__)
 
 
-def _get_annotator(*args, **kwargs):
+def _get_annotator(
+        *args,
+        segmentation_config: SegmentationConfig = None,
+        preserve_tags: bool = False,
+        **kwargs):
+
     annotators = get_default_annotators(*args, **kwargs)
+    annotators = annotators + [
+        SegmentationAnnotator(segmentation_config, preserve_tags=preserve_tags)
+    ]
     annotator = Annotator(annotators)
     return annotator
 
@@ -46,22 +66,25 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
     def __init__(self, opt):
         super().__init__(
             opt,
-            tei_filename_pattern='*.header.tei.xml*',
-            container_node_path=HEADER_CONTAINER_NODE_PATH,
-            tag_to_tei_path_mapping=HEADER_TAG_TO_TEI_PATH_MAPPING,
-            output_fields=opt.fields
+            tei_filename_pattern='*.segmentation.tei.xml*',
+            container_node_path=SEGMENTATION_CONTAINER_NODE_PATH,
+            tag_to_tei_path_mapping=SEGMENTATION_TAG_TO_TEI_PATH_MAPPING,
+            output_fields=opt.no_preserve_fields
         )
         self.xml_mapping, self.fields = get_xml_mapping_and_fields(
             opt.xml_mapping_path,
             opt.fields
         )
+        self.segmentation_config = parse_segmentation_config(opt.segmentation_config)
 
     def get_annotator(self, source_url: str):
         target_xml_path = self.get_target_xml_for_source_file(source_url)
         return _get_annotator(
             target_xml_path,
             self.xml_mapping,
-            matching_annotator_config=self.get_matching_annotator_config()
+            matching_annotator_config=self.get_matching_annotator_config(),
+            segmentation_config=self.segmentation_config,
+            preserve_tags=self.preserve_tags
         )
 
 
@@ -72,6 +95,18 @@ def add_main_args(parser):
         '--fields',
         type=comma_separated_str_to_list,
         help='comma separated list of fields to annotate'
+    )
+
+    parser.add_argument(
+        '--no-preserve-fields',
+        type=comma_separated_str_to_list,
+        help='comma separated list of output fields that should not be preserved'
+    )
+
+    parser.add_argument(
+        '--segmentation-config',
+        default=get_default_config_path(DEFAULT_SEGMENTATION_CONFIG),
+        help='path to segmentation config'
     )
 
     add_debug_argument(parser)

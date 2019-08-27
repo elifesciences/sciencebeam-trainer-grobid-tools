@@ -31,7 +31,7 @@ COPY requirements.dev.txt ./
 RUN if [ "${install_dev}" = "y" ]; then pip install --user -r requirements.dev.txt; fi
 
 COPY sciencebeam_trainer_grobid_tools ./sciencebeam_trainer_grobid_tools
-COPY annot-xml-front.conf ./
+COPY config ./config
 
 COPY docker ./docker
 COPY scripts /opt/scripts

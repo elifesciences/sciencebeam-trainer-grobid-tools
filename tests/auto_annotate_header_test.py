@@ -7,6 +7,8 @@ from sciencebeam_trainer_grobid_tools.auto_annotate_header import (
     main
 )
 
+from .test_utils import log_on_exception
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -20,6 +22,7 @@ TEXT_1 = 'text 1'
 
 
 class TestEndToEnd(object):
+    @log_on_exception
     def test_should_auto_annotate_title(self, temp_dir):
         tei_raw_path = temp_dir.joinpath('tei-raw')
         tei_auto_path = temp_dir.joinpath('tei-auto')

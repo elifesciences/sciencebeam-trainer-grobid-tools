@@ -1,10 +1,11 @@
 import logging
 from functools import partial
-
+from typing import List, Set
 
 from .grobid_training_tei import (
     load_grobid_training_tei_structured_document,
-    save_grobid_training_tei_structured_document
+    save_grobid_training_tei_structured_document,
+    GrobidTrainingTeiStructuredDocument
 )
 
 
@@ -44,6 +45,8 @@ def annotate_structured_document_inplace(
         annotator,
         preserve_tags,
         fields):
+    if not fields:
+        fields = set()
     if preserve_tags:
         get_logger().debug('preserving tags, except for fields: %s', fields)
         tag_fn = partial(
@@ -60,16 +63,33 @@ def annotate_structured_document_inplace(
     annotator.annotate(structured_document)
 
 
+def _apply_preserved_fields(
+        structured_document: GrobidTrainingTeiStructuredDocument,
+        always_preserve_fields: Set[str]):
+    get_logger().debug('apply preserved fields: %s', always_preserve_fields)
+    for token in _iter_all_tokens(structured_document):
+        preserved_tag = structured_document.get_tag_or_preserved_tag(token)
+        if preserved_tag in always_preserve_fields:
+            get_logger().debug('apply preserved field: %s -> %s', token, preserved_tag)
+            structured_document.set_tag(token, preserved_tag)
+
+
 def annotate_structured_document(
-        source_structured_document_path,
-        target_structured_document_path,
+        source_structured_document_path: str,
+        target_structured_document_path: str,
         annotator,
-        preserve_tags,
-        fields):
+        preserve_tags: bool,
+        fields: List[str],
+        always_preserve_fields: List[str] = None,
+        **kwargs):
     get_logger().info('loading from: %s', source_structured_document_path)
     structured_document = load_grobid_training_tei_structured_document(
-        source_structured_document_path
+        source_structured_document_path,
+        **kwargs
     )
+
+    if always_preserve_fields:
+        _apply_preserved_fields(structured_document, set(always_preserve_fields))
 
     annotate_structured_document_inplace(
         structured_document,
