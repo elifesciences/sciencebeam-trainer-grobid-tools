@@ -2,8 +2,6 @@ import logging
 from functools import partial
 from typing import List, Set
 
-from sciencebeam_gym.structured_document import AbstractStructuredDocument
-
 from .grobid_training_tei import (
     load_grobid_training_tei_structured_document,
     save_grobid_training_tei_structured_document,
