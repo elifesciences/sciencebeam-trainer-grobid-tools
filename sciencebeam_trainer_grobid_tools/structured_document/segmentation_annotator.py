@@ -87,6 +87,14 @@ def _get_line_token_tags_or_preserved_tags(
     ]
 
 
+def _clear_line_token_tags(
+        structured_document: GrobidTrainingTeiStructuredDocument, line) -> List[str]:
+    for token in structured_document.get_all_tokens_of_line(line):
+        tag = structured_document.get_tag(token)
+        if tag:
+            structured_document.set_tag(token, None)
+
+
 class SegmentationAnnotator(AbstractAnnotator):
     def __init__(self, config: SegmentationConfig, preserve_tags: bool = False):
         super().__init__()
@@ -102,7 +110,8 @@ class SegmentationAnnotator(AbstractAnnotator):
         untagged_indexed_lines = []
         min_max_by_tag = {}
         for line_index, line in enumerate(_iter_all_lines(structured_document)):
-            line_tag_counts = Counter(_get_line_token_tags(structured_document, line))
+            line_token_tags = _get_line_token_tags(structured_document, line)
+            line_tag_counts = Counter(line_token_tags)
             if not line_tag_counts:
                 continue
             majority_tag_name = line_tag_counts.most_common(1)[0][0]
@@ -118,6 +127,8 @@ class SegmentationAnnotator(AbstractAnnotator):
                     min_max_by_tag[segmentation_tag][1] = line_index
                 _set_line_tokens_tag(structured_document, line, segmentation_tag)
             else:
+                if majority_tag_name is None:
+                    _clear_line_token_tags(structured_document, line)
                 untagged_indexed_lines.append((line_index, line))
         if SegmentationTagNames.FRONT in min_max_by_tag:
             front_min_line_index, front_max_line_index = min_max_by_tag[SegmentationTagNames.FRONT]
