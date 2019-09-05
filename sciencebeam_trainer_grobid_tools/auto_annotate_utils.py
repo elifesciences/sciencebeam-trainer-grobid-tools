@@ -378,14 +378,10 @@ class AbstractAnnotatePipelineFactory(ABC):
     def configure_beam_pipeline(self, p: beam.Pipeline):
         tei_xml_file_list = self.get_remaining_source_file_list()
 
-        tei_xml_input_urls = (
-            p |
-            beam.Create(tei_xml_file_list)
-        )
-
         _ = (
-            tei_xml_input_urls |
-            "Auto-Annotate" >> beam.Map(self.auto_annotate)
+            p
+            | beam.Create(tei_xml_file_list)
+            | "Auto-Annotate" >> beam.Map(self.auto_annotate)
         )
 
     def run_beam_pipeline(self, args: argparse.Namespace, save_main_session: bool = True):
