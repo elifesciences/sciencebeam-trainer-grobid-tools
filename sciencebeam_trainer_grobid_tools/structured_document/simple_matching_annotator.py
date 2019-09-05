@@ -32,9 +32,9 @@ LOGGER = logging.getLogger(__name__)
 
 
 class SimpleSimpleMatchingConfig:
-    def __init__(self, threshold: float = 0.8, look_ahead_sequence_count: int = 200):
+    def __init__(self, threshold: float = 0.8, lookahead_sequence_count: int = 200):
         self.threshold = threshold
-        self.look_ahead_sequence_count = look_ahead_sequence_count
+        self.lookahead_sequence_count = lookahead_sequence_count
 
 
 class SimpleMatchingAnnotator(AbstractAnnotator):
@@ -79,7 +79,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             # pending sequences provides a view of the not yet untagged tokens
             # this is what we will try to align the target value to
             text = SequencesText(pending_sequences.get_pending_sequences(
-                limit=self.config.look_ahead_sequence_count
+                limit=self.config.lookahead_sequence_count
             ))
             LOGGER.debug('text: %s', text)
             fm = fuzzy_match(str(text), target_value, exact_word_match_threshold=5)
