@@ -100,6 +100,25 @@ class TestEndToEnd(object):
         assert _get_xpath_text(tei_auto_root, '//text/front') == TOKEN_1
 
     @log_on_exception
+    def test_should_auto_annotate_using_simple_matcher(
+            self, test_helper: SingleFileEndToEndTestHelper):
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            E.tei(E.text(
+                E.note(TOKEN_1)
+            ))
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            _get_xml_node(title=TOKEN_1)
+        ))
+        main([
+            *test_helper.main_args,
+            '--matcher=simple'
+        ], save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert _get_xpath_text(tei_auto_root, '//text/front') == TOKEN_1
+
+    @log_on_exception
     def test_should_process_specific_file(
             self, test_helper: SingleFileEndToEndTestHelper):
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(_get_default_tei_node()))

@@ -44,6 +44,10 @@ from sciencebeam_gym.preprocess.annotation.target_annotation import (
 from .utils.string import comma_separated_str_to_list
 from .utils.regex import regex_change_name
 from .structured_document.annotator import annotate_structured_document
+from .structured_document.simple_matching_annotator import (
+    SimpleMatchingAnnotator,
+    SimpleSimpleMatchingConfig
+)
 
 
 LOGGER = logging.getLogger(__name__)
@@ -51,6 +55,14 @@ LOGGER = logging.getLogger(__name__)
 
 def get_logger():
     return logging.getLogger(__name__)
+
+
+class MatcherNames:
+    DEFAULT = 'default'
+    SIMPLE = 'simple'
+
+
+MATCHER_NAMES = [MatcherNames.DEFAULT, MatcherNames.SIMPLE]
 
 
 def add_debug_argument(parser: argparse.ArgumentParser):
@@ -124,6 +136,14 @@ def add_annotation_pipeline_arguments(parser: argparse.ArgumentParser):
 
     matcher_group = parser.add_argument_group('matcher')
     matcher_group.add_argument(
+        '--matcher', type=str, choices=MATCHER_NAMES,
+        default=MatcherNames.DEFAULT,
+        help=''.join([
+            'the kind of matcher to use ("simple" uses a simpler algorith,',
+            ' requiring correct reading order)'
+        ])
+    )
+    matcher_group.add_argument(
         '--debug-match', type=str, required=False,
         help='if set, path to csv or tsv file with debug matches'
     )
@@ -186,9 +206,43 @@ def get_match_detail_reporter(debug_match: str) -> CsvMatchDetailReporter:
     )
 
 
+class AnnotatorConfig:
+    def __init__(
+            self,
+            matcher_name: str,
+            score_threshold: float,
+            debug_match: str = None):
+        self.matcher_name = matcher_name
+        self.score_threshold = score_threshold
+        self.debug_match = debug_match
+
+    def get_match_detail_reporter(self):
+        return get_match_detail_reporter(self.debug_match)
+
+    def get_simple_annotator_config(self) -> SimpleSimpleMatchingConfig:
+        return SimpleSimpleMatchingConfig(
+            threshold=self.score_threshold
+        )
+
+    def get_matching_annotator_config(self) -> MatchingAnnotatorConfig:
+        return MatchingAnnotatorConfig(
+            match_detail_reporter=self.get_match_detail_reporter(),
+            seq_match_filter=get_simple_fuzzy_match_filter(
+                score_threshold=self.score_threshold,
+                min_match_count=DEFAULT_SEQ_MIN_MATCH_COUNT,
+                ratio_min_match_count=DEFAULT_SEQ_RATIO_MIN_MATCH_COUNT
+            ),
+            choice_match_filter=get_simple_fuzzy_match_filter(
+                score_threshold=self.score_threshold,
+                min_match_count=DEFAULT_CHOICE_MIN_MATCH_COUNT,
+                ratio_min_match_count=DEFAULT_CHOICE_RATIO_MIN_MATCH_COUNT
+            )
+        )
+
+
 def get_default_annotators(
         xml_path, xml_mapping,
-        matching_annotator_config: MatchingAnnotatorConfig,
+        annotator_config: AnnotatorConfig,
         use_line_no_annotator=False) -> List[AbstractAnnotator]:
 
     annotators = []
@@ -199,9 +253,16 @@ def get_default_annotators(
             load_xml(xml_path).getroot(),
             xml_mapping
         )
-        annotators = annotators + [MatchingAnnotator(
-            target_annotations, matching_annotator_config=matching_annotator_config
-        )]
+        if annotator_config.matcher_name == MatcherNames.SIMPLE:
+            annotators.append(SimpleMatchingAnnotator(
+                target_annotations,
+                config=annotator_config.get_simple_annotator_config()
+            ))
+        else:
+            annotators.append(MatchingAnnotator(
+                target_annotations,
+                matching_annotator_config=annotator_config.get_matching_annotator_config()
+            ))
     return annotators
 
 
@@ -226,8 +287,9 @@ class AbstractAnnotatePipelineFactory(ABC):
         self.preserve_tags = not opt.no_preserve_tags
         self.always_preserve_fields = opt.always_preserve_fields
         self.output_fields = output_fields
-        self.debug_match = opt.debug_match
+        self.matcher_name = opt.matcher
         self.matcher_score_threshold = opt.matcher_score_threshold
+        self.debug_match = opt.debug_match
 
     @abstractmethod
     def get_annotator(self, source_url: str):
@@ -236,19 +298,11 @@ class AbstractAnnotatePipelineFactory(ABC):
     def get_match_detail_reporter(self):
         return get_match_detail_reporter(self.debug_match)
 
-    def get_matching_annotator_config(self) -> MatchingAnnotatorConfig:
-        return MatchingAnnotatorConfig(
-            match_detail_reporter=self.get_match_detail_reporter(),
-            seq_match_filter=get_simple_fuzzy_match_filter(
-                score_threshold=self.matcher_score_threshold,
-                min_match_count=DEFAULT_SEQ_MIN_MATCH_COUNT,
-                ratio_min_match_count=DEFAULT_SEQ_RATIO_MIN_MATCH_COUNT
-            ),
-            choice_match_filter=get_simple_fuzzy_match_filter(
-                score_threshold=self.matcher_score_threshold,
-                min_match_count=DEFAULT_CHOICE_MIN_MATCH_COUNT,
-                ratio_min_match_count=DEFAULT_CHOICE_RATIO_MIN_MATCH_COUNT
-            )
+    def get_annotator_config(self) -> AnnotatorConfig:
+        return AnnotatorConfig(
+            matcher_name=self.matcher_name,
+            score_threshold=self.matcher_score_threshold,
+            debug_match=self.debug_match
         )
 
     def get_tei_xml_output_file_for_source_file(self, source_url):
