@@ -1,5 +1,6 @@
 import argparse
 import logging
+import concurrent.futures
 import os
 from abc import ABC, abstractmethod
 from typing import Callable, Dict, List, Set
@@ -16,7 +17,7 @@ from sciencebeam_utils.beam_utils.main import (
 )
 
 from sciencebeam_utils.utils.csv import open_csv_output
-
+from sciencebeam_utils.utils.tqdm import tqdm_with_logging_redirect
 from sciencebeam_utils.beam_utils.files import find_matching_filenames_with_limit
 from sciencebeam_utils.tools.check_file_list import map_file_list_to_file_exists
 
@@ -397,10 +398,29 @@ class AbstractAnnotatePipelineFactory(ABC):
 
             # Execute the pipeline and wait until it is completed.
 
+    def run_local_pipeline(self, args: argparse.Namespace, tei_xml_file_list: List[str]):
+        num_workers = args.num_workers
+        LOGGER.info('using %d workers', num_workers)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
+            with tqdm_with_logging_redirect(total=len(tei_xml_file_list)) as pbar:
+                future_to_url = {
+                    executor.submit(self.auto_annotate, url): url
+                    for url in tei_xml_file_list
+                }
+                LOGGER.debug('future_to_url: %s', future_to_url)
+                for future in concurrent.futures.as_completed(future_to_url):
+                    pbar.update(1)
+                    url = future_to_url[future]
+                    future.result()
+
     def run(self, args: argparse.Namespace, save_main_session: bool = True):
         tei_xml_file_list = self.get_remaining_source_file_list()
         if not tei_xml_file_list:
             LOGGER.warning('no files to process')
+            return
+
+        if not args.cloud and args.num_workers > 1:
+            self.run_local_pipeline(args, tei_xml_file_list=tei_xml_file_list)
             return
 
         self.run_beam_pipeline(
