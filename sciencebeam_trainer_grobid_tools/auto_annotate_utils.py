@@ -144,12 +144,16 @@ def add_annotation_pipeline_arguments(parser: argparse.ArgumentParser):
         ])
     )
     matcher_group.add_argument(
-        '--debug-match', type=str, required=False,
-        help='if set, path to csv or tsv file with debug matches'
-    )
-    matcher_group.add_argument(
         '--matcher-score-threshold', type=float, default=0.8,
         help='score threshold for a match to be accepted (1.0 for exact match)'
+    )
+    matcher_group.add_argument(
+        '--matcher-lookahead-lines', type=int, default=500,
+        help='simple matcher only: number of lines to try to find matches for'
+    )
+    matcher_group.add_argument(
+        '--debug-match', type=str, required=False,
+        help='if set, path to csv or tsv file with debug matches'
     )
 
     add_cloud_args(parser)
@@ -211,9 +215,11 @@ class AnnotatorConfig:
             self,
             matcher_name: str,
             score_threshold: float,
+            lookahead_lines: int,
             debug_match: str = None):
         self.matcher_name = matcher_name
         self.score_threshold = score_threshold
+        self.lookahead_lines = lookahead_lines
         self.debug_match = debug_match
 
     def get_match_detail_reporter(self):
@@ -221,7 +227,8 @@ class AnnotatorConfig:
 
     def get_simple_annotator_config(self) -> SimpleSimpleMatchingConfig:
         return SimpleSimpleMatchingConfig(
-            threshold=self.score_threshold
+            threshold=self.score_threshold,
+            lookahead_sequence_count=self.lookahead_lines
         )
 
     def get_matching_annotator_config(self) -> MatchingAnnotatorConfig:
@@ -287,23 +294,19 @@ class AbstractAnnotatePipelineFactory(ABC):
         self.preserve_tags = not opt.no_preserve_tags
         self.always_preserve_fields = opt.always_preserve_fields
         self.output_fields = output_fields
-        self.matcher_name = opt.matcher
-        self.matcher_score_threshold = opt.matcher_score_threshold
-        self.debug_match = opt.debug_match
+        self.annotator_config = AnnotatorConfig(
+            matcher_name=opt.matcher,
+            score_threshold=opt.matcher_score_threshold,
+            lookahead_lines=opt.matcher_lookahead_lines,
+            debug_match=opt.debug_match
+        )
 
     @abstractmethod
     def get_annotator(self, source_url: str):
         pass
 
-    def get_match_detail_reporter(self):
-        return get_match_detail_reporter(self.debug_match)
-
     def get_annotator_config(self) -> AnnotatorConfig:
-        return AnnotatorConfig(
-            matcher_name=self.matcher_name,
-            score_threshold=self.matcher_score_threshold,
-            debug_match=self.debug_match
-        )
+        return self.annotator_config
 
     def get_tei_xml_output_file_for_source_file(self, source_url):
         return os.path.join(
