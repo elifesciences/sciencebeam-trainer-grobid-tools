@@ -1,4 +1,8 @@
 import logging
+from pathlib import Path
+from typing import List, Union
+
+import pytest
 
 from lxml import etree
 from lxml.builder import E
@@ -8,6 +12,11 @@ from sciencebeam_trainer_grobid_tools.auto_annotate_header import (
 )
 
 from .test_utils import log_on_exception
+from .auto_annotate_test_utils import (
+    get_target_xml_node,
+    get_xpath_text,
+    SingleFileAutoAnnotateEndToEndTestHelper
+)
 
 
 LOGGER = logging.getLogger(__name__)
@@ -21,35 +30,54 @@ TEI_FILENAME_REGEX = r'/(.*).header.tei.xml/\1.xml/'
 TEXT_1 = 'text 1'
 
 
+def get_header_tei_node(
+        front_items: List[Union[etree.Element, str]]) -> etree.Element:
+    return E.tei(E.text(E.front(*front_items)))
+
+
+def get_default_tei_node() -> etree.Element:
+    return get_header_tei_node([E.note(TEXT_1)])
+
+
+@pytest.fixture(name='test_helper')
+def _test_helper(temp_dir: Path) -> SingleFileAutoAnnotateEndToEndTestHelper:
+    return SingleFileAutoAnnotateEndToEndTestHelper(
+        temp_dir=temp_dir,
+        tei_filename=TEI_FILENAME_1,
+        tei_filename_regex=TEI_FILENAME_REGEX
+    )
+
+
 class TestEndToEnd(object):
     @log_on_exception
-    def test_should_auto_annotate_title(self, temp_dir):
-        tei_raw_path = temp_dir.joinpath('tei-raw')
-        tei_auto_path = temp_dir.joinpath('tei-auto')
-        xml_path = temp_dir.joinpath('xml')
-        tei_raw_path.mkdir()
-        tei_raw_path.joinpath(TEI_FILENAME_1).write_bytes(etree.tostring(
-            E.tei(E.text(E.front(
-                E.note(TEXT_1)
-            )))
+    def test_should_auto_annotate_title(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_header_tei_node([E.note(TEXT_1)])
         ))
-        xml_path.mkdir()
-        xml_path.joinpath(XML_FILENAME_1).write_bytes(etree.tostring(
-            E.article(E.front(
-                E('article-meta', E('title-group', E('article-title', TEXT_1)))
-            ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(title=TEXT_1)
         ))
         main([
-            '--source-base-path=%s' % tei_raw_path,
-            '--output-path=%s' % tei_auto_path,
-            '--xml-path=%s' % xml_path,
-            '--xml-filename-regex=%s' % TEI_FILENAME_REGEX,
-            '--fields=title,abstract'
+            *test_helper.main_args
         ], save_main_session=False)
-        tei_auto_file_path = tei_auto_path.joinpath(TEI_FILENAME_1)
-        assert tei_auto_file_path.exists()
-        tei_auto_root = etree.parse(str(tei_auto_file_path)).getroot()
-        LOGGER.info('tei_auto_root: %s', etree.tostring(tei_auto_root))
-        title_nodes = tei_auto_root.xpath('//docTitle/titlePart')
-        assert title_nodes
-        assert title_nodes[0].text == TEXT_1
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text(tei_auto_root, '//docTitle/titlePart') == TEXT_1
+
+    @log_on_exception
+    def test_should_auto_annotate_using_simple_matcher(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_header_tei_node([E.note(TEXT_1)])
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(title=TEXT_1)
+        ))
+        main([
+            *test_helper.main_args,
+            '--matcher=simple'
+        ], save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text(tei_auto_root, '//docTitle/titlePart') == TEXT_1

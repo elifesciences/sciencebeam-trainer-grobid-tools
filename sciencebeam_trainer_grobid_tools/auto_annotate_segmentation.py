@@ -80,7 +80,7 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
         return _get_annotator(
             target_xml_path,
             self.xml_mapping,
-            matching_annotator_config=self.get_matching_annotator_config(),
+            annotator_config=self.get_annotator_config(),
             segmentation_config=self.segmentation_config,
             preserve_tags=self.preserve_tags
         )
