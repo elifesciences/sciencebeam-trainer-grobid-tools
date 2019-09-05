@@ -24,4 +24,8 @@ def log_on_exception(f: callable) -> callable:
 
 
 def dict_to_args(args_dict: Dict[str, str]) -> List[str]:
-    return ['--%s=%s' % (key, value) for key, value in args_dict.items() if value is not None]
+    return [
+        '--%s' % key if isinstance(value, bool) and value else '--%s=%s' % (key, value)
+        for key, value in args_dict.items()
+        if value is not None
+    ]

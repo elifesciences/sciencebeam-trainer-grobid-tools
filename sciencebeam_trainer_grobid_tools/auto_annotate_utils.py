@@ -2,7 +2,7 @@ import argparse
 import logging
 import os
 from abc import ABC, abstractmethod
-from typing import Dict, List, Set
+from typing import Callable, Dict, List, Set
 
 from lxml import etree
 
@@ -19,6 +19,7 @@ from sciencebeam_utils.utils.csv import open_csv_output
 
 from sciencebeam_utils.beam_utils.utils import PreventFusion
 from sciencebeam_utils.beam_utils.files import find_matching_filenames_with_limit
+from sciencebeam_utils.tools.check_file_list import map_file_list_to_file_exists
 
 from sciencebeam_gym.preprocess.annotation.target_annotation import (
     xml_root_to_target_annotations
@@ -170,12 +171,6 @@ def process_annotation_pipeline_arguments(
     )
 
 
-def _file_exists(file_url):
-    result = FileSystems.exists(file_url)
-    LOGGER.debug('file exists: result=%s, url=%s', result, file_url)
-    return result
-
-
 def load_xml(file_url):
     with FileSystems.open(file_url) as source_fp:
         return etree.parse(source_fp)
@@ -273,6 +268,21 @@ def get_default_annotators(
     return annotators
 
 
+def get_file_list_without_output_file(
+        file_list: List[str],
+        get_output_file_for_source_url: Callable[[str], str]) -> List[str]:
+    output_file_exists_list = map_file_list_to_file_exists([
+        get_output_file_for_source_url(file_url)
+        for file_url in file_list
+    ])
+    LOGGER.debug('output_file_exists_list: %s', output_file_exists_list)
+    return [
+        file_url
+        for file_url, output_file_exists in zip(file_list, output_file_exists_list)
+        if not output_file_exists
+    ]
+
+
 class AbstractAnnotatePipelineFactory(ABC):
     def __init__(
             self,
@@ -314,11 +324,6 @@ class AbstractAnnotatePipelineFactory(ABC):
             os.path.basename(source_url)
         )
 
-    def output_file_not_exists(self, source_url):
-        return not _file_exists(
-            self.get_tei_xml_output_file_for_source_file(source_url)
-        )
-
     def get_target_xml_for_source_file(self, source_url):
         return os.path.join(
             self.xml_path,
@@ -358,7 +363,7 @@ class AbstractAnnotatePipelineFactory(ABC):
             # Execute the pipeline and wait until it is completed.
 
     def get_source_files(self):
-        return beam.Create(self.get_source_file_list())
+        return beam.Create(self.get_remaining_source_file_list())
 
     def get_source_file_list(self):
         if self.source_path:
@@ -368,6 +373,23 @@ class AbstractAnnotatePipelineFactory(ABC):
             self.tei_filename_pattern
         ), limit=self.limit))
 
+    def get_remaining_source_file_list(self):
+        file_list = self.get_source_file_list()
+        LOGGER.debug('file_list: %s', file_list)
+
+        if not file_list:
+            LOGGER.warning('no files found')
+            return file_list
+
+        LOGGER.info('total number of files: %d', len(file_list))
+        if self.resume:
+            file_list = get_file_list_without_output_file(
+                file_list,
+                get_output_file_for_source_url=self.get_tei_xml_output_file_for_source_file
+            )
+            LOGGER.info('remaining number of files: %d', len(file_list))
+        return file_list
+
     def configure(self, p):
         tei_xml_file_url_source = self.get_source_files()
 
@@ -376,11 +398,6 @@ class AbstractAnnotatePipelineFactory(ABC):
             tei_xml_file_url_source |
             PreventFusion()
         )
-
-        if self.resume:
-            tei_xml_input_urls |= "SkipAlreadyProcessed" >> beam.Filter(
-                self.output_file_not_exists
-            )
 
         _ = (
             tei_xml_input_urls |
