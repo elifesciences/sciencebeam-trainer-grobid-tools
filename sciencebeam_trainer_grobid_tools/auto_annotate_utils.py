@@ -17,7 +17,6 @@ from sciencebeam_utils.beam_utils.main import (
 
 from sciencebeam_utils.utils.csv import open_csv_output
 
-from sciencebeam_utils.beam_utils.utils import PreventFusion
 from sciencebeam_utils.beam_utils.files import find_matching_filenames_with_limit
 from sciencebeam_utils.tools.check_file_list import map_file_list_to_file_exists
 
@@ -392,8 +391,7 @@ class AbstractAnnotatePipelineFactory(ABC):
 
         tei_xml_input_urls = (
             p |
-            beam.Create(tei_xml_file_list) |
-            PreventFusion()
+            beam.Create(tei_xml_file_list)
         )
 
         _ = (
