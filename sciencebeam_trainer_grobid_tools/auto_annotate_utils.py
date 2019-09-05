@@ -375,25 +375,36 @@ class AbstractAnnotatePipelineFactory(ABC):
             LOGGER.info('remaining number of files: %d', len(file_list))
         return file_list
 
-    def configure_beam_pipeline(self, p: beam.Pipeline):
-        tei_xml_file_list = self.get_remaining_source_file_list()
-
+    def configure_beam_pipeline(self, p: beam.Pipeline, tei_xml_file_list: List[str]):
         _ = (
             p
             | beam.Create(tei_xml_file_list)
             | "Auto-Annotate" >> beam.Map(self.auto_annotate)
         )
 
-    def run_beam_pipeline(self, args: argparse.Namespace, save_main_session: bool = True):
+    def run_beam_pipeline(
+            self,
+            args: argparse.Namespace,
+            tei_xml_file_list: List[str],
+            save_main_session: bool = True):
         # We use the save_main_session option because one or more DoFn's in this
         # workflow rely on global context (e.g., a module imported at module level).
         pipeline_options = PipelineOptions.from_dictionary(vars(args))
         pipeline_options.view_as(SetupOptions).save_main_session = save_main_session
 
         with beam.Pipeline(args.runner, options=pipeline_options) as p:
-            self.configure_beam_pipeline(p)
+            self.configure_beam_pipeline(p, tei_xml_file_list=tei_xml_file_list)
 
             # Execute the pipeline and wait until it is completed.
 
     def run(self, args: argparse.Namespace, save_main_session: bool = True):
-        self.run_beam_pipeline(args, save_main_session=save_main_session)
+        tei_xml_file_list = self.get_remaining_source_file_list()
+        if not tei_xml_file_list:
+            LOGGER.warning('no files to process')
+            return
+
+        self.run_beam_pipeline(
+            args,
+            save_main_session=save_main_session,
+            tei_xml_file_list=tei_xml_file_list
+        )
