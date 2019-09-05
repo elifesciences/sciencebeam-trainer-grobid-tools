@@ -350,17 +350,6 @@ class AbstractAnnotatePipelineFactory(ABC):
             get_logger().error('failed to process %s due to %s', source_url, e, exc_info=e)
             raise e
 
-    def run(self, args: argparse.Namespace, save_main_session: bool = True):
-        # We use the save_main_session option because one or more DoFn's in this
-        # workflow rely on global context (e.g., a module imported at module level).
-        pipeline_options = PipelineOptions.from_dictionary(vars(args))
-        pipeline_options.view_as(SetupOptions).save_main_session = save_main_session
-
-        with beam.Pipeline(args.runner, options=pipeline_options) as p:
-            self.configure(p)
-
-            # Execute the pipeline and wait until it is completed.
-
     def get_source_file_list(self):
         if self.source_path:
             return [self.source_path]
@@ -398,3 +387,14 @@ class AbstractAnnotatePipelineFactory(ABC):
             tei_xml_input_urls |
             "Auto-Annotate" >> beam.Map(self.auto_annotate)
         )
+
+    def run(self, args: argparse.Namespace, save_main_session: bool = True):
+        # We use the save_main_session option because one or more DoFn's in this
+        # workflow rely on global context (e.g., a module imported at module level).
+        pipeline_options = PipelineOptions.from_dictionary(vars(args))
+        pipeline_options.view_as(SetupOptions).save_main_session = save_main_session
+
+        with beam.Pipeline(args.runner, options=pipeline_options) as p:
+            self.configure(p)
+
+            # Execute the pipeline and wait until it is completed.
