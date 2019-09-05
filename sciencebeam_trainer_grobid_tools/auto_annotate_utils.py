@@ -18,7 +18,7 @@ from sciencebeam_utils.beam_utils.main import (
 from sciencebeam_utils.utils.csv import open_csv_output
 
 from sciencebeam_utils.beam_utils.utils import PreventFusion
-from sciencebeam_utils.beam_utils.files import FindFiles
+from sciencebeam_utils.beam_utils.files import find_matching_filenames_with_limit
 
 from sciencebeam_gym.preprocess.annotation.target_annotation import (
     xml_root_to_target_annotations
@@ -358,12 +358,15 @@ class AbstractAnnotatePipelineFactory(ABC):
             # Execute the pipeline and wait until it is completed.
 
     def get_source_files(self):
+        return beam.Create(self.get_source_file_list())
+
+    def get_source_file_list(self):
         if self.source_path:
-            return beam.Create([self.source_path])
-        return FindFiles(os.path.join(
+            return [self.source_path]
+        return list(find_matching_filenames_with_limit(os.path.join(
             self.source_base_path,
             self.tei_filename_pattern
-        ), limit=self.limit)
+        ), limit=self.limit))
 
     def configure(self, p):
         tei_xml_file_url_source = self.get_source_files()
