@@ -362,9 +362,6 @@ class AbstractAnnotatePipelineFactory(ABC):
 
             # Execute the pipeline and wait until it is completed.
 
-    def get_source_files(self):
-        return beam.Create(self.get_remaining_source_file_list())
-
     def get_source_file_list(self):
         if self.source_path:
             return [self.source_path]
@@ -391,11 +388,11 @@ class AbstractAnnotatePipelineFactory(ABC):
         return file_list
 
     def configure(self, p):
-        tei_xml_file_url_source = self.get_source_files()
+        tei_xml_file_list = self.get_remaining_source_file_list()
 
         tei_xml_input_urls = (
             p |
-            tei_xml_file_url_source |
+            beam.Create(tei_xml_file_list) |
             PreventFusion()
         )
 
