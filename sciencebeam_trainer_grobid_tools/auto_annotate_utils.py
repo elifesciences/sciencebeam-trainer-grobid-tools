@@ -1,8 +1,9 @@
 import argparse
 import logging
+import concurrent.futures
 import os
 from abc import ABC, abstractmethod
-from typing import Dict, List, Set
+from typing import Callable, Dict, List, Set
 
 from lxml import etree
 
@@ -16,9 +17,9 @@ from sciencebeam_utils.beam_utils.main import (
 )
 
 from sciencebeam_utils.utils.csv import open_csv_output
-
-from sciencebeam_utils.beam_utils.utils import PreventFusion
-from sciencebeam_utils.beam_utils.files import FindFiles
+from sciencebeam_utils.utils.tqdm import tqdm_with_logging_redirect
+from sciencebeam_utils.beam_utils.files import find_matching_filenames_with_limit
+from sciencebeam_utils.tools.check_file_list import map_file_list_to_file_exists
 
 from sciencebeam_gym.preprocess.annotation.target_annotation import (
     xml_root_to_target_annotations
@@ -156,6 +157,11 @@ def add_annotation_pipeline_arguments(parser: argparse.ArgumentParser):
         help='if set, path to csv or tsv file with debug matches'
     )
 
+    parser.add_argument(
+        '--multi-processing', action='store_true', default=False,
+        help='enable multi processing rather than multi threading'
+    )
+
     add_cloud_args(parser)
     return parser
 
@@ -168,12 +174,6 @@ def process_annotation_pipeline_arguments(
         args, args.output_path,
         name='sciencebeam-grobid-trainer-tools'
     )
-
-
-def _file_exists(file_url):
-    result = FileSystems.exists(file_url)
-    LOGGER.debug('file exists: result=%s, url=%s', result, file_url)
-    return result
 
 
 def load_xml(file_url):
@@ -273,6 +273,21 @@ def get_default_annotators(
     return annotators
 
 
+def get_file_list_without_output_file(
+        file_list: List[str],
+        get_output_file_for_source_url: Callable[[str], str]) -> List[str]:
+    output_file_exists_list = map_file_list_to_file_exists([
+        get_output_file_for_source_url(file_url)
+        for file_url in file_list
+    ])
+    LOGGER.debug('output_file_exists_list: %s', output_file_exists_list)
+    return [
+        file_url
+        for file_url, output_file_exists in zip(file_list, output_file_exists_list)
+        if not output_file_exists
+    ]
+
+
 class AbstractAnnotatePipelineFactory(ABC):
     def __init__(
             self,
@@ -314,11 +329,6 @@ class AbstractAnnotatePipelineFactory(ABC):
             os.path.basename(source_url)
         )
 
-    def output_file_not_exists(self, source_url):
-        return not _file_exists(
-            self.get_tei_xml_output_file_for_source_file(source_url)
-        )
-
     def get_target_xml_for_source_file(self, source_url):
         return os.path.join(
             self.xml_path,
@@ -346,47 +356,84 @@ class AbstractAnnotatePipelineFactory(ABC):
             get_logger().error('failed to process %s due to %s', source_url, e, exc_info=e)
             raise e
 
-    def run(self, args: argparse.Namespace, save_main_session: bool = True):
+    def get_source_file_list(self):
+        if self.source_path:
+            return [self.source_path]
+        return list(find_matching_filenames_with_limit(os.path.join(
+            self.source_base_path,
+            self.tei_filename_pattern
+        ), limit=self.limit))
+
+    def get_remaining_source_file_list(self):
+        file_list = self.get_source_file_list()
+        LOGGER.debug('file_list: %s', file_list)
+
+        if not file_list:
+            LOGGER.warning('no files found')
+            return file_list
+
+        LOGGER.info('total number of files: %d', len(file_list))
+        if self.resume:
+            file_list = get_file_list_without_output_file(
+                file_list,
+                get_output_file_for_source_url=self.get_tei_xml_output_file_for_source_file
+            )
+            LOGGER.info('remaining number of files: %d', len(file_list))
+        return file_list
+
+    def configure_beam_pipeline(self, p: beam.Pipeline, tei_xml_file_list: List[str]):
+        _ = (
+            p
+            | beam.Create(tei_xml_file_list)
+            | "Auto-Annotate" >> beam.Map(self.auto_annotate)
+        )
+
+    def run_beam_pipeline(
+            self,
+            args: argparse.Namespace,
+            tei_xml_file_list: List[str],
+            save_main_session: bool = True):
         # We use the save_main_session option because one or more DoFn's in this
         # workflow rely on global context (e.g., a module imported at module level).
         pipeline_options = PipelineOptions.from_dictionary(vars(args))
         pipeline_options.view_as(SetupOptions).save_main_session = save_main_session
 
         with beam.Pipeline(args.runner, options=pipeline_options) as p:
-            self.configure(p)
+            self.configure_beam_pipeline(p, tei_xml_file_list=tei_xml_file_list)
 
             # Execute the pipeline and wait until it is completed.
 
-    def get_source_files(self):
-        if self.source_path:
-            return beam.Create([self.source_path])
-        return FindFiles(os.path.join(
-            self.source_base_path,
-            self.tei_filename_pattern
-        ), limit=self.limit)
-
-    def configure(self, p):
-        tei_xml_file_url_source = self.get_source_files()
-
-        tei_xml_input_urls = (
-            p |
-            tei_xml_file_url_source |
-            PreventFusion()
+    def run_local_pipeline(self, args: argparse.Namespace, tei_xml_file_list: List[str]):
+        num_workers = min(args.num_workers, len(tei_xml_file_list))
+        multi_processing = args.multi_processing
+        LOGGER.info('using %d workers (multi_processing: %s)', num_workers, multi_processing)
+        PoolExecutor = (
+            concurrent.futures.ProcessPoolExecutor if multi_processing
+            else concurrent.futures.ThreadPoolExecutor
         )
+        with PoolExecutor(max_workers=num_workers) as executor:
+            with tqdm_with_logging_redirect(total=len(tei_xml_file_list)) as pbar:
+                future_to_url = {
+                    executor.submit(self.auto_annotate, url): url
+                    for url in tei_xml_file_list
+                }
+                LOGGER.debug('future_to_url: %s', future_to_url)
+                for future in concurrent.futures.as_completed(future_to_url):
+                    pbar.update(1)
+                    future.result()
 
-        if self.resume:
-            tei_xml_input_urls |= "SkipAlreadyProcessed" >> beam.Filter(
-                self.output_file_not_exists
-            )
+    def run(self, args: argparse.Namespace, save_main_session: bool = True):
+        tei_xml_file_list = self.get_remaining_source_file_list()
+        if not tei_xml_file_list:
+            LOGGER.warning('no files to process')
+            return
 
-        _ = (
-            tei_xml_input_urls |
-            "Logging Input URI" >> beam.Map(lambda input_uri: get_logger().info(
-                'input uri: %s', input_uri
-            ))
-        )
+        if not args.cloud and args.num_workers > 1:
+            self.run_local_pipeline(args, tei_xml_file_list=tei_xml_file_list)
+            return
 
-        _ = (
-            tei_xml_input_urls |
-            "Auto-Annotate" >> beam.Map(self.auto_annotate)
+        self.run_beam_pipeline(
+            args,
+            save_main_session=save_main_session,
+            tei_xml_file_list=tei_xml_file_list
         )

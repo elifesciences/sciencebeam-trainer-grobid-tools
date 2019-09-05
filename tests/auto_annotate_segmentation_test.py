@@ -100,6 +100,47 @@ class TestEndToEnd(object):
         assert test_helper.get_tei_auto_root() is not None
 
     @log_on_exception
+    def test_should_skip_existing_output_file_if_resume_is_enabled(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(get_default_tei_node()))
+        test_helper.xml_file_path.write_bytes(etree.tostring(get_default_target_xml_node()))
+        test_helper.tei_auto_file_path.parent.mkdir()
+        test_helper.tei_auto_file_path.write_bytes(b'existing')
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'resume': True
+        }), save_main_session=False)
+
+        assert test_helper.tei_auto_file_path.read_bytes() == b'existing'
+
+    @log_on_exception
+    def test_should_run_locally_without_beam_if_workers_more_than_one(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(get_default_tei_node()))
+        test_helper.xml_file_path.write_bytes(etree.tostring(get_default_target_xml_node()))
+        test_helper.tei_auto_file_path.parent.mkdir()
+        test_helper.tei_auto_file_path.write_bytes(b'existing')
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'num_workers': 2
+        }), save_main_session=False)
+        assert test_helper.get_tei_auto_root() is not None
+
+    @log_on_exception
+    def test_should_run_locally_using_multi_processing(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(get_default_tei_node()))
+        test_helper.xml_file_path.write_bytes(etree.tostring(get_default_target_xml_node()))
+        test_helper.tei_auto_file_path.parent.mkdir()
+        test_helper.tei_auto_file_path.write_bytes(b'existing')
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'num_workers': 2,
+            'multi-processing': True
+        }), save_main_session=False)
+        assert test_helper.get_tei_auto_root() is not None
+
+    @log_on_exception
     def test_should_write_debug_match(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper, temp_dir: Path):
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(get_default_tei_node()))
