@@ -157,6 +157,11 @@ def add_annotation_pipeline_arguments(parser: argparse.ArgumentParser):
         help='if set, path to csv or tsv file with debug matches'
     )
 
+    parser.add_argument(
+        '--multi-processing', action='store_true', default=False,
+        help='enable multi processing rather than multi threading'
+    )
+
     add_cloud_args(parser)
     return parser
 
@@ -399,9 +404,14 @@ class AbstractAnnotatePipelineFactory(ABC):
             # Execute the pipeline and wait until it is completed.
 
     def run_local_pipeline(self, args: argparse.Namespace, tei_xml_file_list: List[str]):
-        num_workers = args.num_workers
-        LOGGER.info('using %d workers', num_workers)
-        with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
+        num_workers = min(args.num_workers, len(tei_xml_file_list))
+        multi_processing = args.multi_processing
+        LOGGER.info('using %d workers (multi_processing: %s)', num_workers, multi_processing)
+        PoolExecutor = (
+            concurrent.futures.ProcessPoolExecutor if multi_processing
+            else concurrent.futures.ThreadPoolExecutor
+        )
+        with PoolExecutor(max_workers=num_workers) as executor:
             with tqdm_with_logging_redirect(total=len(tei_xml_file_list)) as pbar:
                 future_to_url = {
                     executor.submit(self.auto_annotate, url): url
