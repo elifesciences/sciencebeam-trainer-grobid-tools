@@ -398,12 +398,5 @@ class AbstractAnnotatePipelineFactory(ABC):
 
         _ = (
             tei_xml_input_urls |
-            "Logging Input URI" >> beam.Map(lambda input_uri: get_logger().info(
-                'input uri: %s', input_uri
-            ))
-        )
-
-        _ = (
-            tei_xml_input_urls |
             "Auto-Annotate" >> beam.Map(self.auto_annotate)
         )
