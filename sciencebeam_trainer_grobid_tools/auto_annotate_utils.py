@@ -420,7 +420,6 @@ class AbstractAnnotatePipelineFactory(ABC):
                 LOGGER.debug('future_to_url: %s', future_to_url)
                 for future in concurrent.futures.as_completed(future_to_url):
                     pbar.update(1)
-                    url = future_to_url[future]
                     future.result()
 
     def run(self, args: argparse.Namespace, save_main_session: bool = True):
