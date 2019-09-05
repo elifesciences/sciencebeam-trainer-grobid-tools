@@ -46,10 +46,6 @@ class SingleFileAutoAnnotateEndToEndTestHelper:
         return tei_auto_root
 
 
-def get_default_tei_node() -> etree.Element:
-    return E.tei(E.text(E.note(TOKEN_1)))
-
-
 def get_target_xml_node(title: str = None) -> etree.Element:
     front_node = E.front()
     if title:

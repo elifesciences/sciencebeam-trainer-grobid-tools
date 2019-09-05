@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from typing import List, Union
 
 import pytest
 
@@ -27,6 +28,15 @@ TEI_FILENAME_1 = 'document1.header.tei.xml'
 TEI_FILENAME_REGEX = r'/(.*).header.tei.xml/\1.xml/'
 
 TEXT_1 = 'text 1'
+
+
+def get_header_tei_node(
+        front_items: List[Union[etree.Element, str]]) -> etree.Element:
+    return E.tei(E.text(E.front(*front_items)))
+
+
+def get_default_tei_node() -> etree.Element:
+    return get_header_tei_node([E.note(TEXT_1)])
 
 
 @pytest.fixture(name='test_helper')
