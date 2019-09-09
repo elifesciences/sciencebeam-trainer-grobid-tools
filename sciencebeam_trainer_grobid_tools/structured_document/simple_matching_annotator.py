@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import List
 
 from sciencebeam_gym.structured_document import (
@@ -29,6 +30,17 @@ from sciencebeam_trainer_grobid_tools.structured_document.matching_utils import 
 
 
 LOGGER = logging.getLogger(__name__)
+
+
+def split_and_join_with_space(text: str) -> str:
+    """
+    Splits the given string and joins with space to reproduce the output of document tokens
+    """
+    return ' '.join([
+        token
+        for token in re.split(r'(\W)', text)
+        if token.strip()
+    ])
 
 
 class SimpleSimpleMatchingConfig:
@@ -74,7 +86,9 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             LOGGER.debug('target_annotation: %s', target_annotation)
             if not self.is_target_annotation_supported(target_annotation):
                 raise NotImplementedError('unsupported target annotation: %s' % target_annotation)
-            target_value = normalise_and_remove_junk_str_or_list(target_annotation.value)
+            target_value = split_and_join_with_space(
+                normalise_and_remove_junk_str_or_list(target_annotation.value)
+            )
             LOGGER.debug('target_value: %s', target_value)
             # pending sequences provides a view of the not yet untagged tokens
             # this is what we will try to align the target value to
