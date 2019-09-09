@@ -1,3 +1,6 @@
+import logging
+import re
+
 import pytest
 
 from sciencebeam_utils.utils.collection import flatten
@@ -17,6 +20,8 @@ from sciencebeam_trainer_grobid_tools.structured_document.simple_matching_annota
 )
 
 
+LOGGER = logging.getLogger(__name__)
+
 TAG1 = 'tag1'
 TAG2 = 'tag2'
 
@@ -26,7 +31,7 @@ def _get_tags_of_tokens(tokens):
 
 
 def _tokens_for_text(text):
-    return [SimpleToken(s) for s in text.split(' ')]
+    return [SimpleToken(s) for s in re.split(r'(\W)', text) if s.strip()]
 
 
 def _lines_for_tokens(tokens_by_line):
@@ -103,6 +108,24 @@ class TestSimpleMatchingAnnotator:
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
         assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
 
+    def test_should_match_single_quotes_with_double_quotes(self):
+        matching_tokens = _tokens_for_text('"this is matching"')
+        target_annotations = [
+            TargetAnnotation('\'this is matching\'', TAG1)
+        ]
+        doc = SimpleStructuredDocument(lines=[SimpleLine(matching_tokens)])
+        SimpleMatchingAnnotator(target_annotations).annotate(doc)
+        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+
+    def _test_should_match_apos_with_double_quotes(self):
+        matching_tokens = _tokens_for_text('"this is matching"')
+        target_annotations = [
+            TargetAnnotation('&apos;this is matching&apos;', TAG1)
+        ]
+        doc = SimpleStructuredDocument(lines=[SimpleLine(matching_tokens)])
+        SimpleMatchingAnnotator(target_annotations).annotate(doc)
+        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+
     def test_should_prefer_word_boundaries(self):
         pre_tokens = _tokens_for_text('this')
         matching_tokens = _tokens_for_text('is')
@@ -158,7 +181,7 @@ class TestSimpleMatchingAnnotator:
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
         assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
 
-    def test_should_annotate_ignoring_dots_after_capitals_in_document(self):
+    def _test_should_annotate_ignoring_dots_after_capitals_in_document(self):
         matching_tokens = _tokens_for_text('P.O. Box 12345')
         target_annotations = [
             TargetAnnotation('PO Box 12345', TAG1)
