@@ -3,6 +3,7 @@ import logging
 import os
 from shutil import copyfileobj
 from multiprocessing.dummy import Pool as ThreadPool
+from typing import List, Tuple
 
 from apache_beam.io.filesystems import FileSystems
 
@@ -11,6 +12,8 @@ from sciencebeam_utils.utils.file_list import (
     to_relative_file_list,
     to_absolute_file_list
 )
+
+from sciencebeam_utils.tools.check_file_list import map_file_list_to_file_exists
 
 
 LOGGER = logging.getLogger(__name__)
@@ -116,6 +119,32 @@ class FileList(object):
         else:
             self.relative_file_list = file_list
             self.absolute_file_list = file_list
+
+    def select(self, selection: List[bool]) -> 'FileList':
+        assert len(selection) == len(self.absolute_file_list)
+        return FileList(
+            base_path=self.base_path,
+            file_list=[
+                file_path
+                for file_path, selected in zip(self.absolute_file_list, selection)
+                if selected
+            ]
+        )
+
+    def __len__(self):
+        return len(self.absolute_file_list)
+
+    def __bool__(self):
+        return len(self) > 0
+
+    def __eq__(self, other: 'FileList') -> bool:
+        if not isinstance(other, FileList):
+            return False
+        return (
+            (self.base_path == other.base_path)
+            and (self.relative_file_list == other.relative_file_list)
+            and (self.absolute_file_list == other.absolute_file_list)
+        )
 
     def __repr__(self):
         return '%s(base_path="%s", file_list=%s)' % (
@@ -235,22 +264,54 @@ def copy_files(source_file_list, output_file_list, pool=None):  # pylint: disabl
             copy_file(source_filename, output_filename)
 
 
+def filter_file_pair_exists(
+        file_list1: FileList, file_list2: FileList) -> Tuple[FileList, FileList]:
+    file_list_exists1 = map_file_list_to_file_exists(
+        file_list1.absolute_file_list
+    )
+    file_list_exists2 = map_file_list_to_file_exists(
+        file_list2.absolute_file_list
+    )
+    pair_exists = [
+        exists1 and exists2
+        for exists1, exists2 in zip(file_list_exists1, file_list_exists2)
+    ]
+    return (
+        file_list1.select(pair_exists),
+        file_list2.select(pair_exists)
+    )
+
+
 def run(args):
-    document_file_list = load_file_list_from_config(
+    all_document_file_list = load_file_list_from_config(
         get_file_list_config(args, 'document'),
         limit=args.limit
     )
-    target_file_list = load_file_list_from_config(
+    all_target_file_list = load_file_list_from_config(
         get_file_list_config(args, 'target'),
         limit=args.limit
     )
+
+    LOGGER.debug('all_document_file_list: %s', all_document_file_list)
+    LOGGER.debug('all_target_file_list: %s', all_target_file_list)
+
+    document_file_list, target_file_list = filter_file_pair_exists(
+        all_document_file_list, all_target_file_list
+    )
+
+    if not document_file_list:
+        raise ValueError('none of the file pairs exists')
+
+    if len(document_file_list) < len(all_document_file_list):
+        LOGGER.warning(
+            'not all file pair exists: %d exists (total: %d)',
+            len(document_file_list), len(all_document_file_list)
+        )
+
     file_lists = {
         'document': document_file_list.relative_file_list,
         'target': target_file_list.relative_file_list
     }
-
-    LOGGER.debug('document_file_list: %s', document_file_list)
-    LOGGER.debug('target_file_list: %s', target_file_list)
 
     document_output_file_list = get_output_file_list_from_config(
         source_file_list=document_file_list,
