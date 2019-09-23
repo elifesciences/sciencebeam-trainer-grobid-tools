@@ -12,6 +12,7 @@ from sciencebeam_trainer_grobid_tools.download_source_files import (
     get_output_file_list,
     FileList,
     copy_files,
+    filter_file_pair_exists,
     main,
     DEFAULT_DOCUMENT_COLUMN,
     DEFAULT_TARGET_COLUMN
@@ -152,6 +153,51 @@ class TestCopyFiles(object):
         source_file.write_bytes(b'file1.pdf content')
         copy_files([str(source_file)], [str(output_file)], pool=thread_pool)
         assert output_file.read_bytes()
+
+
+class TestFilterFilePairExists:
+    def test_should_return_source_list_if_both_files_exist(self, temp_dir: Path):
+        file1 = temp_dir.joinpath('file1.pdf')
+        file2 = temp_dir.joinpath('file1.xml')
+        file1.write_bytes(b'dummy')
+        file2.write_bytes(b'dummy')
+        assert (
+            filter_file_pair_exists(
+                FileList(base_path=None, file_list=[str(file1)]),
+                FileList(base_path=None, file_list=[str(file2)])
+            ) == (
+                FileList(base_path=None, file_list=[str(file1)]),
+                FileList(base_path=None, file_list=[str(file2)])
+            )
+        )
+
+    def test_should_not_return_file_if_first_file_is_missing(self, temp_dir: Path):
+        file1 = temp_dir.joinpath('file1.pdf')
+        file2 = temp_dir.joinpath('file1.xml')
+        file2.write_bytes(b'dummy')
+        assert (
+            filter_file_pair_exists(
+                FileList(base_path=None, file_list=[str(file1)]),
+                FileList(base_path=None, file_list=[str(file2)])
+            ) == (
+                FileList(base_path=None, file_list=[]),
+                FileList(base_path=None, file_list=[])
+            )
+        )
+
+    def test_should_not_return_file_if_second_file_is_missing(self, temp_dir: Path):
+        file1 = temp_dir.joinpath('file1.pdf')
+        file2 = temp_dir.joinpath('file1.xml')
+        file1.write_bytes(b'dummy')
+        assert (
+            filter_file_pair_exists(
+                FileList(base_path=None, file_list=[str(file1)]),
+                FileList(base_path=None, file_list=[str(file2)])
+            ) == (
+                FileList(base_path=None, file_list=[]),
+                FileList(base_path=None, file_list=[])
+            )
+        )
 
 
 class TestMain(object):
