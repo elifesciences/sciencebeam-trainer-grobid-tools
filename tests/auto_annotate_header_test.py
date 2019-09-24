@@ -81,3 +81,29 @@ class TestEndToEnd(object):
 
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text(tei_auto_root, '//docTitle/titlePart') == TEXT_1
+
+    @log_on_exception
+    def test_should_skip_errors(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        tei_raw_other_file_path = test_helper.tei_raw_path.joinpath('document0.header.tei.xml')
+        tei_raw_other_file_path.write_bytes(etree.tostring(
+            get_header_tei_node([E.note(TEXT_1)])
+        ))
+        xml_other_file_path = test_helper.xml_path.joinpath('document0.xml')
+        xml_other_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(title=TEXT_1)
+        ) + b'error')
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_header_tei_node([E.note(TEXT_1)])
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(title=TEXT_1)
+        ))
+        main([
+            *test_helper.main_args,
+            '--matcher=simple',
+            '--skip-errors'
+        ], save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text(tei_auto_root, '//docTitle/titlePart') == TEXT_1

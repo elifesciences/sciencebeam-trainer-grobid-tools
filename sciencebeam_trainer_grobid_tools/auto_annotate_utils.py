@@ -5,10 +5,7 @@ import os
 from abc import ABC, abstractmethod
 from typing import Callable, Dict, List, Set
 
-from lxml import etree
-
 import apache_beam as beam
-from apache_beam.io.filesystems import FileSystems
 from apache_beam.options.pipeline_options import PipelineOptions, SetupOptions
 
 from sciencebeam_utils.beam_utils.main import (
@@ -44,6 +41,7 @@ from sciencebeam_gym.preprocess.annotation.target_annotation import (
 
 from .utils.string import comma_separated_str_to_list
 from .utils.regex import regex_change_name
+from .utils.xml import parse_xml
 from .structured_document.annotator import annotate_structured_document
 from .structured_document.simple_matching_annotator import (
     SimpleMatchingAnnotator,
@@ -162,6 +160,11 @@ def add_annotation_pipeline_arguments(parser: argparse.ArgumentParser):
         help='enable multi processing rather than multi threading'
     )
 
+    parser.add_argument(
+        '--skip-errors', action='store_true', default=False,
+        help='skip errors'
+    )
+
     add_cloud_args(parser)
     return parser
 
@@ -174,11 +177,6 @@ def process_annotation_pipeline_arguments(
         args, args.output_path,
         name='sciencebeam-grobid-trainer-tools'
     )
-
-
-def load_xml(file_url):
-    with FileSystems.open(file_url) as source_fp:
-        return etree.parse(source_fp)
 
 
 def get_xml_mapping_and_fields(xml_mapping_path, fields):
@@ -257,7 +255,7 @@ def get_default_annotators(
         annotators.append(LineAnnotator())
     if xml_path:
         target_annotations = xml_root_to_target_annotations(
-            load_xml(xml_path).getroot(),
+            parse_xml(xml_path).getroot(),
             xml_mapping
         )
         if annotator_config.matcher_name == MatcherNames.SIMPLE:
@@ -306,6 +304,7 @@ class AbstractAnnotatePipelineFactory(ABC):
         self.xml_filename_regex = opt.xml_filename_regex
         self.limit = opt.limit
         self.resume = opt.resume
+        self.skip_errors = opt.skip_errors
         self.preserve_tags = not opt.no_preserve_tags
         self.always_preserve_fields = opt.always_preserve_fields
         self.output_fields = output_fields
@@ -352,9 +351,14 @@ class AbstractAnnotatePipelineFactory(ABC):
                 container_node_path=self.container_node_path,
                 tag_to_tei_path_mapping=self.tag_to_tei_path_mapping
             )
-        except Exception as e:
-            get_logger().error('failed to process %s due to %s', source_url, e, exc_info=e)
-            raise e
+        except Exception as e:  # pylint: disable=broad-except
+            skipping_msg = ' (skipping)' if self.skip_errors else ''
+            get_logger().error(
+                'failed to process %s%s due to %s',
+                source_url, skipping_msg, e, exc_info=e
+            )
+            if not self.skip_errors:
+                raise e
 
     def get_source_file_list(self):
         if self.source_path:
