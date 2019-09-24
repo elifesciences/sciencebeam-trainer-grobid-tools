@@ -5,10 +5,7 @@ import os
 from abc import ABC, abstractmethod
 from typing import Callable, Dict, List, Set
 
-from lxml import etree
-
 import apache_beam as beam
-from apache_beam.io.filesystems import FileSystems
 from apache_beam.options.pipeline_options import PipelineOptions, SetupOptions
 
 from sciencebeam_utils.beam_utils.main import (
@@ -44,6 +41,7 @@ from sciencebeam_gym.preprocess.annotation.target_annotation import (
 
 from .utils.string import comma_separated_str_to_list
 from .utils.regex import regex_change_name
+from .utils.xml import parse_xml
 from .structured_document.annotator import annotate_structured_document
 from .structured_document.simple_matching_annotator import (
     SimpleMatchingAnnotator,
@@ -176,11 +174,6 @@ def process_annotation_pipeline_arguments(
     )
 
 
-def load_xml(file_url):
-    with FileSystems.open(file_url) as source_fp:
-        return etree.parse(source_fp)
-
-
 def get_xml_mapping_and_fields(xml_mapping_path, fields):
     xml_mapping = parse_xml_mapping(xml_mapping_path)
     if fields:
@@ -257,7 +250,7 @@ def get_default_annotators(
         annotators.append(LineAnnotator())
     if xml_path:
         target_annotations = xml_root_to_target_annotations(
-            load_xml(xml_path).getroot(),
+            parse_xml(xml_path).getroot(),
             xml_mapping
         )
         if annotator_config.matcher_name == MatcherNames.SIMPLE:
