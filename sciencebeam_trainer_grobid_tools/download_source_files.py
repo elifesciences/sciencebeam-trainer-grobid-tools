@@ -167,6 +167,8 @@ def get_filename_pattern_props(relative_source_filename):
     relative_dirname = os.path.dirname(relative_source_filename)
     filename = os.path.basename(relative_source_filename)
     name, ext = os.path.splitext(filename)
+    if ext.lower() == '.gz':
+        name, ext = os.path.splitext(name)
     return dict(
         dir=relative_dirname + '/' if relative_dirname else '',
         filename=filename,
