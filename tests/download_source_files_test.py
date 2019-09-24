@@ -69,6 +69,20 @@ class TestGetRelativeOutputFileList(object):
             output_filename_pattern='{filename}'
         ) == ['file1.pdf']
 
+    def test_should_use_name(self):
+        source_file_list = ['file1.pdf']
+        assert get_relative_output_file_list(
+            source_file_list,
+            output_filename_pattern='{name}-suffix{ext}'
+        ) == ['file1-suffix.pdf']
+
+    def test_should_strip_gz_from_name_and_ext(self):
+        source_file_list = ['file1.pdf.gz']
+        assert get_relative_output_file_list(
+            source_file_list,
+            output_filename_pattern='{name}-suffix{ext}'
+        ) == ['file1-suffix.pdf']
+
     def test_should_use_index_and_source_ext(self):
         source_file_list = ['file1.pdf']
         assert get_relative_output_file_list(
