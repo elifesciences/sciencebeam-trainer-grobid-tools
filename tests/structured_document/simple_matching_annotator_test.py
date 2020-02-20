@@ -117,7 +117,7 @@ class TestSimpleMatchingAnnotator:
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
         assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
 
-    def _test_should_match_apos_with_double_quotes(self):
+    def test_should_match_apos_with_double_quotes(self):
         matching_tokens = _tokens_for_text('"this is matching"')
         target_annotations = [
             TargetAnnotation('&apos;this is matching&apos;', TAG1)
