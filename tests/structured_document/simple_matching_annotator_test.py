@@ -53,6 +53,7 @@ class TestSimpleMatchingAnnotator:
         doc = SimpleStructuredDocument(lines=[])
         assert SimpleMatchingAnnotator([]).annotate(doc) == doc
 
+    @pytest.mark.skip(reason='no longer throwing exception')
     def test_should_fail_with_unsupported_annotation_attribute_match_multiple(self):
         with pytest.raises(NotImplementedError):
             target_annotations = [
@@ -61,6 +62,7 @@ class TestSimpleMatchingAnnotator:
             doc = _document_for_tokens([_tokens_for_text('test')])
             SimpleMatchingAnnotator(target_annotations).annotate(doc)
 
+    @pytest.mark.skip(reason='no longer throwing exception')
     def test_should_fail_with_unsupported_annotation_attribute_bonding(self):
         with pytest.raises(NotImplementedError):
             target_annotations = [
@@ -69,6 +71,7 @@ class TestSimpleMatchingAnnotator:
             doc = _document_for_tokens([_tokens_for_text('test')])
             SimpleMatchingAnnotator(target_annotations).annotate(doc)
 
+    @pytest.mark.skip(reason='no longer throwing exception')
     def test_should_fail_with_unsupported_annotation_attribute_require_next(self):
         with pytest.raises(NotImplementedError):
             target_annotations = [
@@ -77,6 +80,7 @@ class TestSimpleMatchingAnnotator:
             doc = _document_for_tokens([_tokens_for_text('test')])
             SimpleMatchingAnnotator(target_annotations).annotate(doc)
 
+    @pytest.mark.skip(reason='no longer throwing exception')
     def test_should_fail_with_unsupported_annotation_attribute_sub_annotations(self):
         with pytest.raises(NotImplementedError):
             target_annotations = [
@@ -279,6 +283,18 @@ class TestSimpleMatchingAnnotator:
         assert _get_tags_of_tokens(tag1_tokens) == [TAG1] * len(tag1_tokens)
         assert _get_tags_of_tokens(tag2_tokens) == [TAG2] * len(tag2_tokens)
 
+    def test_should_annotate_multiple_value_annotation(self):
+        pre_tokens = _tokens_for_text('this is')
+        matching_tokens = _tokens_for_text('john smith')
+        post_tokens = _tokens_for_text('the author')
+        target_annotations = [
+            TargetAnnotation(['john', 'smith'], TAG1)
+        ]
+        doc = _document_for_tokens([matching_tokens])
+        SimpleMatchingAnnotator(target_annotations).annotate(doc)
+        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+        assert _get_tags_of_tokens(pre_tokens) == [None] * len(pre_tokens)
+        assert _get_tags_of_tokens(post_tokens) == [None] * len(post_tokens)
 
 class TestGetSimpleTagConfigMap:
     def test_should_parse_match_prefix_regex(self):

@@ -128,8 +128,8 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
         )
         for target_annotation in self.target_annotations:
             LOGGER.debug('target_annotation: %s', target_annotation)
-            if not self.is_target_annotation_supported(target_annotation):
-                raise NotImplementedError('unsupported target annotation: %s' % target_annotation)
+            # if not self.is_target_annotation_supported(target_annotation):
+            #     raise NotImplementedError('unsupported target annotation: %s' % target_annotation)
             tag_config = self.config.tag_config_map.get(
                 target_annotation.name,
                 DEFAULT_SIMPLE_TAG_CONFIG
@@ -140,7 +140,13 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             ))
             text_str = str(text)
             LOGGER.debug('text: %s', text)
-            index_range = self.get_fuzzy_matching_index_range(text_str, target_annotation.value)
+            if isinstance(target_annotation.value, list):
+                index_range = self.get_fuzzy_matching_index_range(
+                    text_str,
+                    ' '.join(target_annotation.value)
+                )
+            else:
+                index_range = self.get_fuzzy_matching_index_range(text_str, target_annotation.value)
             LOGGER.debug('index_range: %s', index_range)
             if index_range:
                 start_index, end_index = index_range
