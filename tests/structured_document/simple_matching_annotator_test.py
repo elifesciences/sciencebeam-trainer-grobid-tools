@@ -181,7 +181,8 @@ class TestSimpleMatchingAnnotator:
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
         assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
 
-    def _test_should_annotate_ignoring_dots_after_capitals_in_document(self):
+    @pytest.mark.skip(reason="this is currently failing, needs more investigation")
+    def test_should_annotate_ignoring_dots_after_capitals_in_document(self):
         matching_tokens = _tokens_for_text('P.O. Box 12345')
         target_annotations = [
             TargetAnnotation('PO Box 12345', TAG1)
