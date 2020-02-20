@@ -102,6 +102,25 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             return False
         return True
 
+    def get_fuzzy_matching_index_range(
+            self, haystack: str, needle, **kwargs):
+        target_value = split_and_join_with_space(
+            normalise_str_or_list(needle)
+        )
+        LOGGER.debug('target_value: %s', target_value)
+        fm = fuzzy_match(haystack, target_value, exact_word_match_threshold=5, **kwargs)
+        LOGGER.debug('fm: %s', fm)
+        if fm.b_gap_ratio() >= self.config.threshold:
+            return fm.a_index_range()
+        target_value_reduced = split_and_join_with_space(
+            normalise_and_remove_junk_str_or_list(needle)
+        )
+        LOGGER.debug('target_value_reduced: %s', target_value_reduced)
+        fm = fuzzy_match(haystack, target_value_reduced, exact_word_match_threshold=5, **kwargs)
+        if fm.b_gap_ratio() >= self.config.threshold:
+            return fm.a_index_range()
+        return None
+
     def annotate(self, structured_document: AbstractStructuredDocument):
         pending_sequences = PendingSequences.from_structured_document(
             structured_document,
@@ -115,28 +134,16 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                 target_annotation.name,
                 DEFAULT_SIMPLE_TAG_CONFIG
             )
-            target_value = split_and_join_with_space(
-                normalise_str_or_list(target_annotation.value)
-            )
-            target_value_reduced = split_and_join_with_space(
-                normalise_and_remove_junk_str_or_list(target_annotation.value)
-            )
-            LOGGER.debug('target_value: %s', target_value)
-            LOGGER.debug('target_value_reduced: %s', target_value_reduced)
-            # pending sequences provides a view of the not yet untagged tokens
-            # this is what we will try to align the target value to
+            LOGGER.info('target_annotation.value: %s', target_annotation.value)
             text = SequencesText(pending_sequences.get_pending_sequences(
                 limit=self.config.lookahead_sequence_count
             ))
             text_str = str(text)
             LOGGER.debug('text: %s', text)
-            fm = fuzzy_match(text_str, target_value, exact_word_match_threshold=5)
-            LOGGER.debug('fm: %s', fm)
-            if fm.b_gap_ratio() < self.config.threshold:
-                fm = fuzzy_match(text_str, target_value_reduced, exact_word_match_threshold=5)
-                LOGGER.debug('fm (reduced): %s', fm)
-            if fm.b_gap_ratio() >= self.config.threshold:
-                start_index, end_index = fm.a_index_range()
+            index_range = self.get_fuzzy_matching_index_range(text_str, target_annotation.value)
+            LOGGER.debug('index_range: %s', index_range)
+            if index_range:
+                start_index, end_index = index_range
                 LOGGER.debug('index_range: %s', (start_index, end_index))
                 LOGGER.debug('match_prefix_regex: [%s]', tag_config.match_prefix_regex)
                 if start_index > 0 and tag_config.match_prefix_regex:
