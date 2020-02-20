@@ -141,10 +141,15 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             text_str = str(text)
             LOGGER.debug('text: %s', text)
             if isinstance(target_annotation.value, list):
-                index_range = self.get_fuzzy_matching_index_range(
-                    text_str,
-                    ' '.join(target_annotation.value)
-                )
+                index_ranges = [
+                    self.get_fuzzy_matching_index_range(text_str, value)
+                    for value in target_annotation.value
+                ]
+                if all(index_ranges):
+                    index_range = (
+                        min(start for start, _ in index_ranges),
+                        max(end for _, end in index_ranges)
+                    )
             else:
                 index_range = self.get_fuzzy_matching_index_range(text_str, target_annotation.value)
             LOGGER.debug('index_range: %s', index_range)

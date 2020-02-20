@@ -296,6 +296,19 @@ class TestSimpleMatchingAnnotator:
         assert _get_tags_of_tokens(pre_tokens) == [None] * len(pre_tokens)
         assert _get_tags_of_tokens(post_tokens) == [None] * len(post_tokens)
 
+    def test_should_annotate_multiple_value_annotation_in_reverse_order(self):
+        pre_tokens = _tokens_for_text('this is')
+        matching_tokens = _tokens_for_text('john smith')
+        post_tokens = _tokens_for_text('the author')
+        target_annotations = [
+            TargetAnnotation(['smith', 'john'], TAG1)
+        ]
+        doc = _document_for_tokens([matching_tokens])
+        SimpleMatchingAnnotator(target_annotations).annotate(doc)
+        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+        assert _get_tags_of_tokens(pre_tokens) == [None] * len(pre_tokens)
+        assert _get_tags_of_tokens(post_tokens) == [None] * len(post_tokens)
+
 class TestGetSimpleTagConfigMap:
     def test_should_parse_match_prefix_regex(self):
         tag_config_map = get_simple_tag_config_map({
