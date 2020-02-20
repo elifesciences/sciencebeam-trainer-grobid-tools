@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from sciencebeam_gym.structured_document import (
     AbstractStructuredDocument
@@ -121,6 +121,32 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             return fm.a_index_range()
         return None
 
+    def update_annotation_for_index_range(
+            self,
+            structured_document: AbstractStructuredDocument,
+            text: SequencesText,
+            index_range: Tuple[int, int],
+            target_annotation: TargetAnnotation):
+        tag_config = self.config.tag_config_map.get(
+            target_annotation.name,
+            DEFAULT_SIMPLE_TAG_CONFIG
+        )
+        start_index, end_index = index_range
+        LOGGER.debug('index_range: %s', (start_index, end_index))
+        LOGGER.debug('match_prefix_regex: [%s]', tag_config.match_prefix_regex)
+        if start_index > 0 and tag_config.match_prefix_regex:
+            prefix = str(text)[:start_index]
+            LOGGER.debug('prefix: [%s]', prefix)
+            m = re.search(tag_config.match_prefix_regex, prefix)
+            if m:
+                LOGGER.debug('match: [%s]', m.span())
+                start_index = m.start()
+        matching_tokens = list(text.iter_tokens_between((start_index, end_index)))
+        LOGGER.debug('matching_tokens: %s', matching_tokens)
+        for token in matching_tokens:
+            if not structured_document.get_tag(token):
+                structured_document.set_tag(token, target_annotation.name)
+
     def annotate(self, structured_document: AbstractStructuredDocument):
         pending_sequences = PendingSequences.from_structured_document(
             structured_document,
@@ -130,10 +156,6 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             LOGGER.debug('target_annotation: %s', target_annotation)
             # if not self.is_target_annotation_supported(target_annotation):
             #     raise NotImplementedError('unsupported target annotation: %s' % target_annotation)
-            tag_config = self.config.tag_config_map.get(
-                target_annotation.name,
-                DEFAULT_SIMPLE_TAG_CONFIG
-            )
             LOGGER.info('target_annotation.value: %s', target_annotation.value)
             text = SequencesText(pending_sequences.get_pending_sequences(
                 limit=self.config.lookahead_sequence_count
@@ -154,21 +176,12 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                 index_range = self.get_fuzzy_matching_index_range(text_str, target_annotation.value)
             LOGGER.debug('index_range: %s', index_range)
             if index_range:
-                start_index, end_index = index_range
-                LOGGER.debug('index_range: %s', (start_index, end_index))
-                LOGGER.debug('match_prefix_regex: [%s]', tag_config.match_prefix_regex)
-                if start_index > 0 and tag_config.match_prefix_regex:
-                    prefix = text_str[:start_index]
-                    LOGGER.debug('prefix: [%s]', prefix)
-                    m = re.search(tag_config.match_prefix_regex, prefix)
-                    if m:
-                        LOGGER.debug('match: [%s]', m.span())
-                        start_index = m.start()
-                matching_tokens = list(text.iter_tokens_between((start_index, end_index)))
-                LOGGER.debug('matching_tokens: %s', matching_tokens)
-                for token in matching_tokens:
-                    if not structured_document.get_tag(token):
-                        structured_document.set_tag(token, target_annotation.name)
+                self.update_annotation_for_index_range(
+                    structured_document,
+                    text,
+                    index_range,
+                    target_annotation
+                )
         return structured_document
 
 
