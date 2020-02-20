@@ -12,6 +12,7 @@ from sciencebeam_gym.preprocess.annotation.target_annotation import (
 
 from sciencebeam_gym.preprocess.annotation.matching_annotator import (
     normalise_and_remove_junk_str,
+    normalise_str_or_list,
     normalise_and_remove_junk_str_or_list
 )
 
@@ -87,9 +88,13 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             if not self.is_target_annotation_supported(target_annotation):
                 raise NotImplementedError('unsupported target annotation: %s' % target_annotation)
             target_value = split_and_join_with_space(
+                normalise_str_or_list(target_annotation.value)
+            )
+            target_value_reduced = split_and_join_with_space(
                 normalise_and_remove_junk_str_or_list(target_annotation.value)
             )
             LOGGER.debug('target_value: %s', target_value)
+            LOGGER.debug('target_value_reduced: %s', target_value_reduced)
             # pending sequences provides a view of the not yet untagged tokens
             # this is what we will try to align the target value to
             text = SequencesText(pending_sequences.get_pending_sequences(
@@ -98,6 +103,9 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             LOGGER.debug('text: %s', text)
             fm = fuzzy_match(str(text), target_value, exact_word_match_threshold=5)
             LOGGER.debug('fm: %s', fm)
+            if fm.b_gap_ratio() < self.config.threshold:
+                fm = fuzzy_match(str(text), target_value_reduced, exact_word_match_threshold=5)
+                LOGGER.debug('fm (reduced): %s', fm)
             if fm.b_gap_ratio() >= self.config.threshold:
                 index_range = fm.a_index_range()
                 LOGGER.debug('index_range: %s', index_range)

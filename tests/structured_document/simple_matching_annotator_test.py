@@ -172,6 +172,15 @@ class TestSimpleMatchingAnnotator:
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
         assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
 
+    def test_should_annotate_including_final_dot(self):
+        matching_tokens = _tokens_for_text('this is matching.')
+        target_annotations = [
+            TargetAnnotation('this is matching.', TAG1)
+        ]
+        doc = _document_for_tokens([matching_tokens])
+        SimpleMatchingAnnotator(target_annotations).annotate(doc)
+        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+
     def test_should_annotate_ignoring_dots_after_capitals_in_target_annotation(self):
         matching_tokens = _tokens_for_text('PO Box 12345')
         target_annotations = [
