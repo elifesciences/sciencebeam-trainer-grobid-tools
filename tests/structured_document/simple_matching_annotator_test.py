@@ -16,7 +16,9 @@ from sciencebeam_gym.preprocess.annotation.target_annotation import (
 )
 
 from sciencebeam_trainer_grobid_tools.structured_document.simple_matching_annotator import (
-    SimpleMatchingAnnotator
+    SimpleTagConfig,
+    SimpleMatchingAnnotator,
+    get_simple_tag_config_map
 )
 
 
@@ -117,7 +119,7 @@ class TestSimpleMatchingAnnotator:
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
         assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
 
-    def _test_should_match_apos_with_double_quotes(self):
+    def test_should_match_apos_with_double_quotes(self):
         matching_tokens = _tokens_for_text('"this is matching"')
         target_annotations = [
             TargetAnnotation('&apos;this is matching&apos;', TAG1)
@@ -172,6 +174,15 @@ class TestSimpleMatchingAnnotator:
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
         assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
 
+    def test_should_annotate_including_final_dot(self):
+        matching_tokens = _tokens_for_text('this is matching.')
+        target_annotations = [
+            TargetAnnotation('this is matching.', TAG1)
+        ]
+        doc = _document_for_tokens([matching_tokens])
+        SimpleMatchingAnnotator(target_annotations).annotate(doc)
+        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+
     def test_should_annotate_ignoring_dots_after_capitals_in_target_annotation(self):
         matching_tokens = _tokens_for_text('PO Box 12345')
         target_annotations = [
@@ -181,7 +192,8 @@ class TestSimpleMatchingAnnotator:
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
         assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
 
-    def _test_should_annotate_ignoring_dots_after_capitals_in_document(self):
+    @pytest.mark.skip(reason="this is currently failing, needs more investigation")
+    def test_should_annotate_ignoring_dots_after_capitals_in_document(self):
         matching_tokens = _tokens_for_text('P.O. Box 12345')
         target_annotations = [
             TargetAnnotation('PO Box 12345', TAG1)
@@ -198,6 +210,18 @@ class TestSimpleMatchingAnnotator:
         doc = _document_for_tokens([tokens])
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
         assert _get_tags_of_tokens(tokens) == [None] * len(tokens)
+
+    def test_should_annotate_abstract_section_heading(self):
+        matching_tokens = _tokens_for_text('Abstract\nthis is matching.')
+        target_annotations = [
+            TargetAnnotation('this is matching.', TAG1)
+        ]
+        doc = _document_for_tokens([matching_tokens])
+        SimpleMatchingAnnotator(
+            target_annotations,
+            tag_config_map={TAG1: SimpleTagConfig(match_prefix_regex=r'(abstract|summary)\s*$')}
+        ).annotate(doc)
+        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
 
     def test_should_not_annotate_fuzzily_matching_with_many_differences(self):
         matching_tokens = _tokens_for_text('this is matching')
@@ -254,3 +278,16 @@ class TestSimpleMatchingAnnotator:
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
         assert _get_tags_of_tokens(tag1_tokens) == [TAG1] * len(tag1_tokens)
         assert _get_tags_of_tokens(tag2_tokens) == [TAG2] * len(tag2_tokens)
+
+
+class TestGetSimpleTagConfigMap:
+    def test_should_parse_match_prefix_regex(self):
+        tag_config_map = get_simple_tag_config_map({
+            'any': {
+                'tag1': 'xpath1',
+                'tag1.match-prefix-regex': 'regex1'
+            }
+        })
+        assert set(tag_config_map.keys()) == {'tag1'}
+        tag_config = tag_config_map['tag1']
+        assert tag_config.match_prefix_regex == 'regex1'

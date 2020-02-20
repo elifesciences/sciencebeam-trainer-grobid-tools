@@ -45,7 +45,8 @@ from .utils.xml import parse_xml
 from .structured_document.annotator import annotate_structured_document
 from .structured_document.simple_matching_annotator import (
     SimpleMatchingAnnotator,
-    SimpleSimpleMatchingConfig
+    SimpleSimpleMatchingConfig,
+    get_simple_tag_config_map
 )
 
 
@@ -179,14 +180,19 @@ def process_annotation_pipeline_arguments(
     )
 
 
-def get_xml_mapping_and_fields(xml_mapping_path, fields):
-    xml_mapping = parse_xml_mapping(xml_mapping_path)
+def get_mapping_key_field_name(key: str) -> str:
+    return key.split('.', maxsplit=1)[0]
+
+
+def get_filtered_xml_mapping_and_fields(
+        xml_mapping: Dict[str, Dict[str, str]],
+        fields: List[str]) -> Dict[str, Dict[str, str]]:
     if fields:
         xml_mapping = {
             top_level_key: {
                 k: v
                 for k, v in field_mapping.items()
-                if k in fields
+                if get_mapping_key_field_name(k) in fields
             }
             for top_level_key, field_mapping in xml_mapping.items()
         }
@@ -194,9 +200,17 @@ def get_xml_mapping_and_fields(xml_mapping_path, fields):
         fields = {
             k
             for top_level_key, field_mapping in xml_mapping.items()
-            for k in field_mapping.items()
+            for k in field_mapping.keys()
+            if '.' not in k
         }
     return xml_mapping, fields
+
+
+def get_xml_mapping_and_fields(xml_mapping_path, fields):
+    return get_filtered_xml_mapping_and_fields(
+        parse_xml_mapping(xml_mapping_path),
+        fields
+    )
 
 
 def get_match_detail_reporter(debug_match: str) -> CsvMatchDetailReporter:
@@ -223,10 +237,13 @@ class AnnotatorConfig:
     def get_match_detail_reporter(self):
         return get_match_detail_reporter(self.debug_match)
 
-    def get_simple_annotator_config(self) -> SimpleSimpleMatchingConfig:
+    def get_simple_annotator_config(
+            self,
+            xml_mapping: Dict[str, Dict[str, str]]) -> SimpleSimpleMatchingConfig:
         return SimpleSimpleMatchingConfig(
             threshold=self.score_threshold,
-            lookahead_sequence_count=self.lookahead_lines
+            lookahead_sequence_count=self.lookahead_lines,
+            tag_config_map=get_simple_tag_config_map(xml_mapping)
         )
 
     def get_matching_annotator_config(self) -> MatchingAnnotatorConfig:
@@ -261,7 +278,9 @@ def get_default_annotators(
         if annotator_config.matcher_name == MatcherNames.SIMPLE:
             annotators.append(SimpleMatchingAnnotator(
                 target_annotations,
-                config=annotator_config.get_simple_annotator_config()
+                config=annotator_config.get_simple_annotator_config(
+                    xml_mapping=xml_mapping
+                )
             ))
         else:
             annotators.append(MatchingAnnotator(
