@@ -7,8 +7,9 @@ import pytest
 
 @pytest.fixture(autouse=True)
 def configure_logging():
-    logging.root.handlers = []
-    logging.basicConfig(level='DEBUG')
+    logging.root.setLevel('INFO')
+    for name in ['tests', 'sciencebeam_trainer_grobid_tools']:
+        logging.getLogger(name).setLevel('DEBUG')
 
 
 @pytest.fixture()
