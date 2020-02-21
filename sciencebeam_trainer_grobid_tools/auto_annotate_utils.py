@@ -451,7 +451,7 @@ class AbstractAnnotatePipelineFactory(ABC):
             LOGGER.warning('no files to process')
             return
 
-        if not args.cloud and args.num_workers > 1:
+        if not args.cloud and args.num_workers >= 1:
             self.run_local_pipeline(args, tei_xml_file_list=tei_xml_file_list)
             return
 
