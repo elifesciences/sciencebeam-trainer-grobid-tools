@@ -21,6 +21,8 @@ from sciencebeam_trainer_grobid_tools.structured_document.simple_matching_annota
     get_simple_tag_config_map
 )
 
+from tests.test_utils import log_on_exception
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -302,6 +304,21 @@ class TestSimpleMatchingAnnotator:
         post_tokens = _tokens_for_text('the author')
         target_annotations = [
             TargetAnnotation(['smith', 'john'], TAG1)
+        ]
+        doc = _document_for_tokens([matching_tokens])
+        SimpleMatchingAnnotator(target_annotations).annotate(doc)
+        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+        assert _get_tags_of_tokens(pre_tokens) == [None] * len(pre_tokens)
+        assert _get_tags_of_tokens(post_tokens) == [None] * len(post_tokens)
+
+    @log_on_exception
+    def test_should_annotate_and_merge_multiple_authors_annotation(self):
+        pre_tokens = _tokens_for_text('this is')
+        matching_tokens = _tokens_for_text('john smith, mary maison')
+        post_tokens = _tokens_for_text('the author')
+        target_annotations = [
+            TargetAnnotation(['john', 'smith'], TAG1),
+            TargetAnnotation(['mary', 'maison'], TAG1)
         ]
         doc = _document_for_tokens([matching_tokens])
         SimpleMatchingAnnotator(target_annotations).annotate(doc)

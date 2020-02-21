@@ -1,5 +1,6 @@
 import logging
 import re
+from itertools import groupby
 from typing import Dict, List, Tuple
 
 from sciencebeam_gym.structured_document import (
@@ -73,6 +74,13 @@ class SimpleSimpleMatchingConfig:
         )
 
 
+def merge_index_ranges(index_ranges: List[Tuple[int, int]]) -> Tuple[int, int]:
+    return (
+        min(start for start, _ in index_ranges),
+        max(end for _, end in index_ranges)
+    )
+
+
 class SimpleMatchingAnnotator(AbstractAnnotator):
     """
     The SimpleMatchingAnnotator assumes that the lines are in the correct reading order.
@@ -92,14 +100,14 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
         LOGGER.info('config: %s', config)
 
     def is_target_annotation_supported(self, target_annotation: TargetAnnotation) -> bool:
-        if target_annotation.match_multiple:
-            return False
-        if target_annotation.bonding:
-            return False
-        if target_annotation.require_next:
-            return False
-        if target_annotation.sub_annotations:
-            return False
+        # if target_annotation.match_multiple:
+        #     return False
+        # if target_annotation.bonding:
+        #     return False
+        # if target_annotation.require_next:
+        #     return False
+        # if target_annotation.sub_annotations:
+        #     return False
         return True
 
     def get_fuzzy_matching_index_range(
@@ -126,9 +134,9 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             structured_document: AbstractStructuredDocument,
             text: SequencesText,
             index_range: Tuple[int, int],
-            target_annotation: TargetAnnotation):
+            tag_name: str):
         tag_config = self.config.tag_config_map.get(
-            target_annotation.name,
+            tag_name,
             DEFAULT_SIMPLE_TAG_CONFIG
         )
         start_index, end_index = index_range
@@ -145,21 +153,17 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
         LOGGER.debug('matching_tokens: %s', matching_tokens)
         for token in matching_tokens:
             if not structured_document.get_tag(token):
-                structured_document.set_tag(token, target_annotation.name)
+                structured_document.set_tag(token, tag_name)
 
-    def annotate(self, structured_document: AbstractStructuredDocument):
-        pending_sequences = PendingSequences.from_structured_document(
-            structured_document,
-            normalize_fn=normalise_and_remove_junk_str
-        )
-        for target_annotation in self.target_annotations:
+    def iter_matching_index_ranges(
+            self,
+            text: SequencesText,
+            target_annotations: List[TargetAnnotation]):
+        for target_annotation in target_annotations:
             LOGGER.debug('target_annotation: %s', target_annotation)
-            # if not self.is_target_annotation_supported(target_annotation):
-            #     raise NotImplementedError('unsupported target annotation: %s' % target_annotation)
+            if not self.is_target_annotation_supported(target_annotation):
+                raise NotImplementedError('unsupported target annotation: %s' % target_annotation)
             LOGGER.info('target_annotation.value: %s', target_annotation.value)
-            text = SequencesText(pending_sequences.get_pending_sequences(
-                limit=self.config.lookahead_sequence_count
-            ))
             text_str = str(text)
             LOGGER.debug('text: %s', text)
             if isinstance(target_annotation.value, list):
@@ -168,20 +172,41 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                     for value in target_annotation.value
                 ]
                 if all(index_ranges):
-                    index_range = (
-                        min(start for start, _ in index_ranges),
-                        max(end for _, end in index_ranges)
-                    )
+                    index_range = merge_index_ranges(index_ranges)
             else:
                 index_range = self.get_fuzzy_matching_index_range(text_str, target_annotation.value)
             LOGGER.debug('index_range: %s', index_range)
             if index_range:
-                self.update_annotation_for_index_range(
-                    structured_document,
-                    text,
-                    index_range,
-                    target_annotation
-                )
+                yield index_range
+
+    def annotate(self, structured_document: AbstractStructuredDocument):
+        pending_sequences = PendingSequences.from_structured_document(
+            structured_document,
+            normalize_fn=normalise_and_remove_junk_str
+        )
+        target_annotations_grouped_by_tag = groupby(
+            self.target_annotations,
+            key=lambda target_annotation: target_annotation.name
+        )
+        for tag_name, grouped_target_annotations in target_annotations_grouped_by_tag:
+            grouped_target_annotations = list(grouped_target_annotations)
+            LOGGER.debug('grouped_target_annotations: %s', grouped_target_annotations)
+            text = SequencesText(pending_sequences.get_pending_sequences(
+                limit=self.config.lookahead_sequence_count
+            ))
+            index_ranges = list(self.iter_matching_index_ranges(
+                text,
+                grouped_target_annotations
+            ))
+            if not index_ranges:
+                continue
+            index_range = merge_index_ranges(index_ranges)
+            self.update_annotation_for_index_range(
+                structured_document,
+                text,
+                index_range,
+                tag_name
+            )
         return structured_document
 
 
