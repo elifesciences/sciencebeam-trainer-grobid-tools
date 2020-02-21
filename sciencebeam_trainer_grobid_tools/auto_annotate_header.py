@@ -9,7 +9,7 @@ from .utils.string import comma_separated_str_to_list
 
 from .structured_document.grobid_training_tei import (
     ContainerNodePaths,
-    DEFAULT_TAG_TO_TEI_PATH_MAPPING
+    DEFAULT_TAG_KEY
 )
 
 from .auto_annotate_utils import (
@@ -29,7 +29,12 @@ LOGGER = logging.getLogger(__name__)
 HEADER_CONTAINER_NODE_PATH = ContainerNodePaths.HEADER_CONTAINER_NODE_PATH
 
 
-HEADER_TAG_TO_TEI_PATH_MAPPING = DEFAULT_TAG_TO_TEI_PATH_MAPPING
+HEADER_TAG_TO_TEI_PATH_MAPPING = {
+    DEFAULT_TAG_KEY: 'note[type="other"]',
+    'title': 'docTitle/titlePart',
+    'abstract': 'div[type="abstract"]',
+    'author': 'byline/docAuthor'
+}
 
 
 def get_logger():

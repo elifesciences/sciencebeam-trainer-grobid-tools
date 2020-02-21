@@ -11,7 +11,7 @@ from sciencebeam_trainer_grobid_tools.auto_annotate_header import (
     main
 )
 
-from .test_utils import log_on_exception
+from .test_utils import log_on_exception, dict_to_args
 from .auto_annotate_test_utils import (
     get_target_xml_node,
     get_xpath_text,
@@ -81,6 +81,40 @@ class TestEndToEnd(object):
 
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text(tei_auto_root, '//docTitle/titlePart') == TEXT_1
+
+    @log_on_exception
+    def test_should_auto_annotate_multiple_fields_using_simple_matcher(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        title_text = 'Happy mice'
+        author_text = 'Mary Maison John Smith'
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_header_tei_node([
+                E.note(title_text), E.lb(),
+                E.note(author_text)
+            ])
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(get_target_xml_node(
+            title=title_text,
+            author_nodes=[
+                E.contrib(E.name(
+                    E.surname('Maison'),
+                    E('given-names', 'Mary')
+                )),
+                E.contrib(E.name(
+                    E.surname('Smith'),
+                    E('given-names', 'John')
+                ))
+            ]
+        )))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'fields': ','.join(['title', 'author']),
+            'matcher': 'simple'
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text(tei_auto_root, '//docTitle/titlePart') == title_text
+        assert get_xpath_text(tei_auto_root, '//byline/docAuthor') == author_text
 
     @log_on_exception
     def test_should_skip_errors(
