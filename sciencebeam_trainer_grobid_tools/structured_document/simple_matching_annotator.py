@@ -81,6 +81,42 @@ def merge_index_ranges(index_ranges: List[Tuple[int, int]]) -> Tuple[int, int]:
     )
 
 
+def _iter_all_lines(structured_document: AbstractStructuredDocument):
+    return (
+        line
+        for page in structured_document.get_pages()
+        for line in structured_document.get_lines_of_page(page)
+    )
+
+
+def get_extended_line_token_tags(line_token_tags: List[str]) -> List[str]:
+    LOGGER.debug('line_token_tags: %s', line_token_tags)
+    grouped_token_tags = [
+        list(group)
+        for _, group in groupby(line_token_tags)
+    ]
+    LOGGER.debug('grouped_token_tags: %s', grouped_token_tags)
+    result = []
+    for index, group in enumerate(grouped_token_tags):
+        prev_group = grouped_token_tags[index - 1] if index > 0 else None
+        next_group = grouped_token_tags[index + 1] if index + 1 < len(grouped_token_tags) else None
+        if group[0]:
+            result.extend(group)
+        elif prev_group and next_group:
+            if prev_group[0] == next_group[0]:
+                result.extend(prev_group[:1] * len(group))
+            else:
+                result.extend(group)
+        elif prev_group and len(prev_group) > len(group):
+            result.extend(prev_group[:1] * len(group))
+        elif next_group and len(next_group) > len(group):
+            result.extend(next_group[:1] * len(group))
+        else:
+            result.extend(group)
+    LOGGER.debug('result: %s', result)
+    return result
+
+
 class SimpleMatchingAnnotator(AbstractAnnotator):
     """
     The SimpleMatchingAnnotator assumes that the lines are in the correct reading order.
@@ -98,17 +134,6 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             raise ValueError('either config or kwargs should be specified')
         self.config = config
         LOGGER.info('config: %s', config)
-
-    def is_target_annotation_supported(self, target_annotation: TargetAnnotation) -> bool:
-        # if target_annotation.match_multiple:
-        #     return False
-        # if target_annotation.bonding:
-        #     return False
-        # if target_annotation.require_next:
-        #     return False
-        # if target_annotation.sub_annotations:
-        #     return False
-        return True
 
     def get_fuzzy_matching_index_range(
             self, haystack: str, needle, **kwargs):
@@ -161,8 +186,6 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             target_annotations: List[TargetAnnotation]):
         for target_annotation in target_annotations:
             LOGGER.debug('target_annotation: %s', target_annotation)
-            if not self.is_target_annotation_supported(target_annotation):
-                raise NotImplementedError('unsupported target annotation: %s' % target_annotation)
             LOGGER.info('target_annotation.value: %s', target_annotation.value)
             text_str = str(text)
             LOGGER.debug('text: %s', text)
@@ -178,6 +201,18 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             LOGGER.debug('index_range: %s', index_range)
             if index_range:
                 yield index_range
+
+    def extend_annotations_to_whole_line(self, structured_document: AbstractStructuredDocument):
+        for line in _iter_all_lines(structured_document):
+            tokens = structured_document.get_tokens_of_line(line)
+            line_token_tags = [structured_document.get_tag(token) for token in tokens]
+            extended_line_token_tags = get_extended_line_token_tags(line_token_tags)
+            LOGGER.debug('line_token_tags: %s -> %s', line_token_tags, extended_line_token_tags)
+            for token, token_tag in zip(tokens, extended_line_token_tags):
+                if not token_tag:
+                    continue
+                structured_document.set_tag(token, token_tag)
+        return structured_document
 
     def annotate(self, structured_document: AbstractStructuredDocument):
         pending_sequences = PendingSequences.from_structured_document(
@@ -207,6 +242,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                 index_range,
                 tag_name
             )
+        self.extend_annotations_to_whole_line(structured_document)
         return structured_document
 
 

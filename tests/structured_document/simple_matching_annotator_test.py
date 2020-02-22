@@ -18,6 +18,7 @@ from sciencebeam_gym.preprocess.annotation.target_annotation import (
 from sciencebeam_trainer_grobid_tools.structured_document.simple_matching_annotator import (
     SimpleTagConfig,
     SimpleMatchingAnnotator,
+    get_extended_line_token_tags,
     get_simple_tag_config_map
 )
 
@@ -44,6 +45,28 @@ def _lines_for_tokens(tokens_by_line):
 
 def _document_for_tokens(tokens_by_line):
     return SimpleStructuredDocument(lines=_lines_for_tokens(tokens_by_line))
+
+
+class TestGetExtendedLineTokenTags:
+    def test_should_fill_begining_of_line(self):
+        assert get_extended_line_token_tags([None, TAG1, TAG1]) == [TAG1] * 3
+
+    def test_should_fill_end_of_line(self):
+        assert get_extended_line_token_tags([TAG1, TAG1, None]) == [TAG1] * 3
+
+    def test_should_fill_gaps_if_same_tag(self):
+        assert get_extended_line_token_tags(
+            [TAG1, None, TAG1]
+        ) == [TAG1, TAG1, TAG1]
+
+    def test_should_not_fill_gaps_if_not_same_tag(self):
+        assert get_extended_line_token_tags(
+            [TAG1, None, TAG2]
+        ) == [TAG1, None, TAG2]
+
+    def test_should_not_fill_line_if_minority_tag(self):
+        token_tags = [None, None, TAG1, None, None]
+        assert get_extended_line_token_tags(token_tags) == token_tags
 
 
 class TestSimpleMatchingAnnotator:
@@ -315,6 +338,21 @@ class TestSimpleMatchingAnnotator:
     def test_should_annotate_and_merge_multiple_authors_annotation(self):
         pre_tokens = _tokens_for_text('this is')
         matching_tokens = _tokens_for_text('john smith, mary maison')
+        post_tokens = _tokens_for_text('the author')
+        target_annotations = [
+            TargetAnnotation(['john', 'smith'], TAG1),
+            TargetAnnotation(['mary', 'maison'], TAG1)
+        ]
+        doc = _document_for_tokens([matching_tokens])
+        SimpleMatchingAnnotator(target_annotations).annotate(doc)
+        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+        assert _get_tags_of_tokens(pre_tokens) == [None] * len(pre_tokens)
+        assert _get_tags_of_tokens(post_tokens) == [None] * len(post_tokens)
+
+    @log_on_exception
+    def test_should_annotate_whole_line(self):
+        pre_tokens = _tokens_for_text('this is')
+        matching_tokens = _tokens_for_text('john smith 1, mary maison 2')
         post_tokens = _tokens_for_text('the author')
         target_annotations = [
             TargetAnnotation(['john', 'smith'], TAG1),
