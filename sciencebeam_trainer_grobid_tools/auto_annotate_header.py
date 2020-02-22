@@ -33,7 +33,8 @@ HEADER_TAG_TO_TEI_PATH_MAPPING = {
     DEFAULT_TAG_KEY: 'note[type="other"]',
     'title': 'docTitle/titlePart',
     'abstract': 'div[type="abstract"]',
-    'author': 'byline/docAuthor'
+    'author': 'byline/docAuthor',
+    'author_aff': 'byline/affiliation'
 }
 
 

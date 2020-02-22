@@ -87,6 +87,7 @@ class TestEndToEnd(object):
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         title_text = 'Chocolate bars for mice'
         author_text = 'Mary Maison, John Smith'
+        affiliation_text = 'University of Science, Smithonia'
         abstract_text = (
             'This study explores the nutritious value of chocolate bars for mice.'
         )
@@ -95,6 +96,7 @@ class TestEndToEnd(object):
             get_header_tei_node([
                 E.note(title_text), E.lb(),
                 E.note(author_text),
+                E.note(affiliation_text),
                 E.note(abstract_prefix, E.lb(), abstract_text)
             ])
         ))
@@ -108,19 +110,24 @@ class TestEndToEnd(object):
                 E.contrib(E.name(
                     E.surname('Smith'),
                     E('given-names', 'John')
-                ))
+                )),
+                E.aff(
+                    E.institution('University of Science'),
+                    E.country('Smithonia')
+                )
             ],
             abstract_node=E.abstract(E.p(abstract_text))
         )))
         main(dict_to_args({
             **test_helper.main_args_dict,
-            'fields': ','.join(['title', 'author', 'abstract']),
+            'fields': ','.join(['title', 'author', 'author_aff', 'abstract']),
             'matcher': 'simple'
         }), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text(tei_auto_root, '//docTitle/titlePart') == title_text
         assert get_xpath_text(tei_auto_root, '//byline/docAuthor') == author_text
+        assert get_xpath_text(tei_auto_root, '//byline/affiliation') == affiliation_text
         assert get_xpath_text(tei_auto_root, '//div[@type="abstract"]') == (
             abstract_prefix + abstract_text
         )
