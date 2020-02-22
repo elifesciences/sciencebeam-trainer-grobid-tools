@@ -359,7 +359,7 @@ class TestSimpleMatchingAnnotator:
             TargetAnnotation(['john', 'smith'], TAG1),
             TargetAnnotation(['mary', 'maison'], TAG1)
         ]
-        doc = _document_for_tokens([matching_tokens])
+        doc = _document_for_tokens([pre_tokens, matching_tokens, post_tokens])
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
         assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
         assert _get_tags_of_tokens(pre_tokens) == [None] * len(pre_tokens)
