@@ -63,14 +63,25 @@ class SimpleSimpleMatchingConfig:
             self,
             threshold: float = 0.8,
             lookahead_sequence_count: int = 200,
+            exact_word_match_threshold: int = 5,
             tag_config_map: Dict[str, SimpleTagConfig] = None):
         self.threshold = threshold
         self.lookahead_sequence_count = lookahead_sequence_count
+        self.exact_word_match_threshold = exact_word_match_threshold
         self.tag_config_map = tag_config_map or {}
 
     def __repr__(self):
-        return '%s(threshold=%s, lookahead_sequence_count=%s, tag_config_map=%s)' % (
-            type(self).__name__, self.threshold, self.lookahead_sequence_count, self.tag_config_map
+        return ''.join([
+            '%s(threshold=%s,',
+            ' lookahead_sequence_count=%s,',
+            ' exact_word_match_threshold=%s',
+            ' tag_config_map=%s)'
+         ]) % (
+            type(self).__name__,
+            self.threshold,
+            self.lookahead_sequence_count,
+            self.exact_word_match_threshold,
+            self.tag_config_map
         )
 
 
@@ -149,10 +160,14 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             normalise_str_or_list(needle)
         )
         LOGGER.debug('target_value: %s', target_value)
-        if len(target_value) < 5:
+        if len(target_value) < self.config.exact_word_match_threshold:
             # line feeds are currently not default separators for WordSequenceMatcher
             haystack = haystack.replace('\n', ' ')
-        fm = fuzzy_match(haystack, target_value, exact_word_match_threshold=5, **kwargs)
+        fm = fuzzy_match(
+            haystack, target_value,
+            exact_word_match_threshold=self.config.exact_word_match_threshold,
+            **kwargs
+        )
         LOGGER.debug('fm: %s', fm)
         if not fm.matching_blocks:
             LOGGER.debug('not matching, haystack: %s', haystack)
@@ -162,7 +177,11 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             normalise_and_remove_junk_str_or_list(needle)
         )
         LOGGER.debug('target_value_reduced: %s', target_value_reduced)
-        fm = fuzzy_match(haystack, target_value_reduced, exact_word_match_threshold=5, **kwargs)
+        fm = fuzzy_match(
+            haystack, target_value_reduced,
+            exact_word_match_threshold=self.config.exact_word_match_threshold,
+            **kwargs
+        )
         if fm.b_gap_ratio() >= self.config.threshold:
             return fm.a_index_range()
         return None
