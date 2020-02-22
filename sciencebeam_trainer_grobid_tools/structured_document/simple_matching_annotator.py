@@ -81,6 +81,14 @@ def merge_index_ranges(index_ranges: List[Tuple[int, int]]) -> Tuple[int, int]:
     )
 
 
+def sorted_index_ranges(index_ranges: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
+    return sorted(index_ranges)
+
+
+def index_range_len(index_range: Tuple[int, int]) -> int:
+    return index_range[1] - index_range[0]
+
+
 def _iter_all_lines(structured_document: AbstractStructuredDocument):
     return (
         line
@@ -189,13 +197,24 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             LOGGER.info('target_annotation.value: %s', target_annotation.value)
             text_str = str(text)
             LOGGER.debug('text: %s', text)
+            index_range = None
             if isinstance(target_annotation.value, list):
                 index_ranges = [
                     self.get_fuzzy_matching_index_range(text_str, value)
                     for value in target_annotation.value
                 ]
-                if all(index_ranges):
-                    index_range = merge_index_ranges(index_ranges)
+                matching_index_ranges = [
+                    _index_range
+                    for _index_range in index_ranges
+                    if _index_range
+                ]
+                if matching_index_ranges:
+                    matching_index_range_len = sum(map(index_range_len, matching_index_ranges))
+                    merged_index_range = merge_index_ranges(matching_index_ranges)
+                    if index_range_len(merged_index_range) < matching_index_range_len * 2:
+                        index_range = merged_index_range
+                    else:
+                        index_range = sorted_index_ranges(matching_index_ranges)[0]
             else:
                 index_range = self.get_fuzzy_matching_index_range(text_str, target_annotation.value)
             LOGGER.debug('index_range: %s', index_range)
