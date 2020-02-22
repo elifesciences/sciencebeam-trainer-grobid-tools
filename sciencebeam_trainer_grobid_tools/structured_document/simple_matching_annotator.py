@@ -149,8 +149,13 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             normalise_str_or_list(needle)
         )
         LOGGER.debug('target_value: %s', target_value)
+        if len(target_value) < 5:
+            # line feeds are currently not default separators for WordSequenceMatcher
+            haystack = haystack.replace('\n', ' ')
         fm = fuzzy_match(haystack, target_value, exact_word_match_threshold=5, **kwargs)
         LOGGER.debug('fm: %s', fm)
+        if not fm.matching_blocks:
+            LOGGER.debug('not matching, haystack: %s', haystack)
         if fm.b_gap_ratio() >= self.config.threshold:
             return fm.a_index_range()
         target_value_reduced = split_and_join_with_space(
@@ -245,22 +250,23 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
         for tag_name, grouped_target_annotations in target_annotations_grouped_by_tag:
             grouped_target_annotations = list(grouped_target_annotations)
             LOGGER.debug('grouped_target_annotations: %s', grouped_target_annotations)
-            text = SequencesText(pending_sequences.get_pending_sequences(
-                limit=self.config.lookahead_sequence_count
-            ))
-            index_ranges = list(self.iter_matching_index_ranges(
-                text,
-                grouped_target_annotations
-            ))
-            if not index_ranges:
-                continue
-            index_range = merge_index_ranges(index_ranges)
-            self.update_annotation_for_index_range(
-                structured_document,
-                text,
-                index_range,
-                tag_name
-            )
+            for target_annotation in grouped_target_annotations:
+                text = SequencesText(pending_sequences.get_pending_sequences(
+                    limit=self.config.lookahead_sequence_count
+                ))
+                index_ranges = list(self.iter_matching_index_ranges(
+                    text,
+                    [target_annotation]
+                ))
+                if not index_ranges:
+                    continue
+                index_range = merge_index_ranges(index_ranges)
+                self.update_annotation_for_index_range(
+                    structured_document,
+                    text,
+                    index_range,
+                    tag_name
+                )
         self.extend_annotations_to_whole_line(structured_document)
         return structured_document
 

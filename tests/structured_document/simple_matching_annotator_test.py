@@ -366,6 +366,27 @@ class TestSimpleMatchingAnnotator:
         assert _get_tags_of_tokens(post_tokens) == [None] * len(post_tokens)
 
     @log_on_exception
+    def test_should_annotate_but_not_merge_multiple_authors_annotation_too_far_apart(self):
+        pre_tokens = _tokens_for_text('this is')
+        matching_tokens_1 = _tokens_for_text('john smith')
+        mid_tokens = _tokens_for_text('etc') * 5
+        matching_tokens_2 = _tokens_for_text('mary maison')
+        post_tokens = _tokens_for_text('the author')
+        target_annotations = [
+            TargetAnnotation(['john', 'smith'], TAG1),
+            TargetAnnotation(['mary', 'maison'], TAG1)
+        ]
+        doc = _document_for_tokens([
+            pre_tokens, matching_tokens_1, mid_tokens, matching_tokens_2, post_tokens
+        ])
+        SimpleMatchingAnnotator(target_annotations).annotate(doc)
+        assert _get_tags_of_tokens(matching_tokens_1) == [TAG1] * len(matching_tokens_1)
+        assert _get_tags_of_tokens(matching_tokens_2) == [TAG1] * len(matching_tokens_2)
+        assert _get_tags_of_tokens(mid_tokens) == [None] * len(mid_tokens)
+        assert _get_tags_of_tokens(pre_tokens) == [None] * len(pre_tokens)
+        assert _get_tags_of_tokens(post_tokens) == [None] * len(post_tokens)
+
+    @log_on_exception
     def test_should_annotate_whole_line(self):
         pre_tokens = _tokens_for_text('this is')
         matching_tokens = _tokens_for_text('john smith 1, mary maison 2')
