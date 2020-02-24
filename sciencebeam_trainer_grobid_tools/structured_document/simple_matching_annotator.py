@@ -212,9 +212,8 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                 return index_range
         return None
 
-    def update_annotation_for_index_range(
+    def apply_match_prefix_regex_to_index_range(
             self,
-            structured_document: AbstractStructuredDocument,
             text: SequencesText,
             index_range: Tuple[int, int],
             tag_name: str):
@@ -232,6 +231,18 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             if m:
                 LOGGER.debug('match: [%s]', m.span())
                 start_index = m.start()
+        return start_index, end_index
+
+    def update_annotation_for_index_range(
+            self,
+            structured_document: AbstractStructuredDocument,
+            text: SequencesText,
+            index_range: Tuple[int, int],
+            tag_name: str):
+        index_range = self.apply_match_prefix_regex_to_index_range(
+            text, index_range, tag_name
+        )
+        start_index, end_index = index_range
         matching_tokens = list(text.iter_tokens_between((start_index, end_index)))
         LOGGER.debug('matching_tokens: %s', matching_tokens)
         for token in matching_tokens:
@@ -332,6 +343,18 @@ class SimpleTagConfigProps:
     ALTERNATIVE_SPELLINGS = 'alternative-spellings'
 
 
+def parse_regex(regex_str: str) -> str:
+    LOGGER.debug('regex_str: %s', regex_str)
+    if not regex_str:
+        return regex_str
+    if len(regex_str) >= 2 and regex_str.startswith('"') and regex_str.endswith('"'):
+        regex_str = regex_str[1:-1]
+    # validate pattern
+    re.compile(regex_str)
+    LOGGER.debug('parsed regex_str: %s', regex_str)
+    return regex_str
+
+
 def parse_alternative_spellings(alternative_spellings_str: str) -> Dict[str, List[str]]:
     LOGGER.debug('alternative_spellings_str: %s', alternative_spellings_str)
     if not alternative_spellings_str:
@@ -347,11 +370,12 @@ def parse_alternative_spellings(alternative_spellings_str: str) -> Dict[str, Lis
     LOGGER.debug('alternative_spellings: %s', result)
     return result
 
+
 def get_simple_tag_config(config_map: Dict[str, str], field: str) -> SimpleTagConfig:
     return SimpleTagConfig(
-        match_prefix_regex=config_map.get(
+        match_prefix_regex=parse_regex(config_map.get(
             '%s.%s' % (field, SimpleTagConfigProps.MATCH_PREFIX_REGEX)
-        ),
+        )),
         alternative_spellings=parse_alternative_spellings(config_map.get(
             '%s.%s' % (field, SimpleTagConfigProps.ALTERNATIVE_SPELLINGS)
         ))

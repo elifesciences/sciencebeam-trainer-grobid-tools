@@ -256,6 +256,34 @@ class TestSimpleMatchingAnnotator:
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
         assert _get_tags_of_tokens(tokens) == [None] * len(tokens)
 
+    def test_should_annotate_author_aff_preceding_number(self):
+        number_tokens = _tokens_for_text('1')
+        matching_tokens = _tokens_for_text('this is matching')
+        target_annotations = [
+            TargetAnnotation('this is matching', TAG1)
+        ]
+        doc = _document_for_tokens([number_tokens, matching_tokens])
+        SimpleMatchingAnnotator(
+            target_annotations,
+            tag_config_map={TAG1: SimpleTagConfig(match_prefix_regex=r'(?=^|\n)\d\s*$')}
+        ).annotate(doc)
+        assert _get_tags_of_tokens(number_tokens) == [TAG1] * len(number_tokens)
+        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+
+    def test_should_not_annotate_author_aff_preceding_number_if_it_is_following_text(self):
+        number_tokens = _tokens_for_text('Smith 1')
+        matching_tokens = _tokens_for_text('this is matching')
+        target_annotations = [
+            TargetAnnotation('this is matching', TAG1)
+        ]
+        doc = _document_for_tokens([number_tokens, matching_tokens])
+        SimpleMatchingAnnotator(
+            target_annotations,
+            tag_config_map={TAG1: SimpleTagConfig(match_prefix_regex=r'(?=^|\n)\d\s*$')}
+        ).annotate(doc)
+        assert _get_tags_of_tokens(number_tokens) == [None] * len(number_tokens)
+        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+
     def test_should_annotate_abstract_section_heading(self):
         matching_tokens = _tokens_for_text('Abstract\nthis is matching.')
         target_annotations = [
