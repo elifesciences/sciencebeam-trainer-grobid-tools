@@ -239,11 +239,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             text: SequencesText,
             index_range: Tuple[int, int],
             tag_name: str):
-        index_range = self.apply_match_prefix_regex_to_index_range(
-            text, index_range, tag_name
-        )
-        start_index, end_index = index_range
-        matching_tokens = list(text.iter_tokens_between((start_index, end_index)))
+        matching_tokens = list(text.iter_tokens_between(index_range))
         LOGGER.debug('matching_tokens: %s', matching_tokens)
         for token in matching_tokens:
             if not structured_document.get_tag(token):
@@ -328,6 +324,9 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                 if not index_ranges:
                     continue
                 index_range = merge_index_ranges(index_ranges)
+                index_range = self.apply_match_prefix_regex_to_index_range(
+                    text, index_range, tag_name
+                )
                 self.update_annotation_for_index_range(
                     structured_document,
                     text,
