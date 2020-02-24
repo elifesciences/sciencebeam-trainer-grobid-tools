@@ -65,3 +65,55 @@ class TestAnnotXmlFrontConf:
             ('author', ['Smith', 'John']),
             ('author_aff', ['University of Science', 'Smithonia'])
         ]
+
+    def test_should_extract_author_aff_address_line(
+            self, xml_mapping: Dict[str, Dict[str, str]]):
+        xml_root = get_target_xml_node(
+            author_nodes=[
+                E.contrib(
+                    E.name(
+                        E.surname('Smith'),
+                        E('given-names', 'John')
+                    ),
+                    E.aff(
+                        E.institution('University of Science'),
+                        E.country('Smithonia'),
+                        E('addr-line', E('named-content', 'East St'))
+                    )
+                )
+            ]
+        )
+        target_annotations = xml_root_to_target_annotations(xml_root, xml_mapping)
+        assert [
+            (target_annotation.name, target_annotation.value)
+            for target_annotation in target_annotations
+        ] == [
+            ('author', ['Smith', 'John']),
+            ('author_aff', ['University of Science', 'Smithonia', 'East St'])
+        ]
+
+    def test_should_extract_author_aff_email(
+            self, xml_mapping: Dict[str, Dict[str, str]]):
+        xml_root = get_target_xml_node(
+            author_nodes=[
+                E.contrib(
+                    E.name(
+                        E.surname('Smith'),
+                        E('given-names', 'John')
+                    ),
+                    E.aff(
+                        E.institution('University of Science'),
+                        E.email('john@smiths.test')
+                    )
+                )
+            ]
+        )
+        target_annotations = xml_root_to_target_annotations(xml_root, xml_mapping)
+        assert [
+            (target_annotation.name, target_annotation.value)
+            for target_annotation in target_annotations
+        ] == [
+            ('author', ['Smith', 'John']),
+            ('author_aff', ['University of Science', 'john@smiths.test']),
+            ('email', 'john@smiths.test')
+        ]
