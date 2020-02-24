@@ -284,6 +284,22 @@ class TestSimpleMatchingAnnotator:
         assert _get_tags_of_tokens(number_tokens) == [None] * len(number_tokens)
         assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
 
+    @log_on_exception
+    def test_should_not_annotate_author_aff_label_between_author_names(self):
+        author_tokens = _tokens_for_text('Mary 1 , Smith 1')
+        aff_tokens = _tokens_for_text('University of Science')
+        target_annotations = [
+            TargetAnnotation(['Mary', 'Smith'], TAG1),
+            TargetAnnotation(['1', 'University of Science'], TAG2)
+        ]
+        doc = _document_for_tokens([author_tokens, aff_tokens])
+        SimpleMatchingAnnotator(
+            target_annotations,
+            tag_config_map={}
+        ).annotate(doc)
+        assert _get_tags_of_tokens(author_tokens) == [TAG1] * len(author_tokens)
+        assert _get_tags_of_tokens(aff_tokens) == [TAG2] * len(aff_tokens)
+
     def test_should_annotate_abstract_section_heading(self):
         matching_tokens = _tokens_for_text('Abstract\nthis is matching.')
         target_annotations = [

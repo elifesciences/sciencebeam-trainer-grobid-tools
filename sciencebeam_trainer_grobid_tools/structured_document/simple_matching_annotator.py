@@ -67,10 +67,12 @@ class SimpleSimpleMatchingConfig:
             self,
             threshold: float = 0.8,
             lookahead_sequence_count: int = 200,
+            min_token_length: int = 2,
             exact_word_match_threshold: int = 5,
             tag_config_map: Dict[str, SimpleTagConfig] = None):
         self.threshold = threshold
         self.lookahead_sequence_count = lookahead_sequence_count
+        self.min_token_length = min_token_length
         self.exact_word_match_threshold = exact_word_match_threshold
         self.tag_config_map = tag_config_map or {}
 
@@ -160,6 +162,8 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
 
     def get_fuzzy_matching_index_range(
             self, haystack: str, needle, **kwargs):
+        if len(needle) < self.config.min_token_length:
+            return None
         target_value = split_and_join_with_space(
             normalise_str_or_list(needle)
         )

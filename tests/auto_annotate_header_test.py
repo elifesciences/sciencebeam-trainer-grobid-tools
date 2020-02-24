@@ -132,6 +132,44 @@ class TestEndToEnd(object):
             abstract_prefix + abstract_text
         )
 
+    @log_on_exception
+    def test_should_replace_affiliation_with_author_if_single_tokens(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        author_text = 'Mary Maison 1, John Smith 1'
+        affiliation_text = '1 University of Science, Smithonia'
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_header_tei_node([
+                E.note(author_text), E.lb(),
+                E.note(affiliation_text), E.lb()
+            ])
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(get_target_xml_node(
+            author_nodes=[
+                E.contrib(E.name(
+                    E.surname('Maison'),
+                    E('given-names', 'Mary')
+                )),
+                E.contrib(E.name(
+                    E.surname('Smith'),
+                    E('given-names', 'John')
+                )),
+                E.aff(
+                    E.label('1'),
+                    E.institution('University of Science'),
+                    E.country('Smithonia')
+                )
+            ]
+        )))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'fields': ','.join(['title', 'author', 'author_aff', 'abstract']),
+            'matcher': 'simple'
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text(tei_auto_root, '//byline/docAuthor') == author_text
+        assert get_xpath_text(tei_auto_root, '//byline/affiliation') == affiliation_text
+
     @pytest.mark.skip(
         reason='difficult to implement correctly due to prefix only seeging untagged text'
     )
