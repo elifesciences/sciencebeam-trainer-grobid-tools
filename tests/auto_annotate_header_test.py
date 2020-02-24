@@ -132,7 +132,9 @@ class TestEndToEnd(object):
             abstract_prefix + abstract_text
         )
 
-    @pytest.mark.skip(reason='difficult to implement correctly due to prefix only seeging untagged text')
+    @pytest.mark.skip(
+        reason='difficult to implement correctly due to prefix only seeging untagged text'
+    )
     @log_on_exception
     def test_should_auto_annotate_affiliation_preceding_number_using_simple_matcher(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
