@@ -86,8 +86,8 @@ class TestEndToEnd(object):
     def test_should_auto_annotate_multiple_fields_using_simple_matcher(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         title_text = 'Chocolate bars for mice'
-        author_text = 'Mary Maison, John Smith'
-        affiliation_text = 'University of Science, Smithonia'
+        author_text = 'Mary Maison 1, John Smith 1'
+        affiliation_text = '1 University of Science, Smithonia'
         abstract_text = (
             'This study explores the nutritious value of chocolate bars for mice.'
         )
@@ -95,8 +95,8 @@ class TestEndToEnd(object):
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
             get_header_tei_node([
                 E.note(title_text), E.lb(),
-                E.note(author_text),
-                E.note(affiliation_text),
+                E.note(author_text), E.lb(),
+                E.note(affiliation_text), E.lb(),
                 E.note(abstract_prefix, E.lb(), abstract_text)
             ])
         ))
