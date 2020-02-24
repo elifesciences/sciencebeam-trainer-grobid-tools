@@ -181,6 +181,22 @@ class TestSimpleMatchingAnnotator:
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
         assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
 
+    def test_should_annotate_using_alternative_spellings(self):
+        matching_tokens = _tokens_for_text('this is matching')
+        target_annotations = [
+            TargetAnnotation('alternative spelling', TAG1)
+        ]
+        doc = _document_for_tokens([matching_tokens])
+        SimpleMatchingAnnotator(
+            target_annotations,
+            tag_config_map={
+                TAG1: SimpleTagConfig(alternative_spellings={
+                    'alternative spelling': ['this is matching']
+                })
+            }
+        ).annotate(doc)
+        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+
     def test_should_annotate_ignoring_space_after_dot_short_sequence(self):
         matching_tokens = [
             SimpleToken('A.B.,')
@@ -412,3 +428,16 @@ class TestGetSimpleTagConfigMap:
         assert set(tag_config_map.keys()) == {'tag1'}
         tag_config = tag_config_map['tag1']
         assert tag_config.match_prefix_regex == 'regex1'
+
+    def test_should_parse_alternative_spellings(self):
+        tag_config_map = get_simple_tag_config_map({
+            'any': {
+                'tag1': 'xpath1',
+                'tag1.alternative-spellings': '\n Key 1=Alternative 1,Alternative 2\n'
+            }
+        })
+        assert set(tag_config_map.keys()) == {'tag1'}
+        tag_config = tag_config_map['tag1']
+        assert tag_config.alternative_spellings == {
+            'Key 1': ['Alternative 1', 'Alternative 2']
+        }

@@ -46,12 +46,16 @@ def split_and_join_with_space(text: str) -> str:
 
 
 class SimpleTagConfig:
-    def __init__(self, match_prefix_regex: str = None):
+    def __init__(
+            self,
+            match_prefix_regex: str = None,
+            alternative_spellings: Dict[str, List[str]] = None):
         self.match_prefix_regex = match_prefix_regex
+        self.alternative_spellings = alternative_spellings
 
     def __repr__(self):
-        return '%s(match_prefix_regex=%s)' % (
-            type(self).__name__, self.match_prefix_regex
+        return '%s(match_prefix_regex=%s, alternative_spellings=%s)' % (
+            type(self).__name__, self.match_prefix_regex, self.alternative_spellings
         )
 
 
@@ -186,6 +190,28 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             return fm.a_index_range()
         return None
 
+    def get_fuzzy_matching_index_range_with_alternative_spellings(
+            self,
+            haystack: str,
+            needle,
+            alternative_spellings: Dict[str, List[str]],
+            **kwargs):
+        index_range = self.get_fuzzy_matching_index_range(haystack, needle, **kwargs)
+        if index_range or not alternative_spellings:
+            return index_range
+        LOGGER.debug('alternative_spellings: %s', alternative_spellings)
+        LOGGER.debug('not matching needle: [%s]', needle)
+        matching_alternative_spellings = alternative_spellings.get(needle, [])
+        LOGGER.debug('matching_alternative_spellings: %s', matching_alternative_spellings)
+        for alternative_needle in matching_alternative_spellings:
+            index_range = self.get_fuzzy_matching_index_range(
+                haystack, alternative_needle, **kwargs
+            )
+            if index_range:
+                LOGGER.debug('found alternative_needle: %s', alternative_needle)
+                return index_range
+        return None
+
     def update_annotation_for_index_range(
             self,
             structured_document: AbstractStructuredDocument,
@@ -219,12 +245,19 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
         for target_annotation in target_annotations:
             LOGGER.debug('target_annotation: %s', target_annotation)
             LOGGER.info('target_annotation.value: %s', target_annotation.value)
+            tag_config = self.config.tag_config_map.get(target_annotation.name)
+            alternative_spellings = tag_config and tag_config.alternative_spellings
+            LOGGER.info('alternative_spellings: %s', alternative_spellings)
             text_str = str(text)
             LOGGER.debug('text: %s', text)
             index_range = None
             if isinstance(target_annotation.value, list):
                 index_ranges = [
-                    self.get_fuzzy_matching_index_range(text_str, value)
+                    self.get_fuzzy_matching_index_range_with_alternative_spellings(
+                        text_str,
+                        value,
+                        alternative_spellings=alternative_spellings
+                    )
                     for value in target_annotation.value
                 ]
                 matching_index_ranges = [
@@ -235,12 +268,16 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                 if matching_index_ranges:
                     matching_index_range_len = sum(map(index_range_len, matching_index_ranges))
                     merged_index_range = merge_index_ranges(matching_index_ranges)
-                    if index_range_len(merged_index_range) < matching_index_range_len * 2:
+                    if index_range_len(merged_index_range) < matching_index_range_len * 3:
                         index_range = merged_index_range
                     else:
                         index_range = sorted_index_ranges(matching_index_ranges)[0]
             else:
-                index_range = self.get_fuzzy_matching_index_range(text_str, target_annotation.value)
+                index_range = self.get_fuzzy_matching_index_range_with_alternative_spellings(
+                    text_str,
+                    target_annotation.value,
+                    alternative_spellings=alternative_spellings
+                )
             LOGGER.debug('index_range: %s', index_range)
             if index_range:
                 yield index_range
@@ -292,13 +329,32 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
 
 class SimpleTagConfigProps:
     MATCH_PREFIX_REGEX = 'match-prefix-regex'
+    ALTERNATIVE_SPELLINGS = 'alternative-spellings'
 
+
+def parse_alternative_spellings(alternative_spellings_str: str) -> Dict[str, List[str]]:
+    LOGGER.debug('alternative_spellings_str: %s', alternative_spellings_str)
+    if not alternative_spellings_str:
+        return {}
+    result = {}
+    for line in alternative_spellings_str.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        LOGGER.debug('line: %s', line)
+        key, value_str = line.split('=', maxsplit=1)
+        result[key.strip()] = value_str.strip().split(',')
+    LOGGER.debug('alternative_spellings: %s', result)
+    return result
 
 def get_simple_tag_config(config_map: Dict[str, str], field: str) -> SimpleTagConfig:
     return SimpleTagConfig(
         match_prefix_regex=config_map.get(
             '%s.%s' % (field, SimpleTagConfigProps.MATCH_PREFIX_REGEX)
-        )
+        ),
+        alternative_spellings=parse_alternative_spellings(config_map.get(
+            '%s.%s' % (field, SimpleTagConfigProps.ALTERNATIVE_SPELLINGS)
+        ))
     )
 
 

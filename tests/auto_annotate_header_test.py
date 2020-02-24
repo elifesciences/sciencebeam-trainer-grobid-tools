@@ -133,6 +133,56 @@ class TestEndToEnd(object):
         )
 
     @log_on_exception
+    def test_should_auto_annotate_alternative_spellings_using_simple_matcher(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        title_text = 'Chocolate bars for mice'
+        author_text = 'Mary Maison 1, John Smith 1'
+        affiliation_text = 'Berkeley, CA 12345, USA'
+        abstract_text = (
+            'This study explores the nutritious value of chocolate bars for mice.'
+        )
+        abstract_prefix = 'Abstract'
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_header_tei_node([
+                E.note(title_text), E.lb(),
+                E.note(author_text), E.lb(),
+                E.note(affiliation_text), E.lb(),
+                E.note(abstract_prefix, E.lb(), abstract_text)
+            ])
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(get_target_xml_node(
+            title=title_text,
+            author_nodes=[
+                E.contrib(E.name(
+                    E.surname('Maison'),
+                    E('given-names', 'Mary')
+                )),
+                E.contrib(E.name(
+                    E.surname('Smith'),
+                    E('given-names', 'John')
+                )),
+                E.aff(
+                    E.institution('Berkeley'),
+                    E.country('United States')
+                )
+            ],
+            abstract_node=E.abstract(E.p(abstract_text))
+        )))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'fields': ','.join(['title', 'author', 'author_aff', 'abstract']),
+            'matcher': 'simple'
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text(tei_auto_root, '//docTitle/titlePart') == title_text
+        assert get_xpath_text(tei_auto_root, '//byline/docAuthor') == author_text
+        assert get_xpath_text(tei_auto_root, '//byline/affiliation') == affiliation_text
+        assert get_xpath_text(tei_auto_root, '//div[@type="abstract"]') == (
+            abstract_prefix + abstract_text
+        )
+
+    @log_on_exception
     def test_should_skip_errors(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         tei_raw_other_file_path = test_helper.tei_raw_path.joinpath('document0.header.tei.xml')
