@@ -45,6 +45,7 @@ from .structured_document.annotator import annotate_structured_document
 
 from .structured_document.line_number_annotator import (
     DEFAULT_MIN_LINE_NUMBER_COUNT,
+    DEFAULT_MAX_LINE_NUMBER_GAP,
     DEFAULT_LINE_NUMBER_RATIO_THRESHOLD,
     TextLineNumberAnnotatorConfig,
     TextLineNumberAnnotator
@@ -184,6 +185,14 @@ def add_annotation_pipeline_arguments(parser: argparse.ArgumentParser):
         '--min-line-numbers-per-page', type=int,
         default=DEFAULT_MIN_LINE_NUMBER_COUNT,
         help='minimum number of line number candidates on page to be considered'
+    )
+    line_no_group.add_argument(
+        '--max-line-number-gap', type=int,
+        default=DEFAULT_MAX_LINE_NUMBER_GAP,
+        help=' '.join([
+            'the maximum interval gap between line numbers',
+            '(some documents only show line numbers on lines with text)'
+        ])
     )
     line_no_group.add_argument(
         '--min-line-number-ratio', type=str,

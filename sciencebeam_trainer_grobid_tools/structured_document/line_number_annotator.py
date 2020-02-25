@@ -14,6 +14,8 @@ LOGGER = logging.getLogger(__name__)
 
 DEFAULT_MIN_LINE_NUMBER_COUNT = 10
 
+DEFAULT_MAX_LINE_NUMBER_GAP = 10
+
 
 # Among first tokens on each line, minimum ratio of line number vs other non-numeric tokens
 # (low ratio indicates numbers may be figures or table values rather than line numbers)
@@ -34,7 +36,8 @@ def iter_first_tokens_of_lines(
 
 def get_line_number_candidates(
         structured_document: GrobidTrainingTeiStructuredDocument,
-        tokens: list):
+        tokens: list,
+        max_line_number_gap: int):
     line_number_candidates_with_num = [
         (token, int(structured_document.get_text(token)))
         for token in tokens
@@ -50,7 +53,8 @@ def get_line_number_candidates(
     for token, num in line_number_candidates_with_num[1:]:
         prev_seq = line_number_sequences[-1]
         prev_num = prev_seq[-1][1]
-        if num == prev_num + 1:
+        expected_num = prev_num + 1
+        if num >= expected_num and num <= expected_num + max_line_number_gap:
             prev_seq.append((token, num))
         else:
             line_number_sequences.append([(token, num)])
@@ -75,6 +79,7 @@ def iter_find_line_number_tokens_in_lines(
         structured_document: GrobidTrainingTeiStructuredDocument,
         lines: list,
         min_line_number: int,
+        max_line_number_gap: int,
         line_number_ratio_threshold: float):
     first_tokens_of_lines = list(iter_first_tokens_of_lines(
         structured_document,
@@ -82,7 +87,8 @@ def iter_find_line_number_tokens_in_lines(
     ))
     line_number_candidates = get_line_number_candidates(
         structured_document,
-        first_tokens_of_lines
+        first_tokens_of_lines,
+        max_line_number_gap=max_line_number_gap
     )
     if len(line_number_candidates) < min_line_number:
         LOGGER.debug('not enough line number candidates: %d', len(line_number_candidates))
@@ -116,9 +122,11 @@ class TextLineNumberAnnotatorConfig:
             self,
             tag: str = DEFAULT_LINE_NO_TAG,
             min_line_number: int = DEFAULT_MIN_LINE_NUMBER_COUNT,
+            max_line_number_gap: int = DEFAULT_MAX_LINE_NUMBER_GAP,
             line_number_ratio_threshold: float = DEFAULT_LINE_NUMBER_RATIO_THRESHOLD):
         self.tag = tag
         self.min_line_number = min_line_number
+        self.max_line_number_gap = max_line_number_gap
         self.line_number_ratio_threshold = line_number_ratio_threshold
 
 
@@ -139,6 +147,7 @@ class TextLineNumberAnnotator(AbstractAnnotator):
         line_number_tokens = iter_find_line_number_tokens(
             structured_document,
             min_line_number=self.config.min_line_number,
+            max_line_number_gap=self.config.max_line_number_gap,
             line_number_ratio_threshold=self.config.line_number_ratio_threshold
         )
         for t in line_number_tokens:

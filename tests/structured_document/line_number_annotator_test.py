@@ -166,6 +166,7 @@ class TestTextLineNumberAnnotator:
         ])
         config = TextLineNumberAnnotatorConfig(
             min_line_number=1,
+            max_line_number_gap=0,
             line_number_ratio_threshold=0.5
         )
         TextLineNumberAnnotator(config=config).annotate(doc)
@@ -185,6 +186,7 @@ class TestTextLineNumberAnnotator:
         ])
         config = TextLineNumberAnnotatorConfig(
             min_line_number=1,
+            max_line_number_gap=0,
             line_number_ratio_threshold=0.5
         )
         TextLineNumberAnnotator(config=config).annotate(doc)
