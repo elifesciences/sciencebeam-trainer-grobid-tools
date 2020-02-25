@@ -57,7 +57,7 @@ def get_target_xml_node(
         article_meta_node.append(E('title-group', E('article-title', title)))
     if author_nodes:
         article_meta_node.append(E('contrib-group', *author_nodes))
-    if abstract_node:
+    if abstract_node is not None:
         article_meta_node.append(abstract_node)
     return E.article(front_node)
 
