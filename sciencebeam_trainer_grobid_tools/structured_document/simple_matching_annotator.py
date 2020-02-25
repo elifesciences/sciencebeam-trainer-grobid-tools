@@ -251,7 +251,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
         elif kwargs:
             raise ValueError('either config or kwargs should be specified')
         self.config = config
-        LOGGER.info('config: %s', config)
+        LOGGER.debug('config: %s', config)
 
     def get_fuzzy_matching_index_range(
             self, haystack: str, needle, **kwargs):
@@ -352,10 +352,10 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             target_annotations: List[TargetAnnotation]):
         for target_annotation in target_annotations:
             LOGGER.debug('target_annotation: %s', target_annotation)
-            LOGGER.info('target_annotation.value: %s', target_annotation.value)
+            LOGGER.debug('target_annotation.value: %s', target_annotation.value)
             tag_config = self.config.tag_config_map.get(target_annotation.name)
             alternative_spellings = tag_config and tag_config.alternative_spellings
-            LOGGER.info('alternative_spellings: %s', alternative_spellings)
+            LOGGER.debug('alternative_spellings: %s', alternative_spellings)
             text_str = str(text)
             LOGGER.debug('text: %s', text)
             index_range = None
@@ -512,7 +512,7 @@ def get_simple_tag_config(config_map: Dict[str, str], field: str) -> SimpleTagCo
 
 
 def get_simple_tag_config_map(xml_mapping: Dict[str, Dict[str, str]]):
-    LOGGER.info('xml_mapping: %s', xml_mapping)
+    LOGGER.debug('xml_mapping: %s', xml_mapping)
     fields = {
         key
         for _, section_config_map in xml_mapping.items()
