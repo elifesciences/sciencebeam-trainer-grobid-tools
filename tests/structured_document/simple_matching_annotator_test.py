@@ -82,6 +82,7 @@ class TestSelectIndexRanges:
         assert selected == [(1, 3), (3, 5)]
         assert unselected == [(103, 105)]
 
+
 class TestGetExtendedLineTokenTags:
     def test_should_fill_begining_of_line(self):
         assert get_extended_line_token_tags([None, TAG1, TAG1]) == [TAG1] * 3
@@ -495,6 +496,7 @@ class TestSimpleMatchingAnnotator:
         assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
         assert _get_tags_of_tokens(pre_tokens) == [None] * len(pre_tokens)
         assert _get_tags_of_tokens(post_tokens) == [None] * len(post_tokens)
+
 
 class TestGetSimpleTagConfigMap:
     def test_should_parse_match_prefix_regex(self):
