@@ -27,7 +27,8 @@ from sciencebeam_gym.preprocess.annotation.fuzzy_match import (
 
 from sciencebeam_trainer_grobid_tools.structured_document.matching_utils import (
     PendingSequences,
-    SequencesText
+    SequencesText,
+    join_tokens_text
 )
 
 
@@ -244,7 +245,11 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             index_range: Tuple[int, int],
             tag_name: str):
         matching_tokens = list(text.iter_tokens_between(index_range))
-        LOGGER.debug('matching_tokens: %s', matching_tokens)
+        LOGGER.debug('setting matching_tokens to "%s": [%s]', tag_name, matching_tokens)
+        LOGGER.debug(
+            'setting matching text to "%s": [%s]',
+            tag_name, join_tokens_text(matching_tokens)
+        )
         for token in matching_tokens:
             if not structured_document.get_tag(token):
                 structured_document.set_tag(token, tag_name)
@@ -278,11 +283,27 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                 ]
                 if matching_index_ranges:
                     matching_index_range_len = sum(map(index_range_len, matching_index_ranges))
+                    sorted_merged_index_ranges = sorted_index_ranges(matching_index_ranges)
+                    index_ranges_with_text = list(zip(
+                        sorted_merged_index_ranges,
+                        map(text.get_text_between, sorted_merged_index_ranges)
+                    ))
                     merged_index_range = merge_index_ranges(matching_index_ranges)
                     if index_range_len(merged_index_range) < matching_index_range_len * 3:
+                        LOGGER.debug(
+                            'merged multi-value index ranges: %s -> %s',
+                            index_ranges_with_text, merged_index_range
+                        )
                         index_range = merged_index_range
                     else:
-                        index_range = sorted_index_ranges(matching_index_ranges)[0]
+                        LOGGER.debug(
+                            ''.join([
+                                'merged multi-value index range too long,',
+                                ' using first index range: %s -> %s'
+                            ]),
+                            index_ranges_with_text, merged_index_range
+                        )
+                        index_range = sorted_merged_index_ranges[0]
             else:
                 index_range = self.get_fuzzy_matching_index_range_with_alternative_spellings(
                     text_str,
@@ -328,6 +349,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                 if not index_ranges:
                     continue
                 index_range = merge_index_ranges(index_ranges)
+                LOGGER.debug('merged index ranges: %s -> %s', index_ranges, index_range)
                 index_range = self.apply_match_prefix_regex_to_index_range(
                     text, index_range, tag_name
                 )
