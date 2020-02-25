@@ -58,11 +58,13 @@ def get_logger():
 
 
 class MatcherNames:
-    DEFAULT = 'default'
+    COMPLEX = 'complex'
     SIMPLE = 'simple'
 
 
-MATCHER_NAMES = [MatcherNames.DEFAULT, MatcherNames.SIMPLE]
+MATCHER_NAMES = [MatcherNames.COMPLEX, MatcherNames.SIMPLE]
+
+DEFAULT_MATCHER_NAME = MatcherNames.SIMPLE
 
 
 def add_debug_argument(parser: argparse.ArgumentParser):
@@ -137,7 +139,7 @@ def add_annotation_pipeline_arguments(parser: argparse.ArgumentParser):
     matcher_group = parser.add_argument_group('matcher')
     matcher_group.add_argument(
         '--matcher', type=str, choices=MATCHER_NAMES,
-        default=MatcherNames.DEFAULT,
+        default=DEFAULT_MATCHER_NAME,
         help=''.join([
             'the kind of matcher to use ("simple" uses a simpler algorith,',
             ' requiring correct reading order)'
