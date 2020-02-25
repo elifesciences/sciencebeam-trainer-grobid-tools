@@ -22,7 +22,6 @@ from sciencebeam_gym.preprocess.annotation.target_annotation import (
     xml_root_to_target_annotations
 )
 
-from sciencebeam_gym.preprocess.annotation.annotator import LineAnnotator
 from sciencebeam_gym.preprocess.annotation.matching_annotator import (
     get_simple_fuzzy_match_filter,
     MatchingAnnotatorConfig,
@@ -43,6 +42,14 @@ from .utils.string import comma_separated_str_to_list
 from .utils.regex import regex_change_name
 from .utils.xml import parse_xml
 from .structured_document.annotator import annotate_structured_document
+
+from .structured_document.line_number_annotator import (
+    DEFAULT_MIN_LINE_NUMBER_COUNT,
+    DEFAULT_LINE_NUMBER_RATIO_THRESHOLD,
+    TextLineNumberAnnotatorConfig,
+    TextLineNumberAnnotator
+)
+
 from .structured_document.simple_matching_annotator import (
     SimpleMatchingAnnotator,
     SimpleSimpleMatchingConfig,
@@ -168,6 +175,25 @@ def add_annotation_pipeline_arguments(parser: argparse.ArgumentParser):
         help='skip errors'
     )
 
+    line_no_group = parser.add_argument_group('line number annotation')
+    line_no_group.add_argument(
+        '--no-line-number-annotator', action='store_true', default=False,
+        help='Disable line number annotator'
+    )
+    line_no_group.add_argument(
+        '--min-line-numbers-per-page', type=int,
+        default=DEFAULT_MIN_LINE_NUMBER_COUNT,
+        help='minimum number of line number candidates on page to be considered'
+    )
+    line_no_group.add_argument(
+        '--min-line-number-ratio', type=str,
+        default=DEFAULT_LINE_NUMBER_RATIO_THRESHOLD,
+        help=' '.join([
+            'minimum ratio of line number candidates vs non-line number tokens',
+            ' (first token of line)'
+        ])
+    )
+
     add_cloud_args(parser)
     return parser
 
@@ -230,11 +256,15 @@ class AnnotatorConfig:
             matcher_name: str,
             score_threshold: float,
             lookahead_lines: int,
-            debug_match: str = None):
+            debug_match: str = None,
+            use_line_number_annotator: bool = False,
+            line_number_annotator_config: TextLineNumberAnnotatorConfig = None):
         self.matcher_name = matcher_name
         self.score_threshold = score_threshold
         self.lookahead_lines = lookahead_lines
         self.debug_match = debug_match
+        self.use_line_number_annotator = use_line_number_annotator
+        self.line_number_annotator_config = line_number_annotator_config
 
     def get_match_detail_reporter(self):
         return get_match_detail_reporter(self.debug_match)
@@ -266,12 +296,13 @@ class AnnotatorConfig:
 
 def get_default_annotators(
         xml_path, xml_mapping,
-        annotator_config: AnnotatorConfig,
-        use_line_no_annotator=False) -> List[AbstractAnnotator]:
+        annotator_config: AnnotatorConfig) -> List[AbstractAnnotator]:
 
     annotators = []
-    if use_line_no_annotator:
-        annotators.append(LineAnnotator())
+    if annotator_config.use_line_number_annotator:
+        annotators.append(TextLineNumberAnnotator(
+            config=annotator_config.line_number_annotator_config
+        ))
     if xml_path:
         target_annotations = xml_root_to_target_annotations(
             parse_xml(xml_path).getroot(),
@@ -333,7 +364,12 @@ class AbstractAnnotatePipelineFactory(ABC):
             matcher_name=opt.matcher,
             score_threshold=opt.matcher_score_threshold,
             lookahead_lines=opt.matcher_lookahead_lines,
-            debug_match=opt.debug_match
+            debug_match=opt.debug_match,
+            use_line_number_annotator=not opt.no_line_number_annotator,
+            line_number_annotator_config=TextLineNumberAnnotatorConfig(
+                min_line_number=opt.min_line_numbers_per_page,
+                line_number_ratio_threshold=opt.min_line_number_ratio,
+            )
         )
 
     @abstractmethod

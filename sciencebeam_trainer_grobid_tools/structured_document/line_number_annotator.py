@@ -12,9 +12,12 @@ from sciencebeam_gym.preprocess.annotation.annotator import (
 LOGGER = logging.getLogger(__name__)
 
 
+DEFAULT_MIN_LINE_NUMBER_COUNT = 10
+
+
 # Among first tokens on each line, minimum ratio of line number vs other non-numeric tokens
 # (low ratio indicates numbers may be figures or table values rather than line numbers)
-DEFAULT_LINE_NUMBER_RATIO_THRESHOLD = 0.7
+DEFAULT_LINE_NUMBER_RATIO_THRESHOLD = 0.2
 
 
 DEFAULT_LINE_NO_TAG = 'line_no'
@@ -84,11 +87,12 @@ def iter_find_line_number_tokens_in_lines(
     if len(line_number_candidates) < min_line_number:
         LOGGER.debug('not enough line number candidates: %d', len(line_number_candidates))
         return []
-    liner_number_ratio = len(line_number_candidates) / len(first_tokens_of_lines)
-    if liner_number_ratio < line_number_ratio_threshold:
+    line_number_ratio = len(line_number_candidates) / len(first_tokens_of_lines)
+    if line_number_ratio < line_number_ratio_threshold:
+        LOGGER.debug('first_tokens_of_lines: %s', first_tokens_of_lines)
         LOGGER.debug(
             'line number ratio not met: %.3f < %.3f',
-            liner_number_ratio, line_number_ratio_threshold
+            line_number_ratio, line_number_ratio_threshold
         )
         return []
     return line_number_candidates
@@ -111,7 +115,7 @@ class TextLineNumberAnnotatorConfig:
     def __init__(
             self,
             tag: str = DEFAULT_LINE_NO_TAG,
-            min_line_number: int = 2,
+            min_line_number: int = DEFAULT_MIN_LINE_NUMBER_COUNT,
             line_number_ratio_threshold: float = DEFAULT_LINE_NUMBER_RATIO_THRESHOLD):
         self.tag = tag
         self.min_line_number = min_line_number
