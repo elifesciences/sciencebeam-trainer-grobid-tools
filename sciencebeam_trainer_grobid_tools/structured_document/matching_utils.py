@@ -127,6 +127,13 @@ class SequencesText:
     def get_text_between(self, index_range: Tuple[int, int]):
         return join_tokens_text(self.iter_tokens_between(index_range))
 
+    def get_index_ranges_with_text(
+            self, index_ranges: List[Tuple[int, int]]) -> List[Tuple[Tuple[int, int], str]]:
+        return list(zip(
+            index_ranges,
+            map(self.get_text_between, index_ranges)
+        ))
+
     def get_text(self):
         return self._joined_text.get_text()
 

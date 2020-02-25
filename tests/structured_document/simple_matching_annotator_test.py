@@ -19,7 +19,8 @@ from sciencebeam_trainer_grobid_tools.structured_document.simple_matching_annota
     SimpleTagConfig,
     SimpleMatchingAnnotator,
     get_extended_line_token_tags,
-    get_simple_tag_config_map
+    get_simple_tag_config_map,
+    select_index_ranges
 )
 
 from tests.test_utils import log_on_exception
@@ -46,6 +47,40 @@ def _lines_for_tokens(tokens_by_line):
 def _document_for_tokens(tokens_by_line):
     return SimpleStructuredDocument(lines=_lines_for_tokens(tokens_by_line))
 
+
+class TestSelectIndexRanges:
+    def test_should_select_no_index_ranges(self):
+        selected, unselected = select_index_ranges([])
+        assert selected == []
+        assert unselected == []
+
+    def test_should_select_single_index_range(self):
+        selected, unselected = select_index_ranges([
+            (1, 3)
+        ])
+        assert selected == [(1, 3)]
+        assert unselected == []
+
+    def test_should_select_two_consequitive_index_ranges(self):
+        selected, unselected = select_index_ranges([
+            (1, 3), (3, 5)
+        ])
+        assert selected == [(1, 3), (3, 5)]
+        assert unselected == []
+
+    def test_should_select_first_longer_of_two_apart_index_ranges(self):
+        selected, unselected = select_index_ranges([
+            (1, 3), (103, 105)
+        ])
+        assert selected == [(1, 3)]
+        assert unselected == [(103, 105)]
+
+    def test_should_select_two_close_and_unselect_apart_index_ranges(self):
+        selected, unselected = select_index_ranges([
+            (1, 3), (3, 5), (103, 105)
+        ])
+        assert selected == [(1, 3), (3, 5)]
+        assert unselected == [(103, 105)]
 
 class TestGetExtendedLineTokenTags:
     def test_should_fill_begining_of_line(self):
