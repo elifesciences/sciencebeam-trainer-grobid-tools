@@ -166,16 +166,6 @@ def select_index_ranges(index_ranges: List[Tuple[int, int]]) -> Tuple[int, int]:
         IndexRangeCluster([index_range])
         for index_range in index_ranges
     ])
-    # merged_clusters = [IndexRangeCluster([index_ranges[0]])]
-    # unmerged_clusters = [
-    #     IndexRangeCluster([index_range])
-    #     for index_range in index_ranges[1:]
-    # ]
-    # for unmerged_cluster in unmerged_clusters:
-    #     if merged_clusters[-1].should_merge(unmerged_cluster):
-    #         merged_clusters[-1] = merged_clusters[-1].merge_with(unmerged_cluster)
-    #     else:
-    #         merged_clusters.append(unmerged_cluster)
     selected = merged_clusters[0].index_ranges
     unselected = [
         index_range
@@ -183,20 +173,6 @@ def select_index_ranges(index_ranges: List[Tuple[int, int]]) -> Tuple[int, int]:
         for index_range in cluster.index_ranges
     ]
     return selected, unselected
-    # LOGGER.debug('merged_clusters: %s', merged_clusters)
-    # index_range_lengths = map(index_range_len, index_ranges)
-    # index_range_gaps = [
-    #     next_start - prev_end
-    #     for (_, prev_end), (next_start, _) in zip(index_ranges, index_ranges[1:])
-    # ]
-    # LOGGER.debug('index_range_gaps: %s', index_range_gaps)
-    # # cluster_ids = [0]
-    # # for index, gap in enumerate(index_range_gaps):
-    # #     cluster_ids[index + 1] = cluster_ids[index]
-    # #     if gap >= max()
-    # if min(index_range_gaps) > max(index_range_lengths):
-    #     return [index_ranges[0]], index_ranges[1:]
-    # return index_ranges, []
 
 
 def _iter_all_lines(structured_document: AbstractStructuredDocument):
@@ -386,28 +362,6 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                         'merged multi-value unselected index ranges: %s',
                         text.get_index_ranges_with_text(unselected_index_ranges)
                     )
-                    # matching_index_range_len = sum(map(index_range_len, matching_index_ranges))
-                    # sorted_merged_index_ranges = sorted_index_ranges(matching_index_ranges)
-                    # index_ranges_with_text = list(zip(
-                    #     sorted_merged_index_ranges,
-                    #     map(text.get_text_between, sorted_merged_index_ranges)
-                    # ))
-                    # merged_index_range = merge_index_ranges(matching_index_ranges)
-                    # if index_range_len(merged_index_range) < matching_index_range_len * 3:
-                    #     LOGGER.debug(
-                    #         'merged multi-value index ranges: %s -> %s',
-                    #         index_ranges_with_text, merged_index_range
-                    #     )
-                    #     index_range = merged_index_range
-                    # else:
-                    #     LOGGER.debug(
-                    #         ''.join([
-                    #             'merged multi-value index range too long,',
-                    #             ' using first index range: %s -> %s'
-                    #         ]),
-                    #         index_ranges_with_text, merged_index_range
-                    #     )
-                    #     index_range = sorted_merged_index_ranges[0]
             else:
                 index_range = self.get_fuzzy_matching_index_range_with_alternative_spellings(
                     text_str,
