@@ -75,7 +75,7 @@ dev-pytest:
 
 
 dev-watch:
-	$(PYTHON) -m pytest_watch -- -p no:cacheprovider -p no:warnings $(ARGS)
+	$(PYTHON) -m pytest_watch --ext=.py,.conf -- -p no:cacheprovider -p no:warnings $(ARGS)
 
 
 dev-test: dev-lint dev-pytest

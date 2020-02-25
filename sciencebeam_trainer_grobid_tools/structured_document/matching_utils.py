@@ -15,6 +15,10 @@ from sciencebeam_gym.preprocess.annotation.matching_annotator import (
     SequenceWrapperWithPosition
 )
 
+from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei import (
+    TeiText
+)
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -33,6 +37,10 @@ def get_untagged_line_tokens(structured_document: AbstractStructuredDocument, li
         for token in structured_document.get_tokens_of_line(line)
         if not structured_document.get_tag(token)
     ]
+
+
+def join_tokens_text(tokens: List[TeiText]) -> str:
+    return ' '.join([token.text for token in tokens])
 
 
 class PendingSequences:
@@ -115,6 +123,16 @@ class SequencesText:
         )
         for seq, (seq_start, _) in seq_and_index_range_iterable:
             yield from seq.tokens_between((start - seq_start, end - seq_start))
+
+    def get_text_between(self, index_range: Tuple[int, int]):
+        return join_tokens_text(self.iter_tokens_between(index_range))
+
+    def get_index_ranges_with_text(
+            self, index_ranges: List[Tuple[int, int]]) -> List[Tuple[Tuple[int, int], str]]:
+        return list(zip(
+            index_ranges,
+            map(self.get_text_between, index_ranges)
+        ))
 
     def get_text(self):
         return self._joined_text.get_text()

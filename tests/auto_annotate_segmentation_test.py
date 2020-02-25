@@ -7,6 +7,10 @@ import pytest
 from lxml import etree
 from lxml.builder import E
 
+from sciencebeam_trainer_grobid_tools.auto_annotate_utils import (
+    MatcherNames
+)
+
 from sciencebeam_trainer_grobid_tools.auto_annotate_segmentation import (
     main
 )
@@ -148,6 +152,7 @@ class TestEndToEnd(object):
         debug_match_path = temp_dir.joinpath('debug.csv')
         main(dict_to_args({
             **test_helper.main_args_dict,
+            'matcher': MatcherNames.COMPLEX,
             'debug-match': str(debug_match_path)
         }), save_main_session=False)
 

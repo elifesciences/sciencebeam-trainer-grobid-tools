@@ -18,8 +18,12 @@ from sciencebeam_gym.preprocess.annotation.target_annotation import (
 from sciencebeam_trainer_grobid_tools.structured_document.simple_matching_annotator import (
     SimpleTagConfig,
     SimpleMatchingAnnotator,
-    get_simple_tag_config_map
+    get_extended_line_token_tags,
+    get_simple_tag_config_map,
+    select_index_ranges
 )
+
+from tests.test_utils import log_on_exception
 
 
 LOGGER = logging.getLogger(__name__)
@@ -44,6 +48,63 @@ def _document_for_tokens(tokens_by_line):
     return SimpleStructuredDocument(lines=_lines_for_tokens(tokens_by_line))
 
 
+class TestSelectIndexRanges:
+    def test_should_select_no_index_ranges(self):
+        selected, unselected = select_index_ranges([])
+        assert selected == []
+        assert unselected == []
+
+    def test_should_select_single_index_range(self):
+        selected, unselected = select_index_ranges([
+            (1, 3)
+        ])
+        assert selected == [(1, 3)]
+        assert unselected == []
+
+    def test_should_select_two_consequitive_index_ranges(self):
+        selected, unselected = select_index_ranges([
+            (1, 3), (3, 5)
+        ])
+        assert selected == [(1, 3), (3, 5)]
+        assert unselected == []
+
+    def test_should_select_first_longer_of_two_apart_index_ranges(self):
+        selected, unselected = select_index_ranges([
+            (1, 3), (103, 105)
+        ])
+        assert selected == [(1, 3)]
+        assert unselected == [(103, 105)]
+
+    def test_should_select_two_close_and_unselect_apart_index_ranges(self):
+        selected, unselected = select_index_ranges([
+            (1, 3), (3, 5), (103, 105)
+        ])
+        assert selected == [(1, 3), (3, 5)]
+        assert unselected == [(103, 105)]
+
+
+class TestGetExtendedLineTokenTags:
+    def test_should_fill_begining_of_line(self):
+        assert get_extended_line_token_tags([None, TAG1, TAG1]) == [TAG1] * 3
+
+    def test_should_fill_end_of_line(self):
+        assert get_extended_line_token_tags([TAG1, TAG1, None]) == [TAG1] * 3
+
+    def test_should_fill_gaps_if_same_tag(self):
+        assert get_extended_line_token_tags(
+            [TAG1, None, TAG1]
+        ) == [TAG1, TAG1, TAG1]
+
+    def test_should_not_fill_gaps_if_not_same_tag(self):
+        assert get_extended_line_token_tags(
+            [TAG1, None, TAG2]
+        ) == [TAG1, None, TAG2]
+
+    def test_should_not_fill_line_if_minority_tag(self):
+        token_tags = [None, None, TAG1, None, None]
+        assert get_extended_line_token_tags(token_tags) == token_tags
+
+
 class TestSimpleMatchingAnnotator:
     def test_should_not_fail_on_empty_document(self):
         doc = SimpleStructuredDocument(lines=[])
@@ -53,6 +114,7 @@ class TestSimpleMatchingAnnotator:
         doc = SimpleStructuredDocument(lines=[])
         assert SimpleMatchingAnnotator([]).annotate(doc) == doc
 
+    @pytest.mark.skip(reason='no longer throwing exception')
     def test_should_fail_with_unsupported_annotation_attribute_match_multiple(self):
         with pytest.raises(NotImplementedError):
             target_annotations = [
@@ -61,6 +123,7 @@ class TestSimpleMatchingAnnotator:
             doc = _document_for_tokens([_tokens_for_text('test')])
             SimpleMatchingAnnotator(target_annotations).annotate(doc)
 
+    @pytest.mark.skip(reason='no longer throwing exception')
     def test_should_fail_with_unsupported_annotation_attribute_bonding(self):
         with pytest.raises(NotImplementedError):
             target_annotations = [
@@ -69,6 +132,7 @@ class TestSimpleMatchingAnnotator:
             doc = _document_for_tokens([_tokens_for_text('test')])
             SimpleMatchingAnnotator(target_annotations).annotate(doc)
 
+    @pytest.mark.skip(reason='no longer throwing exception')
     def test_should_fail_with_unsupported_annotation_attribute_require_next(self):
         with pytest.raises(NotImplementedError):
             target_annotations = [
@@ -77,6 +141,7 @@ class TestSimpleMatchingAnnotator:
             doc = _document_for_tokens([_tokens_for_text('test')])
             SimpleMatchingAnnotator(target_annotations).annotate(doc)
 
+    @pytest.mark.skip(reason='no longer throwing exception')
     def test_should_fail_with_unsupported_annotation_attribute_sub_annotations(self):
         with pytest.raises(NotImplementedError):
             target_annotations = [
@@ -152,6 +217,22 @@ class TestSimpleMatchingAnnotator:
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
         assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
 
+    def test_should_annotate_using_alternative_spellings(self):
+        matching_tokens = _tokens_for_text('this is matching')
+        target_annotations = [
+            TargetAnnotation('alternative spelling', TAG1)
+        ]
+        doc = _document_for_tokens([matching_tokens])
+        SimpleMatchingAnnotator(
+            target_annotations,
+            tag_config_map={
+                TAG1: SimpleTagConfig(alternative_spellings={
+                    'alternative spelling': ['this is matching']
+                })
+            }
+        ).annotate(doc)
+        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+
     def test_should_annotate_ignoring_space_after_dot_short_sequence(self):
         matching_tokens = [
             SimpleToken('A.B.,')
@@ -210,6 +291,50 @@ class TestSimpleMatchingAnnotator:
         doc = _document_for_tokens([tokens])
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
         assert _get_tags_of_tokens(tokens) == [None] * len(tokens)
+
+    def test_should_annotate_author_aff_preceding_number(self):
+        number_tokens = _tokens_for_text('1')
+        matching_tokens = _tokens_for_text('this is matching')
+        target_annotations = [
+            TargetAnnotation('this is matching', TAG1)
+        ]
+        doc = _document_for_tokens([number_tokens, matching_tokens])
+        SimpleMatchingAnnotator(
+            target_annotations,
+            tag_config_map={TAG1: SimpleTagConfig(match_prefix_regex=r'(?=^|\n)\d\s*$')}
+        ).annotate(doc)
+        assert _get_tags_of_tokens(number_tokens) == [TAG1] * len(number_tokens)
+        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+
+    def test_should_not_annotate_author_aff_preceding_number_if_it_is_following_text(self):
+        number_tokens = _tokens_for_text('Smith 1')
+        matching_tokens = _tokens_for_text('this is matching')
+        target_annotations = [
+            TargetAnnotation('this is matching', TAG1)
+        ]
+        doc = _document_for_tokens([number_tokens, matching_tokens])
+        SimpleMatchingAnnotator(
+            target_annotations,
+            tag_config_map={TAG1: SimpleTagConfig(match_prefix_regex=r'(?=^|\n)\d\s*$')}
+        ).annotate(doc)
+        assert _get_tags_of_tokens(number_tokens) == [None] * len(number_tokens)
+        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+
+    @log_on_exception
+    def test_should_not_annotate_author_aff_label_between_author_names(self):
+        author_tokens = _tokens_for_text('Mary 1 , Smith 1')
+        aff_tokens = _tokens_for_text('University of Science')
+        target_annotations = [
+            TargetAnnotation(['Mary', 'Smith'], TAG1),
+            TargetAnnotation(['1', 'University of Science'], TAG2)
+        ]
+        doc = _document_for_tokens([author_tokens, aff_tokens])
+        SimpleMatchingAnnotator(
+            target_annotations,
+            tag_config_map={}
+        ).annotate(doc)
+        assert _get_tags_of_tokens(author_tokens) == [TAG1] * len(author_tokens)
+        assert _get_tags_of_tokens(aff_tokens) == [TAG2] * len(aff_tokens)
 
     def test_should_annotate_abstract_section_heading(self):
         matching_tokens = _tokens_for_text('Abstract\nthis is matching.')
@@ -279,6 +404,99 @@ class TestSimpleMatchingAnnotator:
         assert _get_tags_of_tokens(tag1_tokens) == [TAG1] * len(tag1_tokens)
         assert _get_tags_of_tokens(tag2_tokens) == [TAG2] * len(tag2_tokens)
 
+    def test_should_annotate_multiple_value_annotation(self):
+        pre_tokens = _tokens_for_text('this is')
+        matching_tokens = _tokens_for_text('john smith')
+        post_tokens = _tokens_for_text('the author')
+        doc_tokens = pre_tokens + matching_tokens + post_tokens
+        target_annotations = [
+            TargetAnnotation(['john', 'smith'], TAG1)
+        ]
+        doc = _document_for_tokens([doc_tokens])
+        SimpleMatchingAnnotator(target_annotations).annotate(doc)
+        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+        assert _get_tags_of_tokens(pre_tokens) == [None] * len(pre_tokens)
+        assert _get_tags_of_tokens(post_tokens) == [None] * len(post_tokens)
+
+    def test_should_annotate_multiple_value_annotation_in_reverse_order(self):
+        pre_tokens = _tokens_for_text('this is')
+        matching_tokens = _tokens_for_text('john smith')
+        post_tokens = _tokens_for_text('the author')
+        doc_tokens = pre_tokens + matching_tokens + post_tokens
+        target_annotations = [
+            TargetAnnotation(['smith', 'john'], TAG1)
+        ]
+        doc = _document_for_tokens([doc_tokens])
+        SimpleMatchingAnnotator(target_annotations).annotate(doc)
+        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+        assert _get_tags_of_tokens(pre_tokens) == [None] * len(pre_tokens)
+        assert _get_tags_of_tokens(post_tokens) == [None] * len(post_tokens)
+
+    def test_should_annotate_multiple_value_annotation_too_far_away(self):
+        pre_tokens = _tokens_for_text('this is')
+        matching_tokens = _tokens_for_text('smith')
+        post_tokens = _tokens_for_text('etc') * 40 + _tokens_for_text('john')
+        doc_tokens = pre_tokens + matching_tokens + post_tokens
+        target_annotations = [
+            TargetAnnotation(['john', 'smith'], TAG1)
+        ]
+        doc = _document_for_tokens([doc_tokens])
+        SimpleMatchingAnnotator(target_annotations).annotate(doc)
+        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+        assert _get_tags_of_tokens(pre_tokens) == [None] * len(pre_tokens)
+        assert _get_tags_of_tokens(post_tokens) == [None] * len(post_tokens)
+
+    @log_on_exception
+    def test_should_annotate_and_merge_multiple_authors_annotation(self):
+        pre_tokens = _tokens_for_text('this is')
+        matching_tokens = _tokens_for_text('john smith, mary maison')
+        post_tokens = _tokens_for_text('the author')
+        target_annotations = [
+            TargetAnnotation(['john', 'smith'], TAG1),
+            TargetAnnotation(['mary', 'maison'], TAG1)
+        ]
+        doc = _document_for_tokens([pre_tokens, matching_tokens, post_tokens])
+        SimpleMatchingAnnotator(target_annotations).annotate(doc)
+        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+        assert _get_tags_of_tokens(pre_tokens) == [None] * len(pre_tokens)
+        assert _get_tags_of_tokens(post_tokens) == [None] * len(post_tokens)
+
+    @log_on_exception
+    def test_should_annotate_but_not_merge_multiple_authors_annotation_too_far_apart(self):
+        pre_tokens = _tokens_for_text('this is')
+        matching_tokens_1 = _tokens_for_text('john smith')
+        mid_tokens = _tokens_for_text('etc') * 5
+        matching_tokens_2 = _tokens_for_text('mary maison')
+        post_tokens = _tokens_for_text('the author')
+        target_annotations = [
+            TargetAnnotation(['john', 'smith'], TAG1),
+            TargetAnnotation(['mary', 'maison'], TAG1)
+        ]
+        doc = _document_for_tokens([
+            pre_tokens, matching_tokens_1, mid_tokens, matching_tokens_2, post_tokens
+        ])
+        SimpleMatchingAnnotator(target_annotations).annotate(doc)
+        assert _get_tags_of_tokens(matching_tokens_1) == [TAG1] * len(matching_tokens_1)
+        assert _get_tags_of_tokens(matching_tokens_2) == [TAG1] * len(matching_tokens_2)
+        assert _get_tags_of_tokens(mid_tokens) == [None] * len(mid_tokens)
+        assert _get_tags_of_tokens(pre_tokens) == [None] * len(pre_tokens)
+        assert _get_tags_of_tokens(post_tokens) == [None] * len(post_tokens)
+
+    @log_on_exception
+    def test_should_annotate_whole_line(self):
+        pre_tokens = _tokens_for_text('this is')
+        matching_tokens = _tokens_for_text('john smith 1, mary maison 2')
+        post_tokens = _tokens_for_text('the author')
+        target_annotations = [
+            TargetAnnotation(['john', 'smith'], TAG1),
+            TargetAnnotation(['mary', 'maison'], TAG1)
+        ]
+        doc = _document_for_tokens([matching_tokens])
+        SimpleMatchingAnnotator(target_annotations).annotate(doc)
+        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+        assert _get_tags_of_tokens(pre_tokens) == [None] * len(pre_tokens)
+        assert _get_tags_of_tokens(post_tokens) == [None] * len(post_tokens)
+
 
 class TestGetSimpleTagConfigMap:
     def test_should_parse_match_prefix_regex(self):
@@ -291,3 +509,16 @@ class TestGetSimpleTagConfigMap:
         assert set(tag_config_map.keys()) == {'tag1'}
         tag_config = tag_config_map['tag1']
         assert tag_config.match_prefix_regex == 'regex1'
+
+    def test_should_parse_alternative_spellings(self):
+        tag_config_map = get_simple_tag_config_map({
+            'any': {
+                'tag1': 'xpath1',
+                'tag1.alternative-spellings': '\n Key 1=Alternative 1,Alternative 2\n'
+            }
+        })
+        assert set(tag_config_map.keys()) == {'tag1'}
+        tag_config = tag_config_map['tag1']
+        assert tag_config.alternative_spellings == {
+            'Key 1': ['Alternative 1', 'Alternative 2']
+        }

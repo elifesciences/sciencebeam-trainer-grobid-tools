@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from typing import List
 
 from lxml import etree
 from lxml.builder import E
@@ -46,10 +47,18 @@ class SingleFileAutoAnnotateEndToEndTestHelper:
         return tei_auto_root
 
 
-def get_target_xml_node(title: str = None) -> etree.Element:
-    front_node = E.front()
+def get_target_xml_node(
+        title: str = None,
+        author_nodes: List[etree.Element] = None,
+        abstract_node: etree.Element = None) -> etree.Element:
+    article_meta_node = E('article-meta')
+    front_node = E.front(article_meta_node)
     if title:
-        front_node.append(E('article-meta', E('title-group', E('article-title', title))))
+        article_meta_node.append(E('title-group', E('article-title', title)))
+    if author_nodes:
+        article_meta_node.append(E('contrib-group', *author_nodes))
+    if abstract_node is not None:
+        article_meta_node.append(abstract_node)
     return E.article(front_node)
 
 
