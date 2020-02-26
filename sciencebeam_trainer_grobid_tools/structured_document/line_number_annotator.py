@@ -34,14 +34,26 @@ def iter_first_tokens_of_lines(
             yield text_tokens[0]
 
 
+def parse_line_number(text: str) -> int:
+    return int(text)
+
+
+def is_line_number(text: str) -> int:
+    try:
+        value = parse_line_number(text)
+        return value > 0
+    except ValueError:
+        return False
+
+
 def get_line_number_candidates(
         structured_document: GrobidTrainingTeiStructuredDocument,
         tokens: list,
         max_line_number_gap: int):
     line_number_candidates_with_num = [
-        (token, int(structured_document.get_text(token)), 1 + index)
+        (token, parse_line_number(structured_document.get_text(token)), 1 + index)
         for index, token in enumerate(tokens)
-        if structured_document.get_text(token).isdigit()
+        if is_line_number(structured_document.get_text(token))
     ]
     if not line_number_candidates_with_num:
         return []

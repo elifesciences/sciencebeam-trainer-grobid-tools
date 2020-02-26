@@ -109,6 +109,23 @@ class TestTextLineNumberAnnotator:
             [(LINE_NO_TAG, '3'), (TAG_1, TOKEN_3)]
         ]
 
+    def test_should_not_fail_on_unicode_digit(self):
+        doc = _simple_document_with_tagged_token_lines(lines=[
+            [(TAG_1, '1'), (TAG_1, TOKEN_1)],
+            [(TAG_1, '2'), (TAG_1, TOKEN_2)],
+            [(TAG_1, '\u2083'), (TAG_1, TOKEN_3)]
+        ])
+        config = TextLineNumberAnnotatorConfig(
+            min_line_number=1,
+            line_number_ratio_threshold=0.3
+        )
+        TextLineNumberAnnotator(config=config).annotate(doc)
+        assert _get_document_tagged_token_lines(doc) == [
+            [(LINE_NO_TAG, '1'), (TAG_1, TOKEN_1)],
+            [(LINE_NO_TAG, '2'), (TAG_1, TOKEN_2)],
+            [(TAG_1, '\u2083'), (TAG_1, TOKEN_3)]
+        ]
+
     def test_should_not_annotate_sequential_numbers_with_suffix_at_line_start_as_line_no(self):
         doc = _simple_document_with_tagged_token_lines(lines=[
             [(TAG_1, '1a'), (TAG_1, TOKEN_1)],
