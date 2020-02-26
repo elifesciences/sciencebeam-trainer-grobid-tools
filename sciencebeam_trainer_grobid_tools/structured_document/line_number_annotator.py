@@ -39,25 +39,29 @@ def get_line_number_candidates(
         tokens: list,
         max_line_number_gap: int):
     line_number_candidates_with_num = [
-        (token, int(structured_document.get_text(token)))
-        for token in tokens
+        (token, int(structured_document.get_text(token)), 1 + index)
+        for index, token in enumerate(tokens)
         if structured_document.get_text(token).isdigit()
     ]
     if not line_number_candidates_with_num:
         return []
     line_number_candidates_with_num = sorted(
         line_number_candidates_with_num,
-        key=lambda pair: pair[1]
+        key=lambda item: (item[1], item[2])
     )
     line_number_sequences = [[line_number_candidates_with_num[0]]]
-    for token, num in line_number_candidates_with_num[1:]:
+    for item in line_number_candidates_with_num[1:]:
+        token, num, token_pos = item
         prev_seq = line_number_sequences[-1]
-        prev_num = prev_seq[-1][1]
+        prev_item = prev_seq[-1]
+        _, prev_num, prev_token_pos = prev_item
         expected_num = prev_num + 1
-        if num >= expected_num and num <= expected_num + max_line_number_gap:
-            prev_seq.append((token, num))
+        if token_pos < prev_token_pos or num == prev_num:
+            LOGGER.debug('ignoring out of sequence: %s (prev: %s)', item, prev_item)
+        elif num >= expected_num and num <= expected_num + max_line_number_gap:
+            prev_seq.append(item)
         else:
-            line_number_sequences.append([(token, num)])
+            line_number_sequences.append([item])
     max_line_number_sequence = max(map(len, line_number_sequences))
     LOGGER.debug(
         'line_number_sequences (max len: %d): %s',
@@ -72,7 +76,7 @@ def get_line_number_candidates(
         'longest_line_number_sequence (len: %d): %s',
         len(longest_line_number_sequence), longest_line_number_sequence
     )
-    return [token for token, _ in longest_line_number_sequence]
+    return [token for token, _, _ in longest_line_number_sequence]
 
 
 def iter_find_line_number_tokens_in_lines(

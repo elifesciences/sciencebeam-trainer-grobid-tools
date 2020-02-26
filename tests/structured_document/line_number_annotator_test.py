@@ -176,6 +176,34 @@ class TestTextLineNumberAnnotator:
             [(LINE_NO_TAG, '2'), (TAG_1, TOKEN_3)]
         ]
 
+    def test_should_not_annotate_same_out_of_sequence_numbers_at_line_start_as_line_no(self):
+        doc = _simple_document_with_tagged_token_lines(lines=[
+            [(TAG_1, '1'), (TAG_1, 'token1')],
+            [(TAG_1, '2'), (TAG_1, 'token2')],
+            [(TAG_1, '3'), (TAG_1, 'token3')],
+            [(TAG_1, '4'), (TAG_1, 'token4')],
+            [(TAG_1, '1'), (TAG_1, 'out_of_sequence_1')],
+            [(TAG_1, '5'), (TAG_1, 'token5')],
+            [(TAG_1, '6'), (TAG_1, 'token6')],
+            [(TAG_1, '7'), (TAG_1, 'token7')]
+        ])
+        config = TextLineNumberAnnotatorConfig(
+            min_line_number=1,
+            max_line_number_gap=0,
+            line_number_ratio_threshold=0.5
+        )
+        TextLineNumberAnnotator(config=config).annotate(doc)
+        assert _get_document_tagged_token_lines(doc) == [
+            [(LINE_NO_TAG, '1'), (TAG_1, 'token1')],
+            [(LINE_NO_TAG, '2'), (TAG_1, 'token2')],
+            [(LINE_NO_TAG, '3'), (TAG_1, 'token3')],
+            [(LINE_NO_TAG, '4'), (TAG_1, 'token4')],
+            [(TAG_1, '1'), (TAG_1, 'out_of_sequence_1')],
+            [(LINE_NO_TAG, '5'), (TAG_1, 'token5')],
+            [(LINE_NO_TAG, '6'), (TAG_1, 'token6')],
+            [(LINE_NO_TAG, '7'), (TAG_1, 'token7')]
+        ]
+
     def test_should_annotate_longest_sequence_of_sequential_numbers(self):
         doc = _simple_document_with_tagged_token_lines(lines=[
             [(TAG_1, '10'), (TAG_1, TOKEN_1)],
