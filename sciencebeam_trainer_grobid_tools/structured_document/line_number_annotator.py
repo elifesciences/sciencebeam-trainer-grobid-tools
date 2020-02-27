@@ -1,11 +1,11 @@
 import logging
 
-from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei import (
-    GrobidTrainingTeiStructuredDocument
-)
-
 from sciencebeam_gym.preprocess.annotation.annotator import (
     AbstractAnnotator
+)
+
+from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei import (
+    GrobidTrainingTeiStructuredDocument
 )
 
 
