@@ -19,7 +19,7 @@ DEFAULT_MAX_LINE_NUMBER_GAP = 10
 
 # Among first tokens on each line, minimum ratio of line number vs other non-numeric tokens
 # (low ratio indicates numbers may be figures or table values rather than line numbers)
-DEFAULT_LINE_NUMBER_RATIO_THRESHOLD = 0.2
+DEFAULT_LINE_NUMBER_RATIO_THRESHOLD = 0.1
 
 
 DEFAULT_LINE_NO_TAG = 'line_no'
@@ -49,6 +49,7 @@ def is_line_number(text: str) -> int:
 def get_line_number_candidates(
         structured_document: GrobidTrainingTeiStructuredDocument,
         tokens: list,
+        min_line_number: int,
         max_line_number_gap: int):
     line_number_candidates_with_num = [
         (token, parse_line_number(structured_document.get_text(token)), 1 + index)
@@ -88,7 +89,16 @@ def get_line_number_candidates(
         'longest_line_number_sequence (len: %d): %s',
         len(longest_line_number_sequence), longest_line_number_sequence
     )
-    return [token for token, _, _ in longest_line_number_sequence]
+    accepted_line_number_sequences = [
+        seq
+        for seq in line_number_sequences
+        if len(seq) >= min_line_number
+    ]
+    return [
+        token
+        for seq in accepted_line_number_sequences
+        for token, _, _ in seq
+    ]
 
 
 def iter_find_line_number_tokens_in_lines(
@@ -104,6 +114,7 @@ def iter_find_line_number_tokens_in_lines(
     line_number_candidates = get_line_number_candidates(
         structured_document,
         first_tokens_of_lines,
+        min_line_number=min_line_number,
         max_line_number_gap=max_line_number_gap
     )
     if len(line_number_candidates) < min_line_number:

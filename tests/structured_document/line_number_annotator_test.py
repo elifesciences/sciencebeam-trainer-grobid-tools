@@ -232,7 +232,7 @@ class TestTextLineNumberAnnotator:
         config = TextLineNumberAnnotatorConfig(
             min_line_number=1,
             max_line_number_gap=0,
-            line_number_ratio_threshold=0.5
+            line_number_ratio_threshold=0.1
         )
         TextLineNumberAnnotator(config=config).annotate(doc)
         assert _get_document_tagged_token_lines(doc) == [
