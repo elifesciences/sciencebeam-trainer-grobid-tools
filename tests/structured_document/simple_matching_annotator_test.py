@@ -104,6 +104,14 @@ class TestGetExtendedLineTokenTags:
         token_tags = [None, None, TAG1, None, None]
         assert get_extended_line_token_tags(token_tags) == token_tags
 
+    def test_should_fill_begining_of_line_if_not_enabled_by_tag_config(self):
+        assert get_extended_line_token_tags(
+            [None, TAG1, TAG1],
+            extend_to_line_enabled_map={
+                TAG1: False
+            }
+        ) == [None, TAG1, TAG1]
+
 
 class TestSimpleMatchingAnnotator:
     def test_should_not_fail_on_empty_document(self):

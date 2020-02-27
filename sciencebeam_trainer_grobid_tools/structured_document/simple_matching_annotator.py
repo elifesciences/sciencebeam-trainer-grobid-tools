@@ -1,5 +1,6 @@
 import logging
 import re
+from distutils.util import strtobool
 from itertools import groupby
 from typing import Dict, List, Tuple
 
@@ -50,13 +51,16 @@ class SimpleTagConfig:
     def __init__(
             self,
             match_prefix_regex: str = None,
-            alternative_spellings: Dict[str, List[str]] = None):
+            alternative_spellings: Dict[str, List[str]] = None,
+            extend_to_line_enabled: bool = False):
         self.match_prefix_regex = match_prefix_regex
         self.alternative_spellings = alternative_spellings
+        self.extend_to_line_enabled = extend_to_line_enabled
 
     def __repr__(self):
-        return '%s(match_prefix_regex=%s, alternative_spellings=%s)' % (
-            type(self).__name__, self.match_prefix_regex, self.alternative_spellings
+        return '%s(match_prefix_regex=%s, alternative_spellings=%s, extend_to_line_enabled=%s)' % (
+            type(self).__name__, self.match_prefix_regex, self.alternative_spellings,
+            self.extend_to_line_enabled
         )
 
 
@@ -183,8 +187,16 @@ def _iter_all_lines(structured_document: AbstractStructuredDocument):
     )
 
 
-def get_extended_line_token_tags(line_token_tags: List[str]) -> List[str]:
-    LOGGER.debug('line_token_tags: %s', line_token_tags)
+def get_extended_line_token_tags(
+        line_token_tags: List[str],
+        extend_to_line_enabled_map: Dict[str, bool] = None,
+        default_enabled: bool = True) -> List[str]:
+    if extend_to_line_enabled_map is None:
+        extend_to_line_enabled_map = {}
+    LOGGER.debug(
+        'line_token_tags: %s (extend_to_line_enabled_map: %s)',
+        line_token_tags, extend_to_line_enabled_map
+    )
     grouped_token_tags = [
         list(group)
         for _, group in groupby(line_token_tags)
@@ -194,7 +206,11 @@ def get_extended_line_token_tags(line_token_tags: List[str]) -> List[str]:
     for index, group in enumerate(grouped_token_tags):
         prev_group = grouped_token_tags[index - 1] if index > 0 else None
         next_group = grouped_token_tags[index + 1] if index + 1 < len(grouped_token_tags) else None
-        if group[0]:
+        if prev_group and not extend_to_line_enabled_map.get(prev_group[0], default_enabled):
+            result.extend(group)
+        elif next_group and not extend_to_line_enabled_map.get(next_group[0], default_enabled):
+            result.extend(group)
+        elif group[0]:
             result.extend(group)
         elif prev_group and next_group:
             if prev_group[0] == next_group[0]:
@@ -373,10 +389,17 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                 yield index_range
 
     def extend_annotations_to_whole_line(self, structured_document: AbstractStructuredDocument):
+        extend_to_line_enabled_map = {
+            tag: tag_confg.extend_to_line_enabled
+            for tag, tag_confg in self.config.tag_config_map.items()
+        }
         for line in _iter_all_lines(structured_document):
             tokens = structured_document.get_tokens_of_line(line)
             line_token_tags = [structured_document.get_tag(token) for token in tokens]
-            extended_line_token_tags = get_extended_line_token_tags(line_token_tags)
+            extended_line_token_tags = get_extended_line_token_tags(
+                line_token_tags,
+                extend_to_line_enabled_map=extend_to_line_enabled_map
+            )
             LOGGER.debug('line_token_tags: %s -> %s', line_token_tags, extended_line_token_tags)
             for token, token_tag in zip(tokens, extended_line_token_tags):
                 if not token_tag:
@@ -424,6 +447,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
 class SimpleTagConfigProps:
     MATCH_PREFIX_REGEX = 'match-prefix-regex'
     ALTERNATIVE_SPELLINGS = 'alternative-spellings'
+    EXTEND_TO_LINE = 'extend-to-line'
 
 
 def parse_regex(regex_str: str) -> str:
@@ -461,6 +485,10 @@ def get_simple_tag_config(config_map: Dict[str, str], field: str) -> SimpleTagCo
         )),
         alternative_spellings=parse_alternative_spellings(config_map.get(
             '%s.%s' % (field, SimpleTagConfigProps.ALTERNATIVE_SPELLINGS)
+        )),
+        extend_to_line_enabled=strtobool(config_map.get(
+            '%s.%s' % (field, SimpleTagConfigProps.EXTEND_TO_LINE),
+            'true'
         ))
     )
 
