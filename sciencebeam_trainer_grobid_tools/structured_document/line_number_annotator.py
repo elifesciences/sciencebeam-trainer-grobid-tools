@@ -71,7 +71,7 @@ def get_line_number_candidates(
         expected_num = prev_num + 1
         if token_pos < prev_token_pos or num == prev_num:
             LOGGER.debug('ignoring out of sequence: %s (prev: %s)', item, prev_item)
-        elif num >= expected_num and num <= expected_num + max_line_number_gap:
+        elif expected_num <= num <= expected_num + max_line_number_gap:
             prev_seq.append(item)
         else:
             line_number_sequences.append([item])
