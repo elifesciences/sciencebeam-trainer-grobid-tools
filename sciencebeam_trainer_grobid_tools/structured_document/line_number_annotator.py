@@ -75,20 +75,6 @@ def get_line_number_candidates(
             prev_seq.append(item)
         else:
             line_number_sequences.append([item])
-    max_line_number_sequence = max(map(len, line_number_sequences))
-    LOGGER.debug(
-        'line_number_sequences (max len: %d): %s',
-        max_line_number_sequence, line_number_sequences
-    )
-    longest_line_number_sequence = [
-        seq
-        for seq in line_number_sequences
-        if len(seq) == max_line_number_sequence
-    ][0]
-    LOGGER.debug(
-        'longest_line_number_sequence (len: %d): %s',
-        len(longest_line_number_sequence), longest_line_number_sequence
-    )
     accepted_line_number_sequences = [
         seq
         for seq in line_number_sequences
