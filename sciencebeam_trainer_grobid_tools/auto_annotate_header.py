@@ -34,7 +34,8 @@ HEADER_TAG_TO_TEI_PATH_MAPPING = {
     'title': 'docTitle/titlePart',
     'abstract': 'div[type="abstract"]',
     'author': 'byline/docAuthor',
-    'author_aff': 'byline/affiliation'
+    'author_aff': 'byline/affiliation',
+    'line_no': 'note[type="line_no"]'
 }
 
 
