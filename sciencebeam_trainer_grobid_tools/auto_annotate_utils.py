@@ -74,7 +74,7 @@ MATCHER_NAMES = [MatcherNames.COMPLEX, MatcherNames.SIMPLE]
 
 DEFAULT_MATCHER_NAME = MatcherNames.SIMPLE
 
-DEFAULT_ANNOT_CONFIG_FILENAME = 'annot-xml-front.conf'
+DEFAULT_ANNOT_CONFIG_FILENAME = 'xml-mapping.conf'
 
 
 def add_debug_argument(parser: argparse.ArgumentParser):
