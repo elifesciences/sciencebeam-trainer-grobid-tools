@@ -22,8 +22,8 @@ from sciencebeam_gym.preprocess.annotation.annotator import (
     AbstractAnnotator
 )
 
-from sciencebeam_gym.preprocess.annotation.fuzzy_match import (
-    fuzzy_match
+from sciencebeam_trainer_grobid_tools.utils.fuzzy import (
+    fuzzy_search_index_range
 )
 
 from sciencebeam_trainer_grobid_tools.structured_document.matching_utils import (
@@ -256,28 +256,24 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
         if len(target_value) < self.config.exact_word_match_threshold:
             # line feeds are currently not default separators for WordSequenceMatcher
             haystack = haystack.replace('\n', ' ')
-        fm = fuzzy_match(
+        index_range = fuzzy_search_index_range(
             haystack, target_value,
+            threshold=self.config.threshold,
             exact_word_match_threshold=self.config.exact_word_match_threshold,
             **kwargs
         )
-        LOGGER.debug('fm: %s', fm)
-        if not fm.matching_blocks:
-            LOGGER.debug('not matching, haystack: %s', haystack)
-        if fm.b_gap_ratio() >= self.config.threshold:
-            return fm.a_index_range()
+        if index_range:
+            return index_range
         target_value_reduced = split_and_join_with_space(
             normalise_and_remove_junk_str_or_list(needle)
         )
         LOGGER.debug('target_value_reduced: %s', target_value_reduced)
-        fm = fuzzy_match(
+        return fuzzy_search_index_range(
             haystack, target_value_reduced,
+            threshold=self.config.threshold,
             exact_word_match_threshold=self.config.exact_word_match_threshold,
             **kwargs
         )
-        if fm.b_gap_ratio() >= self.config.threshold:
-            return fm.a_index_range()
-        return None
 
     def get_fuzzy_matching_index_range_with_alternative_spellings(
             self,

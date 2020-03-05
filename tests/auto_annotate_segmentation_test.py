@@ -200,6 +200,31 @@ class TestEndToEnd(object):
         assert get_xpath_text(tei_auto_root, '//text/page') == TOKEN_2
 
     @log_on_exception
+    def test_should_always_preserve_reference_tag(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        _common_tokens = [TOKEN_2, TOKEN_3]
+        _reference_text = ' '.join(_common_tokens) + ' this is a reference 1'
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_segmentation_tei_node([
+                E.note(TOKEN_1),
+                E.lb(),
+                E.listBibl(_reference_text),
+                E.lb()
+            ])
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(title=' '.join([TOKEN_1] + _common_tokens))
+        ))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'no-preserve-tags': True,
+            'always-preserve-fields': 'reference'
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text(tei_auto_root, '//text/listBibl') == _reference_text
+
+    @log_on_exception
     def test_should_not_preserve_exclude_existing_tag_and_use_body_by_default(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(

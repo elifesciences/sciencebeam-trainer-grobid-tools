@@ -8,6 +8,10 @@ from sciencebeam_gym.preprocess.annotation.target_annotation import (
     xml_root_to_target_annotations
 )
 
+from sciencebeam_trainer_grobid_tools.auto_annotate_utils import (
+    DEFAULT_ANNOT_CONFIG_FILENAME
+)
+
 from tests.auto_annotate_test_utils import (
     get_target_xml_node
 )
@@ -15,7 +19,7 @@ from tests.auto_annotate_test_utils import (
 
 @pytest.fixture(name='xml_mapping')
 def _xml_mapping() -> Dict[str, Dict[str, str]]:
-    return parse_xml_mapping('config/annot-xml-front.conf')
+    return parse_xml_mapping('config/%s' % DEFAULT_ANNOT_CONFIG_FILENAME)
 
 
 class TestAnnotXmlFrontConf:

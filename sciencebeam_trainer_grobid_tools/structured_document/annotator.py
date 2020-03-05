@@ -1,4 +1,5 @@
 import logging
+from collections import Counter
 from functools import partial
 from typing import List, Set
 
@@ -7,6 +8,9 @@ from .grobid_training_tei import (
     save_grobid_training_tei_structured_document,
     GrobidTrainingTeiStructuredDocument
 )
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 def get_logger():
@@ -30,10 +34,19 @@ def _map_token_tags(structured_document, tag_fn):
             structured_document.set_tag(token, updated_tag)
 
 
-def _preserve_tag_fn(existing_tag, token, fields, structured_document):
-    if existing_tag not in fields and structured_document.get_text(token).strip():
-        return existing_tag
-    return None
+def _preserve_tag_fn(
+        existing_tag: str,
+        token,
+        structured_document: GrobidTrainingTeiStructuredDocument,
+        include_fields: List[str] = None,
+        exclude_fields: List[str] = None):
+    if not structured_document.get_text(token).strip():
+        return None
+    if exclude_fields and existing_tag in exclude_fields:
+        return None
+    if include_fields and existing_tag not in include_fields:
+        return None
+    return existing_tag
 
 
 def _no_preserve_tag_fn(*_):
@@ -41,17 +54,22 @@ def _no_preserve_tag_fn(*_):
 
 
 def annotate_structured_document_inplace(
-        structured_document,
+        structured_document: GrobidTrainingTeiStructuredDocument,
         annotator,
-        preserve_tags,
-        fields):
+        preserve_tags: bool,
+        fields: List[str],
+        preserve_fields: List[str] = None):
     if not fields:
         fields = set()
-    if preserve_tags:
-        get_logger().debug('preserving tags, except for fields: %s', fields)
+    if preserve_tags or preserve_fields:
+        LOGGER.debug(
+            'preserving tags, including %s, except for fields: %s',
+            preserve_fields, fields
+        )
         tag_fn = partial(
             _preserve_tag_fn,
-            fields=fields,
+            include_fields=preserve_fields,
+            exclude_fields=fields,
             structured_document=structured_document
         )
     else:
@@ -66,12 +84,21 @@ def annotate_structured_document_inplace(
 def _apply_preserved_fields(
         structured_document: GrobidTrainingTeiStructuredDocument,
         always_preserve_fields: Set[str]):
-    get_logger().debug('apply preserved fields: %s', always_preserve_fields)
+    num_tokens = 0
+    all_preserved_tags = []
     for token in _iter_all_tokens(structured_document):
         preserved_tag = structured_document.get_tag_or_preserved_tag(token)
+        all_preserved_tags.append(preserved_tag)
         if preserved_tag in always_preserve_fields:
             get_logger().debug('apply preserved field: %s -> %s', token, preserved_tag)
             structured_document.set_tag(token, preserved_tag)
+            num_tokens += 1
+    LOGGER.debug(
+        'applied preserved fields (%d tokens, all counts: %s): %s',
+        num_tokens,
+        Counter(all_preserved_tags),
+        always_preserve_fields
+    )
 
 
 def annotate_structured_document(
@@ -95,6 +122,7 @@ def annotate_structured_document(
         structured_document,
         annotator=annotator,
         preserve_tags=preserve_tags,
+        preserve_fields=always_preserve_fields,
         fields=fields
     )
 
