@@ -74,6 +74,8 @@ MATCHER_NAMES = [MatcherNames.COMPLEX, MatcherNames.SIMPLE]
 
 DEFAULT_MATCHER_NAME = MatcherNames.SIMPLE
 
+DEFAULT_ANNOT_CONFIG_FILENAME = 'annot-xml-front.conf'
+
 
 def add_debug_argument(parser: argparse.ArgumentParser):
     parser.add_argument(
@@ -124,7 +126,7 @@ def add_annotation_pipeline_arguments(parser: argparse.ArgumentParser):
     )
     parser.add_argument(
         '--xml-mapping-path', type=str,
-        default=get_default_config_path('annot-xml-front.conf'),
+        default=get_default_config_path(DEFAULT_ANNOT_CONFIG_FILENAME),
         help='path to xml mapping file'
     )
 
