@@ -26,6 +26,9 @@ from sciencebeam_gym.structured_document import (
 )
 
 
+LOGGER = logging.getLogger(__name__)
+
+
 TAG_ATTRIB_NAME = 'tag'
 PRESERVED_TAG_ATTRIB_NAME = 'preserved_tag'
 
@@ -316,11 +319,17 @@ class GrobidTrainingTeiStructuredDocument(AbstractStructuredDocument):
         )
         rev_tag_to_tei_path_mapping = {v: k for k, v in self._tag_to_tei_path_mapping.items()}
         if preserve_tags:
+            LOGGER.debug(
+                'preserving tei tags using rev_tag_to_tei_path_mapping: %s',
+                rev_tag_to_tei_path_mapping
+            )
             for line in self._lines:
                 for token in line.tokens:
                     existing_tag = self.get_tag(token)
                     mapped_tag = rev_tag_to_tei_path_mapping.get(existing_tag, existing_tag)
                     self._set_preserved_tag(token, mapped_tag)
+        else:
+            LOGGER.debug('not preserving tei tags')
         for line in self._lines:
             for token in line.tokens:
                 self.set_tag_only(token, None)
@@ -367,8 +376,9 @@ class GrobidTrainingTeiStructuredDocument(AbstractStructuredDocument):
         set_or_remove_attrib(parent.attrib, _get_tag_attrib_name(scope, level), tag)
 
     def set_tag(self, parent, tag, scope=None, level=None):
+        _previous_tag = self.get_tag_or_preserved_tag(parent)
         self.set_tag_only(parent, tag, scope=scope, level=level)
-        if not isinstance(parent, TeiSpace):
+        if not isinstance(parent, TeiSpace) and tag != _previous_tag:
             self._clear_same_preserved_tag_on_same_line(parent)
 
     def _clear_same_preserved_tag_on_same_line(self, token):

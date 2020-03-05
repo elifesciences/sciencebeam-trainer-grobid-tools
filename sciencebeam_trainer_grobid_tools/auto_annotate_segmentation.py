@@ -36,7 +36,8 @@ SEGMENTATION_CONTAINER_NODE_PATH = ContainerNodePaths.SEGMENTATION_CONTAINER_NOD
 
 SEGMENTATION_TAG_TO_TEI_PATH_MAPPING = {
     DEFAULT_TAG_KEY: 'body',
-    'line_no': 'note[type="line_no"]'
+    'line_no': 'note[type="line_no"]',
+    'reference': 'listBibl'
 }
 
 
