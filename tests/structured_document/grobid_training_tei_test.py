@@ -12,6 +12,7 @@ from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei im
     _lines_to_tei as _original_lines_to_tei,
     TeiLine,
     TeiText,
+    TeiSpace,
     TAG_ATTRIB_NAME,
     DEFAULT_TAG_KEY
 )
@@ -295,6 +296,35 @@ class TestGrobidTrainingStructuredDocument(object):
             '<front><{tag1}>{token1}<{lb}/></{tag1}>'
             ' <{tag2}>{token2}</{tag2}></front>'.format(
                 tag1=TAG_1, tag2=TAG_2, token1=TOKEN_1, token2=TOKEN_2, lb=TeiTagNames.LB
+            )
+        )
+
+    def test_should_not_include_line_feed_in_tag_if_previous_token_has_different_tag(self):
+        doc = GrobidTrainingTeiStructuredDocument(
+            _tei(front_items=[
+                TOKEN_1,
+                '\n ' + TOKEN_2
+            ])
+        )
+        lines = _get_all_lines(doc)
+
+        line1_tokens = list(doc.get_all_tokens_of_line(lines[0]))
+        space_tokens = [t for t in line1_tokens if isinstance(t, TeiSpace)]
+        assert space_tokens
+        for token in space_tokens:
+            doc.set_tag(token, TAG_1)
+        doc.set_tag(line1_tokens[0], TAG_1)
+        doc.set_tag(line1_tokens[-1], TAG_2)
+
+        LOGGER.debug('line1_tokens: %s', line1_tokens)
+
+        root = doc.root
+        front = root.find('./text/front')
+        LOGGER.debug('xml: %s', _to_xml(front))
+        assert _to_xml(front) == (
+            '<front><{tag1}>{token1}</{tag1}>'
+            '\n <{tag2}>{token2}</{tag2}></front>'.format(
+                tag1=TAG_1, tag2=TAG_2, token1=TOKEN_1, token2=TOKEN_2
             )
         )
 

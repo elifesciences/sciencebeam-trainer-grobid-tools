@@ -252,15 +252,15 @@ def _lines_to_tei(
         if i:
             current_element.append(E(TeiTagNames.LB))
         for token in line.tokens:
+            if not token.stripped_text:
+                pending_space_tokens.append(token)
+                continue
             tag = token.attrib.get(TAG_ATTRIB_NAME)
             if not tag:
                 tag = token.attrib.get(PRESERVED_TAG_ATTRIB_NAME)
             if tag:
                 required_path = tag_to_tei_path_mapping.get(tag, tag).split('/')
             else:
-                if not token.stripped_text:
-                    pending_space_tokens.append(token)
-                    continue
                 required_path = []
                 default_path_str = tag_to_tei_path_mapping.get(DEFAULT_TAG_KEY)
                 if default_path_str:
