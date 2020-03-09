@@ -235,9 +235,10 @@ def get_extended_line_token_tags(
         next_group = grouped_token_tags[index + 1] if index + 1 < len(grouped_token_tags) else None
         _, last_prev_tag_value = split_tag_prefix(_get_safe(prev_group, -1))
         first_next_prefix, first_next_tag_value = split_tag_prefix(_get_safe(next_group, 0))
-        if prev_group and not extend_to_line_enabled_map.get(prev_group[0], default_enabled):
+        if prev_group and not extend_to_line_enabled_map.get(last_prev_tag_value, default_enabled):
             result.extend(group)
-        elif next_group and not extend_to_line_enabled_map.get(next_group[0], default_enabled):
+        elif next_group and not extend_to_line_enabled_map.get(
+                first_next_tag_value, default_enabled):
             result.extend(group)
         elif group[0]:
             result.extend(group)
