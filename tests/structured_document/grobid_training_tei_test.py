@@ -350,6 +350,25 @@ class TestGrobidTrainingStructuredDocument(object):
             )
         )
 
+    def test_should_preserve_separation_between_existing_tag(self):
+        original_tei_xml = _tei(front_items=[
+            E.byline(E.affiliation(TOKEN_1)),
+            E.byline(E.affiliation(TOKEN_2))
+        ])
+        LOGGER.debug('original tei xml: %s', _to_xml(original_tei_xml))
+        doc = GrobidTrainingTeiStructuredDocument(
+            original_tei_xml,
+            preserve_tags=True,
+            tag_to_tei_path_mapping={}
+        )
+        LOGGER.debug('doc: %s', doc)
+
+        root = doc.root
+        front = root.find('./text/front')
+        affiliations = front.xpath('./byline/affiliation')
+        LOGGER.debug('xml: %s', _to_xml(front))
+        assert [aff.text for aff in affiliations] == [TOKEN_1, TOKEN_2]
+
     def test_should_preserve_existing_tag_with_attrib(self):
         original_tei_xml = _tei(front_items=[
             E.div(TOKEN_1, {'tag': TAG_1}),
@@ -439,7 +458,7 @@ class TestGrobidTrainingStructuredDocument(object):
         LOGGER.debug('doc: %s', doc)
 
         assert [
-            [doc.get_tag_or_preserved_tag(t) for t in doc.get_all_tokens_of_line(line)]
+            [doc.get_tag_or_preserved_tag_value(t) for t in doc.get_all_tokens_of_line(line)]
             for line in _get_all_lines(doc)
         ] == [[TAG_1]]
 

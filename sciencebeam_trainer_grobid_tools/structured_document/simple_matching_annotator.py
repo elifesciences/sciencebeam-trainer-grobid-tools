@@ -2,7 +2,7 @@ import logging
 import re
 from distutils.util import strtobool
 from itertools import groupby
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, TypeVar
 
 from sciencebeam_gym.structured_document import (
     AbstractStructuredDocument
@@ -20,6 +20,14 @@ from sciencebeam_gym.preprocess.annotation.matching_annotator import (
 
 from sciencebeam_gym.preprocess.annotation.annotator import (
     AbstractAnnotator
+)
+
+from sciencebeam_gym.structured_document import (
+    strip_tag_prefix,
+    split_tag_prefix,
+    add_tag_prefix,
+    B_TAG_PREFIX,
+    I_TAG_PREFIX
 )
 
 from sciencebeam_trainer_grobid_tools.utils.fuzzy import (
@@ -187,6 +195,25 @@ def _iter_all_lines(structured_document: AbstractStructuredDocument):
     )
 
 
+T = TypeVar('T')
+
+
+def _get_safe(a: List[T], index: int, default_value: T = None) -> T:
+    try:
+        return a[index]
+    except (IndexError, TypeError):
+        return default_value
+
+
+def _to_inside_tag(tag: str) -> str:
+    prefix, tag_value = split_tag_prefix(tag)
+    return (
+        add_tag_prefix(tag_value, prefix=I_TAG_PREFIX)
+        if prefix == B_TAG_PREFIX
+        else tag
+    )
+
+
 def get_extended_line_token_tags(
         line_token_tags: List[str],
         extend_to_line_enabled_map: Dict[str, bool] = None,
@@ -199,13 +226,15 @@ def get_extended_line_token_tags(
     )
     grouped_token_tags = [
         list(group)
-        for _, group in groupby(line_token_tags)
+        for _, group in groupby(line_token_tags, key=strip_tag_prefix)
     ]
     LOGGER.debug('grouped_token_tags: %s', grouped_token_tags)
     result = []
     for index, group in enumerate(grouped_token_tags):
         prev_group = grouped_token_tags[index - 1] if index > 0 else None
         next_group = grouped_token_tags[index + 1] if index + 1 < len(grouped_token_tags) else None
+        _, last_prev_tag_value = split_tag_prefix(_get_safe(prev_group, -1))
+        first_next_prefix, first_next_tag_value = split_tag_prefix(_get_safe(next_group, 0))
         if prev_group and not extend_to_line_enabled_map.get(prev_group[0], default_enabled):
             result.extend(group)
         elif next_group and not extend_to_line_enabled_map.get(next_group[0], default_enabled):
@@ -213,14 +242,18 @@ def get_extended_line_token_tags(
         elif group[0]:
             result.extend(group)
         elif prev_group and next_group:
-            if prev_group[0] == next_group[0]:
-                result.extend(prev_group[:1] * len(group))
+            if last_prev_tag_value == first_next_tag_value:
+                result.extend([_to_inside_tag(prev_group[-1])] * len(group))
+                if first_next_prefix == B_TAG_PREFIX:
+                    next_group[0] = _to_inside_tag(next_group[0])
             else:
                 result.extend(group)
         elif prev_group and len(prev_group) > len(group):
-            result.extend(prev_group[:1] * len(group))
+            result.extend([_to_inside_tag(prev_group[-1])] * len(group))
         elif next_group and len(next_group) > len(group):
             result.extend(next_group[:1] * len(group))
+            if first_next_prefix == B_TAG_PREFIX:
+                next_group[0] = _to_inside_tag(next_group[0])
         else:
             result.extend(group)
     LOGGER.debug('result: %s', result)

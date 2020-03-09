@@ -4,7 +4,11 @@ from collections import Counter
 from typing import Dict, List, Set
 
 from sciencebeam_utils.utils.string import parse_list
-from sciencebeam_gym.structured_document import AbstractStructuredDocument
+
+from sciencebeam_gym.structured_document import (
+    AbstractStructuredDocument,
+    strip_tag_prefix
+)
 from sciencebeam_gym.preprocess.annotation.annotator import (
     AbstractAnnotator
 )
@@ -90,6 +94,10 @@ def _get_line_token_tags(structured_document: AbstractStructuredDocument, line) 
     ]
 
 
+def _get_line_token_tag_values(*args, **kwargs) -> List[str]:
+    return list(map(strip_tag_prefix, _get_line_token_tags(*args, **kwargs)))
+
+
 def _get_line_token_tags_or_preserved_tags(
         structured_document: GrobidTrainingTeiStructuredDocument, line) -> List[str]:
     return [
@@ -121,7 +129,7 @@ class SegmentationAnnotator(AbstractAnnotator):
         untagged_indexed_lines = []
         min_max_by_tag = {}
         for line_index, line in enumerate(_iter_all_lines(structured_document)):
-            line_token_tags = _get_line_token_tags(structured_document, line)
+            line_token_tags = _get_line_token_tag_values(structured_document, line)
             line_tag_counts = Counter(line_token_tags)
             if not line_tag_counts:
                 continue

@@ -4,7 +4,7 @@ import copy
 import logging
 import json
 import re
-from typing import Dict
+from typing import Dict, List
 
 from apache_beam.io.filesystems import FileSystems
 
@@ -22,7 +22,12 @@ from sciencebeam_utils.utils.xml import (
 from sciencebeam_gym.structured_document import (
     AbstractStructuredDocument,
     get_scoped_attrib_name,
-    get_attrib_by_scope
+    get_attrib_by_scope,
+    B_TAG_PREFIX,
+    I_TAG_PREFIX,
+    add_tag_prefix,
+    split_tag_prefix,
+    strip_tag_prefix
 )
 
 
@@ -62,7 +67,11 @@ class SvgStyleClasses(object):
 
 
 class TeiText(object):
-    def __init__(self, text, tag=None, attrib=None):
+    def __init__(
+            self,
+            text: str,
+            tag: str = None,
+            attrib: Dict[str, str] = None):
         self.text = text
         self.stripped_text = text.strip()
         self.attrib = attrib if attrib is not None else {}
@@ -72,7 +81,9 @@ class TeiText(object):
 
     def __repr__(self):
         return '%s(%s, tag=%s, preserved_tag=%s)' % (
-            type(self).__name__, json.dumps(self.text), self.attrib.get(TAG_ATTRIB_NAME),
+            type(self).__name__,
+            json.dumps(self.text),
+            self.attrib.get(TAG_ATTRIB_NAME),
             self.attrib.get(PRESERVED_TAG_ATTRIB_NAME)
         )
 
@@ -82,7 +93,7 @@ class TeiSpace(TeiText):
 
 
 class TeiLine(object):
-    def __init__(self, tokens):
+    def __init__(self, tokens: List[TeiText]):
         self.tokens = tokens
         self.non_space_tokens = [t for t in tokens if not isinstance(t, TeiSpace)]
         for token in tokens:
@@ -96,10 +107,10 @@ class LineBuffer(object):
     def __init__(self):
         self.line_tokens = []
 
-    def append(self, token):
+    def append(self, token: TeiText):
         self.line_tokens.append(token)
 
-    def extend(self, tokens):
+    def extend(self, tokens: List[TeiText]):
         self.line_tokens.extend(tokens)
 
     def flush(self):
@@ -112,7 +123,7 @@ class LineBuffer(object):
 
 
 class TagExpression(object):
-    def __init__(self, tag, attrib):
+    def __init__(self, tag: str, attrib: Dict[str, str]):
         self.tag = tag
         self.attrib = attrib
 
@@ -124,15 +135,26 @@ def get_logger():
     return logging.getLogger(__name__)
 
 
-def _to_text_tokens(text, tag=None):
+def _tokenize_text(text: str) -> List[str]:
+    return [s for s in re.split(r'(\W)', text) if s]
+
+
+def _to_text_token(text: str, *args, **kwargs) -> TeiText:
+    if not text.strip():
+        return TeiSpace(text, *args, **kwargs)
+    return TeiText(text, *args, **kwargs)
+
+
+def _to_text_tokens(text: str, tag: str = None) -> List[TeiText]:
     if not text:
         return []
+    tokenized_text = _tokenize_text(text)
     return [
-        TeiText(s, tag=tag)
-        if s.strip()
-        else TeiSpace(s, tag=tag)
-        for s in re.split(r'(\W)', text)
-        if s
+        _to_text_token(
+            s,
+            tag=add_tag_prefix(tag, prefix=B_TAG_PREFIX if index == 0 else I_TAG_PREFIX)
+        )
+        for index, s in enumerate(tokenized_text)
     ]
 
 
@@ -241,7 +263,7 @@ def _get_element_at_path(current_element, current_path, required_path, token):
 
 def _lines_to_tei(
         parent: etree.Element,
-        lines: list,
+        lines: List[TeiLine],
         tag_to_tei_path_mapping: Dict[str, str] = None):
     if tag_to_tei_path_mapping is None:
         tag_to_tei_path_mapping = {}
@@ -255,9 +277,10 @@ def _lines_to_tei(
             if not token.stripped_text:
                 pending_space_tokens.append(token)
                 continue
-            tag = token.attrib.get(TAG_ATTRIB_NAME)
-            if not tag:
-                tag = token.attrib.get(PRESERVED_TAG_ATTRIB_NAME)
+            full_tag = token.attrib.get(TAG_ATTRIB_NAME)
+            if not full_tag:
+                full_tag = token.attrib.get(PRESERVED_TAG_ATTRIB_NAME)
+            prefix, tag = split_tag_prefix(full_tag)
             if tag:
                 required_path = tag_to_tei_path_mapping.get(tag, tag).split('/')
             else:
@@ -265,6 +288,13 @@ def _lines_to_tei(
                 default_path_str = tag_to_tei_path_mapping.get(DEFAULT_TAG_KEY)
                 if default_path_str:
                     required_path = default_path_str.split('/')
+
+            if prefix == B_TAG_PREFIX:
+                current_element, current_path = _get_element_at_path(
+                    current_element, current_path,
+                    _get_common_path(current_path, []),
+                    token
+                )
 
             for pending_space_token in pending_space_tokens:
                 current_element, current_path = _get_element_at_path(
@@ -325,8 +355,12 @@ class GrobidTrainingTeiStructuredDocument(AbstractStructuredDocument):
             )
             for line in self._lines:
                 for token in line.tokens:
-                    existing_tag = self.get_tag(token)
-                    mapped_tag = rev_tag_to_tei_path_mapping.get(existing_tag, existing_tag)
+                    full_existing_tag = self.get_tag(token)
+                    prefix, existing_tag = split_tag_prefix(full_existing_tag)
+                    mapped_tag = add_tag_prefix(
+                        rev_tag_to_tei_path_mapping.get(existing_tag, existing_tag),
+                        prefix=prefix
+                    )
                     self._set_preserved_tag(token, mapped_tag)
         else:
             LOGGER.debug('not preserving tei tags')
@@ -372,23 +406,31 @@ class GrobidTrainingTeiStructuredDocument(AbstractStructuredDocument):
             tag = parent.attrib.get(PRESERVED_TAG_ATTRIB_NAME)
         return tag
 
-    def set_tag_only(self, parent, tag, scope=None, level=None):
+    def get_tag_or_preserved_tag_value(self, *args, **kwargs):
+        return strip_tag_prefix(self.get_tag_or_preserved_tag(*args, **kwargs))
+
+    def set_tag_only(
+            self, parent: TeiText, tag: str, is_begin: bool = False,
+            scope: str = None, level: str = None):
         set_or_remove_attrib(parent.attrib, _get_tag_attrib_name(scope, level), tag)
+        parent.is_begin = is_begin
 
     def set_tag(self, parent, tag, scope=None, level=None):
         _previous_tag = self.get_tag_or_preserved_tag(parent)
         self.set_tag_only(parent, tag, scope=scope, level=level)
-        if not isinstance(parent, TeiSpace) and tag != _previous_tag:
+        if isinstance(parent, TeiSpace):
+            return
+        if strip_tag_prefix(tag) != strip_tag_prefix(_previous_tag):
             self._clear_same_preserved_tag_on_same_line(parent)
 
     def _clear_same_preserved_tag_on_same_line(self, token):
-        preserved_tag = token.attrib.get(PRESERVED_TAG_ATTRIB_NAME)
+        preserved_tag = strip_tag_prefix(token.attrib.get(PRESERVED_TAG_ATTRIB_NAME))
         if not preserved_tag:
             return
         line_tokens = token.line.tokens
         get_logger().debug('clearing tokens on same line: %s (%s)', preserved_tag, line_tokens)
         for line_token in line_tokens:
-            if line_token.attrib.get(PRESERVED_TAG_ATTRIB_NAME) == preserved_tag:
+            if strip_tag_prefix(line_token.attrib.get(PRESERVED_TAG_ATTRIB_NAME)) == preserved_tag:
                 self._set_preserved_tag(line_token, None)
 
     def _set_preserved_tag(self, parent, tag):

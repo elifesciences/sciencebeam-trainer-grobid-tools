@@ -8,7 +8,10 @@ from sciencebeam_utils.utils.collection import flatten
 from sciencebeam_gym.structured_document import (
     SimpleStructuredDocument,
     SimpleLine,
-    SimpleToken
+    SimpleToken,
+    B_TAG_PREFIX,
+    I_TAG_PREFIX,
+    add_tag_prefix
 )
 
 from sciencebeam_gym.preprocess.annotation.target_annotation import (
@@ -30,6 +33,12 @@ LOGGER = logging.getLogger(__name__)
 
 TAG1 = 'tag1'
 TAG2 = 'tag2'
+
+B_TAG1 = add_tag_prefix(TAG1, prefix=B_TAG_PREFIX)
+I_TAG1 = add_tag_prefix(TAG1, prefix=I_TAG_PREFIX)
+
+B_TAG2 = add_tag_prefix(TAG2, prefix=B_TAG_PREFIX)
+I_TAG2 = add_tag_prefix(TAG2, prefix=I_TAG_PREFIX)
 
 
 def _get_tags_of_tokens(tokens):
@@ -87,13 +96,26 @@ class TestGetExtendedLineTokenTags:
     def test_should_fill_begining_of_line(self):
         assert get_extended_line_token_tags([None, TAG1, TAG1]) == [TAG1] * 3
 
+    def test_should_fill_begining_of_line_with_begin_prefix(self):
+        assert get_extended_line_token_tags(
+            [None, B_TAG1, I_TAG1]
+        ) == [B_TAG1, I_TAG1, I_TAG1]
+
     def test_should_fill_end_of_line(self):
         assert get_extended_line_token_tags([TAG1, TAG1, None]) == [TAG1] * 3
+
+    def test_should_fill_end_of_line_with_begin_prefix(self):
+        assert get_extended_line_token_tags([B_TAG1, I_TAG1, None]) == [B_TAG1, I_TAG1, I_TAG1]
 
     def test_should_fill_gaps_if_same_tag(self):
         assert get_extended_line_token_tags(
             [TAG1, None, TAG1]
         ) == [TAG1, TAG1, TAG1]
+
+    def test_should_fill_gaps_if_same_tag_with_begin_prefix(self):
+        assert get_extended_line_token_tags(
+            [B_TAG1, None, B_TAG1]
+        ) == [B_TAG1, I_TAG1, I_TAG1]
 
     def test_should_not_fill_gaps_if_not_same_tag(self):
         assert get_extended_line_token_tags(
