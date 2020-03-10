@@ -276,7 +276,8 @@ def get_extended_line_token_tags(
         elif prev_group and len(prev_group) > len(group):
             result.extend([_to_inside_tag(prev_group[-1])] * len(group))
         elif next_group and len(next_group) > len(group):
-            result.extend(next_group[:1] * len(group))
+            result.extend([next_group[0]])
+            result.extend([_to_inside_tag(next_group[0])] * (len(group) - 1))
             if first_next_prefix == B_TAG_PREFIX:
                 next_group[0] = _to_inside_tag(next_group[0])
         else:
