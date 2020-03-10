@@ -18,7 +18,6 @@ from sciencebeam_gym.preprocess.annotation.target_annotation import (
     extract_sub_annotations,
     match_xpaths,
     extract_children,
-    get_stripped_text_content,
     apply_pattern,
     extract_using_regex,
     flatten_if_nested
