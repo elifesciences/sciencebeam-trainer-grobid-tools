@@ -18,10 +18,6 @@ from sciencebeam_utils.utils.tqdm import tqdm_with_logging_redirect
 from sciencebeam_utils.beam_utils.files import find_matching_filenames_with_limit
 from sciencebeam_utils.tools.check_file_list import map_file_list_to_file_exists
 
-from sciencebeam_gym.preprocess.annotation.target_annotation import (
-    xml_root_to_target_annotations
-)
-
 from sciencebeam_gym.preprocess.annotation.matching_annotator import (
     get_simple_fuzzy_match_filter,
     MatchingAnnotatorConfig,
@@ -36,6 +32,10 @@ from sciencebeam_gym.preprocess.annotation.matching_annotator import (
 from sciencebeam_gym.preprocess.annotation.annotator import AbstractAnnotator
 from sciencebeam_gym.preprocess.annotation.target_annotation import (
     parse_xml_mapping
+)
+
+from sciencebeam_trainer_grobid_tools.annotation.target_annotation import (
+    xml_root_to_target_annotations
 )
 
 from .utils.string import comma_separated_str_to_list
