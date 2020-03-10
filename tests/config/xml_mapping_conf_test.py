@@ -96,7 +96,7 @@ class TestAnnotXmlFrontConf:
             for target_annotation in target_annotations
         ] == [
             ('author', ['Smith', 'John']),
-            ('author_aff', '1University of Science, Smithonia')
+            ('author_aff', '1 University of Science, Smithonia')
         ]
 
     def test_should_extract_author_aff_address_line(

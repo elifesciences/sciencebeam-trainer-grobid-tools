@@ -1,4 +1,5 @@
 import logging
+import re
 
 from lxml import etree
 
@@ -38,6 +39,23 @@ def contains_raw_text(element: etree.Element) -> bool:
         if not is_blank(child.tail):
             return True
     return False
+
+
+def is_ends_with_word(text: str) -> bool:
+    return re.match(r'.*\w$', text)
+
+
+def is_starts_with_word(text: str) -> bool:
+    return re.match(r'^\w.*', text)
+
+
+def get_raw_text_content(element: etree.Element) -> str:
+    text_list = []
+    for text in element.itertext():
+        if text_list and is_ends_with_word(text_list[-1]) and is_starts_with_word(text):
+            text_list.append(' ')
+        text_list.append(text)
+    return ''.join(text_list)
 
 
 def xml_root_to_target_annotations(xml_root, xml_mapping):
@@ -107,7 +125,7 @@ def xml_root_to_target_annotations(xml_root, xml_mapping):
                     e, children_xpaths, children_concat, children_range, unmatched_parent_text
                 )
             else:
-                text_content_list = filter_truthy(strip_all([get_stripped_text_content(e)]))
+                text_content_list = filter_truthy(strip_all([get_raw_text_content(e)]))
                 standalone_values = []
             if re_compiled_pattern:
                 text_content_list = filter_truthy([
