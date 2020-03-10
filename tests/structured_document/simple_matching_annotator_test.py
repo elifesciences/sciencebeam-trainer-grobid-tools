@@ -1,3 +1,4 @@
+# pylint: disable=singleton-comparison
 import logging
 import re
 
@@ -24,7 +25,8 @@ from sciencebeam_trainer_grobid_tools.structured_document.simple_matching_annota
     SimpleMatchingAnnotator,
     get_extended_line_token_tags,
     get_simple_tag_config_map,
-    select_index_ranges
+    select_index_ranges,
+    DEFAULT_MERGE_ENABLED
 )
 
 from tests.test_utils import log_on_exception
@@ -117,10 +119,17 @@ class TestGetExtendedLineTokenTags:
             [TAG1, None, TAG1]
         ) == [TAG1, TAG1, TAG1]
 
-    def test_should_fill_gaps_if_same_tag_with_begin_prefix(self):
+    def test_should_fill_gaps_if_same_tag_with_begin_prefix_and_merge_enabled(self):
         assert get_extended_line_token_tags(
-            [B_TAG1, None, B_TAG1]
+            [B_TAG1, None, B_TAG1],
+            merge_enabled_map={TAG1: True}
         ) == [B_TAG1, I_TAG1, I_TAG1]
+
+    def test_should_not_fill_gaps_if_same_tag_with_begin_prefix_but_merge_disabled(self):
+        assert get_extended_line_token_tags(
+            [B_TAG1, None, B_TAG1],
+            merge_enabled_map={TAG1: False}
+        ) == [B_TAG1, None, B_TAG1]
 
     def test_should_not_fill_gaps_if_not_same_tag(self):
         assert get_extended_line_token_tags(
@@ -562,6 +571,21 @@ class TestSimpleMatchingAnnotator:
 
 
 class TestGetSimpleTagConfigMap:
+    def test_should_parse_merge_flag(self):
+        tag_config_map = get_simple_tag_config_map({
+            'any': {
+                'tag1': 'xpath1',
+                'tag1.merge': 'false',
+                'tag2': 'xpath2',
+                'tag2.merge': 'true',
+                'tag3': 'xpath3'
+            }
+        })
+        assert set(tag_config_map.keys()) == {'tag1', 'tag2', 'tag3'}
+        assert tag_config_map['tag1'].merge_enabled == False
+        assert tag_config_map['tag2'].merge_enabled == True
+        assert tag_config_map['tag3'].merge_enabled == DEFAULT_MERGE_ENABLED
+
     def test_should_parse_match_prefix_regex(self):
         tag_config_map = get_simple_tag_config_map({
             'any': {
