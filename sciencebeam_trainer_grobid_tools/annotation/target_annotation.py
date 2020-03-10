@@ -1,5 +1,7 @@
 import logging
 
+from lxml import etree
+
 from sciencebeam_utils.utils.collection import (
     filter_truthy,
     strip_all
@@ -23,6 +25,19 @@ from sciencebeam_gym.preprocess.annotation.target_annotation import (
 
 
 LOGGER = logging.getLogger(__name__)
+
+
+def is_blank(text: str) -> bool:
+    return not text or not text.strip()
+
+
+def contains_raw_text(element: etree.Element) -> bool:
+    if not is_blank(element.text):
+        return True
+    for child in element:
+        if not is_blank(child.tail):
+            return True
+    return False
 
 
 def xml_root_to_target_annotations(xml_root, xml_mapping):
@@ -87,7 +102,7 @@ def xml_root_to_target_annotations(xml_root, xml_mapping):
             sub_annotations = extract_sub_annotations(e, sub_xpaths, mapping, k)
             LOGGER.debug('sub_annotations (%s): %s', k, sub_annotations)
 
-            if children_xpaths:
+            if children_xpaths and not contains_raw_text(e):
                 text_content_list, standalone_values = extract_children(
                     e, children_xpaths, children_concat, children_range, unmatched_parent_text
                 )
