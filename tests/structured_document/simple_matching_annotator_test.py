@@ -26,7 +26,8 @@ from sciencebeam_trainer_grobid_tools.structured_document.simple_matching_annota
     get_extended_line_token_tags,
     get_simple_tag_config_map,
     select_index_ranges,
-    DEFAULT_MERGE_ENABLED
+    DEFAULT_MERGE_ENABLED,
+    DEFAULT_EXTEND_TO_LINE_ENABLED
 )
 
 from tests.test_utils import log_on_exception
@@ -101,59 +102,72 @@ class TestSelectIndexRanges:
 
 class TestGetExtendedLineTokenTags:
     def test_should_fill_begining_of_line(self):
-        assert get_extended_line_token_tags([None, TAG1, TAG1]) == [TAG1] * 3
+        assert get_extended_line_token_tags(
+            [None, TAG1, TAG1],
+            extend_to_line_enabled_map={TAG1: True},
+        ) == [TAG1] * 3
 
     def test_should_fill_begining_of_line_with_begin_prefix(self):
         assert get_extended_line_token_tags(
-            [None, B_TAG1, I_TAG1]
+            [None, B_TAG1, I_TAG1],
+            extend_to_line_enabled_map={TAG1: True},
         ) == [B_TAG1, I_TAG1, I_TAG1]
 
     def test_should_fill_end_of_line(self):
-        assert get_extended_line_token_tags([TAG1, TAG1, None]) == [TAG1] * 3
+        assert get_extended_line_token_tags(
+            [TAG1, TAG1, None],
+            extend_to_line_enabled_map={TAG1: True},
+        ) == [TAG1] * 3
 
     def test_should_fill_end_of_line_with_begin_prefix(self):
-        assert get_extended_line_token_tags([B_TAG1, I_TAG1, None]) == [B_TAG1, I_TAG1, I_TAG1]
+        assert get_extended_line_token_tags(
+            [B_TAG1, I_TAG1, None],
+            extend_to_line_enabled_map={TAG1: True}
+        ) == [B_TAG1, I_TAG1, I_TAG1]
 
     def test_should_fill_gaps_if_same_tag(self):
         assert get_extended_line_token_tags(
-            [TAG1, None, TAG1]
+            [TAG1, None, TAG1],
+            extend_to_line_enabled_map={TAG1: True}
         ) == [TAG1, TAG1, TAG1]
 
     def test_should_fill_gaps_if_same_tag_with_begin_prefix_and_merge_enabled(self):
         assert get_extended_line_token_tags(
             [B_TAG1, None, B_TAG1],
+            extend_to_line_enabled_map={TAG1: True},
             merge_enabled_map={TAG1: True}
         ) == [B_TAG1, I_TAG1, I_TAG1]
 
     def test_should_not_fill_gaps_if_same_tag_with_begin_prefix_but_merge_disabled(self):
         assert get_extended_line_token_tags(
             [B_TAG1, None, B_TAG1],
+            extend_to_line_enabled_map={TAG1: True},
             merge_enabled_map={TAG1: False}
         ) == [B_TAG1, None, B_TAG1]
 
     def test_should_not_fill_gaps_if_not_same_tag(self):
         assert get_extended_line_token_tags(
-            [TAG1, None, TAG2]
+            [TAG1, None, TAG2],
+            extend_to_line_enabled_map={TAG1: True, TAG2: True}
         ) == [TAG1, None, TAG2]
 
     def test_should_not_fill_line_if_minority_tag(self):
         token_tags = [None, None, TAG1, None, None]
-        assert get_extended_line_token_tags(token_tags) == token_tags
+        assert get_extended_line_token_tags(
+            token_tags,
+            extend_to_line_enabled_map={TAG1: True}
+        ) == token_tags
 
     def test_should_fill_begining_of_line_if_not_enabled_by_tag_config(self):
         assert get_extended_line_token_tags(
             [None, TAG1, TAG1],
-            extend_to_line_enabled_map={
-                TAG1: False
-            }
+            extend_to_line_enabled_map={TAG1: False}
         ) == [None, TAG1, TAG1]
 
     def test_should_fill_begining_of_line_if_not_enabled_by_tag_config_with_begin_prefix(self):
         assert get_extended_line_token_tags(
             [None, B_TAG1, I_TAG1],
-            extend_to_line_enabled_map={
-                TAG1: False
-            }
+            extend_to_line_enabled_map={TAG1: False}
         ) == [None, B_TAG1, I_TAG1]
 
 
@@ -383,7 +397,7 @@ class TestSimpleMatchingAnnotator:
         doc = _document_for_tokens([author_tokens, aff_tokens])
         SimpleMatchingAnnotator(
             target_annotations,
-            tag_config_map={}
+            tag_config_map={TAG1: SimpleTagConfig(extend_to_line_enabled=True)}
         ).annotate(doc)
         assert _get_tag_values_of_tokens(author_tokens) == [TAG1] * len(author_tokens)
         assert _get_tag_values_of_tokens(aff_tokens) == [TAG2] * len(aff_tokens)
@@ -528,7 +542,12 @@ class TestSimpleMatchingAnnotator:
             TargetAnnotation(['mary', 'maison'], TAG1)
         ]
         doc = _document_for_tokens([pre_tokens, matching_tokens, post_tokens])
-        SimpleMatchingAnnotator(target_annotations).annotate(doc)
+        SimpleMatchingAnnotator(
+            target_annotations,
+            tag_config_map={
+                TAG1: SimpleTagConfig(extend_to_line_enabled=True, merge_enabled=True)
+            }
+        ).annotate(doc)
         assert _get_tag_values_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
         assert _get_tag_values_of_tokens(pre_tokens) == [None] * len(pre_tokens)
         assert _get_tag_values_of_tokens(post_tokens) == [None] * len(post_tokens)
@@ -564,7 +583,10 @@ class TestSimpleMatchingAnnotator:
             TargetAnnotation(['mary', 'maison'], TAG1)
         ]
         doc = _document_for_tokens([matching_tokens])
-        SimpleMatchingAnnotator(target_annotations).annotate(doc)
+        SimpleMatchingAnnotator(
+            target_annotations,
+            tag_config_map={TAG1: SimpleTagConfig(extend_to_line_enabled=True)}
+        ).annotate(doc)
         assert _get_tag_values_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
         assert _get_tag_values_of_tokens(pre_tokens) == [None] * len(pre_tokens)
         assert _get_tag_values_of_tokens(post_tokens) == [None] * len(post_tokens)
@@ -585,6 +607,21 @@ class TestGetSimpleTagConfigMap:
         assert tag_config_map['tag1'].merge_enabled == False
         assert tag_config_map['tag2'].merge_enabled == True
         assert tag_config_map['tag3'].merge_enabled == DEFAULT_MERGE_ENABLED
+
+    def test_should_parse_extend_to_line_flag(self):
+        tag_config_map = get_simple_tag_config_map({
+            'any': {
+                'tag1': 'xpath1',
+                'tag1.extend-to-line': 'false',
+                'tag2': 'xpath2',
+                'tag2.extend-to-line': 'true',
+                'tag3': 'xpath3'
+            }
+        })
+        assert set(tag_config_map.keys()) == {'tag1', 'tag2', 'tag3'}
+        assert tag_config_map['tag1'].extend_to_line_enabled == False
+        assert tag_config_map['tag2'].extend_to_line_enabled == True
+        assert tag_config_map['tag3'].extend_to_line_enabled == DEFAULT_EXTEND_TO_LINE_ENABLED
 
     def test_should_parse_match_prefix_regex(self):
         tag_config_map = get_simple_tag_config_map({

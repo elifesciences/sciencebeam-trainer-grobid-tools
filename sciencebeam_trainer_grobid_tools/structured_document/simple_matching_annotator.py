@@ -56,6 +56,7 @@ def split_and_join_with_space(text: str) -> str:
 
 
 DEFAULT_MERGE_ENABLED = True
+DEFAULT_EXTEND_TO_LINE_ENABLED = True
 
 
 class SimpleTagConfig:
@@ -64,7 +65,7 @@ class SimpleTagConfig:
             match_prefix_regex: str = None,
             alternative_spellings: Dict[str, List[str]] = None,
             merge_enabled: bool = DEFAULT_MERGE_ENABLED,
-            extend_to_line_enabled: bool = False):
+            extend_to_line_enabled: bool = DEFAULT_EXTEND_TO_LINE_ENABLED):
         self.match_prefix_regex = match_prefix_regex
         self.alternative_spellings = alternative_spellings
         self.merge_enabled = merge_enabled
@@ -230,8 +231,8 @@ def get_extended_line_token_tags(
         line_token_tags: List[str],
         extend_to_line_enabled_map: Dict[str, bool] = None,
         merge_enabled_map: Dict[str, bool] = None,
-        default_extend_to_line_enabled: bool = True,
-        default_merge_enabled: bool = True) -> List[str]:
+        default_extend_to_line_enabled: bool = DEFAULT_EXTEND_TO_LINE_ENABLED,
+        default_merge_enabled: bool = DEFAULT_MERGE_ENABLED) -> List[str]:
     if extend_to_line_enabled_map is None:
         extend_to_line_enabled_map = {}
     if merge_enabled_map is None:
@@ -559,7 +560,7 @@ def get_simple_tag_config(config_map: Dict[str, str], field: str) -> SimpleTagCo
         )),
         extend_to_line_enabled=strtobool(config_map.get(
             '%s.%s' % (field, SimpleTagConfigProps.EXTEND_TO_LINE),
-            'true'
+            str(DEFAULT_EXTEND_TO_LINE_ENABLED)
         ))
     )
 
