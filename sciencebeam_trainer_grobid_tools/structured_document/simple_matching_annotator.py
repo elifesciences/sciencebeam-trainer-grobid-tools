@@ -467,7 +467,10 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                 extend_to_line_enabled_map=self.extend_to_line_enabled_map,
                 merge_enabled_map=self.merge_enabled_map
             )
-            LOGGER.debug('line_token_tags: %s -> %s', line_token_tags, extended_line_token_tags)
+            LOGGER.debug(
+                'line_token_tags, transformed: %s -> %s (tokens: %s)',
+                line_token_tags, extended_line_token_tags, tokens
+            )
             for token, token_tag in zip(tokens, extended_line_token_tags):
                 if not token_tag:
                     continue
