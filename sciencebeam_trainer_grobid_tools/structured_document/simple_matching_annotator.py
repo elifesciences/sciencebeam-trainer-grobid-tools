@@ -561,11 +561,11 @@ def get_simple_tag_config(config_map: Dict[str, str], field: str) -> SimpleTagCo
         merge_enabled=strtobool(config_map.get(
             '%s.%s' % (field, SimpleTagConfigProps.MERGE),
             str(DEFAULT_MERGE_ENABLED)
-        )),
+        )) == 1,
         extend_to_line_enabled=strtobool(config_map.get(
             '%s.%s' % (field, SimpleTagConfigProps.EXTEND_TO_LINE),
             str(DEFAULT_EXTEND_TO_LINE_ENABLED)
-        ))
+        )) == 1
     )
 
 

@@ -612,9 +612,9 @@ class TestGetSimpleTagConfigMap:
             }
         })
         assert set(tag_config_map.keys()) == {'tag1', 'tag2', 'tag3'}
-        assert tag_config_map['tag1'].merge_enabled == False
-        assert tag_config_map['tag2'].merge_enabled == True
-        assert tag_config_map['tag3'].merge_enabled == DEFAULT_MERGE_ENABLED
+        assert tag_config_map['tag1'].merge_enabled is False
+        assert tag_config_map['tag2'].merge_enabled is True
+        assert tag_config_map['tag3'].merge_enabled is DEFAULT_MERGE_ENABLED
 
     def test_should_parse_extend_to_line_flag(self):
         tag_config_map = get_simple_tag_config_map({
@@ -627,9 +627,9 @@ class TestGetSimpleTagConfigMap:
             }
         })
         assert set(tag_config_map.keys()) == {'tag1', 'tag2', 'tag3'}
-        assert tag_config_map['tag1'].extend_to_line_enabled == False
-        assert tag_config_map['tag2'].extend_to_line_enabled == True
-        assert tag_config_map['tag3'].extend_to_line_enabled == DEFAULT_EXTEND_TO_LINE_ENABLED
+        assert tag_config_map['tag1'].extend_to_line_enabled is False
+        assert tag_config_map['tag2'].extend_to_line_enabled is True
+        assert tag_config_map['tag3'].extend_to_line_enabled is DEFAULT_EXTEND_TO_LINE_ENABLED
 
     def test_should_parse_match_prefix_regex(self):
         tag_config_map = get_simple_tag_config_map({
