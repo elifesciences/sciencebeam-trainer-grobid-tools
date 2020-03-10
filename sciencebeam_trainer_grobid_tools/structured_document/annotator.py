@@ -3,6 +3,10 @@ from collections import Counter
 from functools import partial
 from typing import List, Set
 
+from sciencebeam_gym.structured_document import (
+    strip_tag_prefix
+)
+
 from .grobid_training_tei import (
     load_grobid_training_tei_structured_document,
     save_grobid_training_tei_structured_document,
@@ -42,9 +46,10 @@ def _preserve_tag_fn(
         exclude_fields: List[str] = None):
     if not structured_document.get_text(token).strip():
         return None
-    if exclude_fields and existing_tag in exclude_fields:
+    simple_existing_tag = strip_tag_prefix(existing_tag)
+    if exclude_fields and simple_existing_tag in exclude_fields:
         return None
-    if include_fields and existing_tag not in include_fields:
+    if include_fields and simple_existing_tag not in include_fields:
         return None
     return existing_tag
 
@@ -87,11 +92,12 @@ def _apply_preserved_fields(
     num_tokens = 0
     all_preserved_tags = []
     for token in _iter_all_tokens(structured_document):
-        preserved_tag = structured_document.get_tag_or_preserved_tag(token)
-        all_preserved_tags.append(preserved_tag)
+        full_preserved_tag = structured_document.get_tag_or_preserved_tag(token)
+        all_preserved_tags.append(full_preserved_tag)
+        preserved_tag = strip_tag_prefix(full_preserved_tag)
         if preserved_tag in always_preserve_fields:
-            get_logger().debug('apply preserved field: %s -> %s', token, preserved_tag)
-            structured_document.set_tag(token, preserved_tag)
+            get_logger().debug('apply preserved field: %s -> %s', token, full_preserved_tag)
+            structured_document.set_tag(token, full_preserved_tag)
             num_tokens += 1
     LOGGER.debug(
         'applied preserved fields (%d tokens, all counts: %s): %s',

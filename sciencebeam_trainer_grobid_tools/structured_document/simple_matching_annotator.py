@@ -2,7 +2,7 @@ import logging
 import re
 from distutils.util import strtobool
 from itertools import groupby
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, TypeVar
 
 from sciencebeam_gym.structured_document import (
     AbstractStructuredDocument
@@ -20,6 +20,14 @@ from sciencebeam_gym.preprocess.annotation.matching_annotator import (
 
 from sciencebeam_gym.preprocess.annotation.annotator import (
     AbstractAnnotator
+)
+
+from sciencebeam_gym.structured_document import (
+    strip_tag_prefix,
+    split_tag_prefix,
+    add_tag_prefix,
+    B_TAG_PREFIX,
+    I_TAG_PREFIX
 )
 
 from sciencebeam_trainer_grobid_tools.utils.fuzzy import (
@@ -47,20 +55,29 @@ def split_and_join_with_space(text: str) -> str:
     ])
 
 
+DEFAULT_MERGE_ENABLED = True
+DEFAULT_EXTEND_TO_LINE_ENABLED = True
+
+
 class SimpleTagConfig:
     def __init__(
             self,
             match_prefix_regex: str = None,
             alternative_spellings: Dict[str, List[str]] = None,
-            extend_to_line_enabled: bool = False):
+            merge_enabled: bool = DEFAULT_MERGE_ENABLED,
+            extend_to_line_enabled: bool = DEFAULT_EXTEND_TO_LINE_ENABLED):
         self.match_prefix_regex = match_prefix_regex
         self.alternative_spellings = alternative_spellings
+        self.merge_enabled = merge_enabled
         self.extend_to_line_enabled = extend_to_line_enabled
 
     def __repr__(self):
-        return '%s(match_prefix_regex=%s, alternative_spellings=%s, extend_to_line_enabled=%s)' % (
+        return (
+            '%s(match_prefix_regex=%s, alternative_spellings=%s,'
+            + ' merge_enabled%s, extend_to_line_enabled=%s)'
+        ) % (
             type(self).__name__, self.match_prefix_regex, self.alternative_spellings,
-            self.extend_to_line_enabled
+            self.merge_enabled, self.extend_to_line_enabled
         )
 
 
@@ -74,24 +91,28 @@ class SimpleSimpleMatchingConfig:
             lookahead_sequence_count: int = 200,
             min_token_length: int = 2,
             exact_word_match_threshold: int = 5,
+            use_begin_prefix: bool = True,
             tag_config_map: Dict[str, SimpleTagConfig] = None):
         self.threshold = threshold
         self.lookahead_sequence_count = lookahead_sequence_count
         self.min_token_length = min_token_length
         self.exact_word_match_threshold = exact_word_match_threshold
+        self.use_begin_prefix = use_begin_prefix
         self.tag_config_map = tag_config_map or {}
 
     def __repr__(self):
         return ''.join([
             '%s(threshold=%s,',
             ' lookahead_sequence_count=%s,',
-            ' exact_word_match_threshold=%s',
+            ' exact_word_match_threshold=%s,',
+            ' use_begin_prefix=%s,'
             ' tag_config_map=%s)'
          ]) % (
             type(self).__name__,
             self.threshold,
             self.lookahead_sequence_count,
             self.exact_word_match_threshold,
+            self.use_begin_prefix,
             self.tag_config_map
         )
 
@@ -187,40 +208,78 @@ def _iter_all_lines(structured_document: AbstractStructuredDocument):
     )
 
 
+T = TypeVar('T')
+
+
+def _get_safe(a: List[T], index: int, default_value: T = None) -> T:
+    try:
+        return a[index]
+    except (IndexError, TypeError):
+        return default_value
+
+
+def _to_inside_tag(tag: str) -> str:
+    prefix, tag_value = split_tag_prefix(tag)
+    return (
+        add_tag_prefix(tag_value, prefix=I_TAG_PREFIX)
+        if prefix == B_TAG_PREFIX
+        else tag
+    )
+
+
 def get_extended_line_token_tags(
         line_token_tags: List[str],
         extend_to_line_enabled_map: Dict[str, bool] = None,
-        default_enabled: bool = True) -> List[str]:
+        merge_enabled_map: Dict[str, bool] = None,
+        default_extend_to_line_enabled: bool = DEFAULT_EXTEND_TO_LINE_ENABLED,
+        default_merge_enabled: bool = DEFAULT_MERGE_ENABLED) -> List[str]:
     if extend_to_line_enabled_map is None:
         extend_to_line_enabled_map = {}
+    if merge_enabled_map is None:
+        merge_enabled_map = {}
     LOGGER.debug(
-        'line_token_tags: %s (extend_to_line_enabled_map: %s)',
-        line_token_tags, extend_to_line_enabled_map
+        'line_token_tags: %s (extend_to_line_enabled_map: %s, merge_enabled_map: %s)',
+        line_token_tags, extend_to_line_enabled_map, merge_enabled_map
     )
     grouped_token_tags = [
         list(group)
-        for _, group in groupby(line_token_tags)
+        for _, group in groupby(line_token_tags, key=strip_tag_prefix)
     ]
     LOGGER.debug('grouped_token_tags: %s', grouped_token_tags)
     result = []
     for index, group in enumerate(grouped_token_tags):
         prev_group = grouped_token_tags[index - 1] if index > 0 else None
         next_group = grouped_token_tags[index + 1] if index + 1 < len(grouped_token_tags) else None
-        if prev_group and not extend_to_line_enabled_map.get(prev_group[0], default_enabled):
+        _, last_prev_tag_value = split_tag_prefix(_get_safe(prev_group, -1))
+        first_next_prefix, first_next_tag_value = split_tag_prefix(_get_safe(next_group, 0))
+        if (
+                prev_group and not extend_to_line_enabled_map.get(
+                    last_prev_tag_value, default_extend_to_line_enabled
+                )
+        ):
             result.extend(group)
-        elif next_group and not extend_to_line_enabled_map.get(next_group[0], default_enabled):
+        elif next_group and not extend_to_line_enabled_map.get(
+                first_next_tag_value, default_extend_to_line_enabled):
             result.extend(group)
         elif group[0]:
             result.extend(group)
         elif prev_group and next_group:
-            if prev_group[0] == next_group[0]:
-                result.extend(prev_group[:1] * len(group))
+            if (
+                    last_prev_tag_value == first_next_tag_value
+                    and merge_enabled_map.get(last_prev_tag_value, default_merge_enabled)
+            ):
+                result.extend([_to_inside_tag(prev_group[-1])] * len(group))
+                if first_next_prefix == B_TAG_PREFIX:
+                    next_group[0] = _to_inside_tag(next_group[0])
             else:
                 result.extend(group)
         elif prev_group and len(prev_group) > len(group):
-            result.extend(prev_group[:1] * len(group))
+            result.extend([_to_inside_tag(prev_group[-1])] * len(group))
         elif next_group and len(next_group) > len(group):
-            result.extend(next_group[:1] * len(group))
+            result.extend([next_group[0]])
+            result.extend([_to_inside_tag(next_group[0])] * (len(group) - 1))
+            if first_next_prefix == B_TAG_PREFIX:
+                next_group[0] = _to_inside_tag(next_group[0])
         else:
             result.extend(group)
     LOGGER.debug('result: %s', result)
@@ -244,6 +303,14 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             raise ValueError('either config or kwargs should be specified')
         self.config = config
         LOGGER.debug('config: %s', config)
+        self.merge_enabled_map = {
+            tag: tag_confg.merge_enabled
+            for tag, tag_confg in self.config.tag_config_map.items()
+        }
+        self.extend_to_line_enabled_map = {
+            tag: tag_confg.extend_to_line_enabled
+            for tag, tag_confg in self.config.tag_config_map.items()
+        }
 
     def get_fuzzy_matching_index_range(
             self, haystack: str, needle, **kwargs):
@@ -330,9 +397,17 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             'setting matching text to "%s": [%s]',
             tag_name, join_tokens_text(matching_tokens)
         )
-        for token in matching_tokens:
-            if not structured_document.get_tag(token):
-                structured_document.set_tag(token, tag_name)
+        untagged_matching_tokens = [
+            token
+            for token in matching_tokens
+            if not structured_document.get_tag(token)
+        ]
+        for index, token in enumerate(untagged_matching_tokens):
+            prefix = None
+            if self.config.use_begin_prefix:
+                prefix = B_TAG_PREFIX if index == 0 else I_TAG_PREFIX
+            full_tag = add_tag_prefix(tag_name, prefix=prefix)
+            structured_document.set_tag(token, full_tag)
 
     def iter_matching_index_ranges(
             self,
@@ -385,18 +460,18 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                 yield index_range
 
     def extend_annotations_to_whole_line(self, structured_document: AbstractStructuredDocument):
-        extend_to_line_enabled_map = {
-            tag: tag_confg.extend_to_line_enabled
-            for tag, tag_confg in self.config.tag_config_map.items()
-        }
         for line in _iter_all_lines(structured_document):
             tokens = structured_document.get_tokens_of_line(line)
             line_token_tags = [structured_document.get_tag(token) for token in tokens]
             extended_line_token_tags = get_extended_line_token_tags(
                 line_token_tags,
-                extend_to_line_enabled_map=extend_to_line_enabled_map
+                extend_to_line_enabled_map=self.extend_to_line_enabled_map,
+                merge_enabled_map=self.merge_enabled_map
             )
-            LOGGER.debug('line_token_tags: %s -> %s', line_token_tags, extended_line_token_tags)
+            LOGGER.debug(
+                'line_token_tags, transformed: %s -> %s (tokens: %s)',
+                line_token_tags, extended_line_token_tags, tokens
+            )
             for token, token_tag in zip(tokens, extended_line_token_tags):
                 if not token_tag:
                     continue
@@ -443,6 +518,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
 class SimpleTagConfigProps:
     MATCH_PREFIX_REGEX = 'match-prefix-regex'
     ALTERNATIVE_SPELLINGS = 'alternative-spellings'
+    MERGE = 'merge'
     EXTEND_TO_LINE = 'extend-to-line'
 
 
@@ -482,14 +558,19 @@ def get_simple_tag_config(config_map: Dict[str, str], field: str) -> SimpleTagCo
         alternative_spellings=parse_alternative_spellings(config_map.get(
             '%s.%s' % (field, SimpleTagConfigProps.ALTERNATIVE_SPELLINGS)
         )),
+        merge_enabled=strtobool(config_map.get(
+            '%s.%s' % (field, SimpleTagConfigProps.MERGE),
+            str(DEFAULT_MERGE_ENABLED)
+        )) == 1,
         extend_to_line_enabled=strtobool(config_map.get(
             '%s.%s' % (field, SimpleTagConfigProps.EXTEND_TO_LINE),
-            'true'
-        ))
+            str(DEFAULT_EXTEND_TO_LINE_ENABLED)
+        )) == 1
     )
 
 
-def get_simple_tag_config_map(xml_mapping: Dict[str, Dict[str, str]]):
+def get_simple_tag_config_map(
+        xml_mapping: Dict[str, Dict[str, str]]) -> Dict[str, SimpleTagConfig]:
     LOGGER.debug('xml_mapping: %s', xml_mapping)
     fields = {
         key
