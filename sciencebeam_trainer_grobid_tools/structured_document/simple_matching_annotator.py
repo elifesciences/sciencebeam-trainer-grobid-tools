@@ -82,24 +82,28 @@ class SimpleSimpleMatchingConfig:
             lookahead_sequence_count: int = 200,
             min_token_length: int = 2,
             exact_word_match_threshold: int = 5,
+            use_begin_prefix: bool = True,
             tag_config_map: Dict[str, SimpleTagConfig] = None):
         self.threshold = threshold
         self.lookahead_sequence_count = lookahead_sequence_count
         self.min_token_length = min_token_length
         self.exact_word_match_threshold = exact_word_match_threshold
+        self.use_begin_prefix = use_begin_prefix
         self.tag_config_map = tag_config_map or {}
 
     def __repr__(self):
         return ''.join([
             '%s(threshold=%s,',
             ' lookahead_sequence_count=%s,',
-            ' exact_word_match_threshold=%s',
+            ' exact_word_match_threshold=%s,',
+            ' use_begin_prefix=%s,'
             ' tag_config_map=%s)'
          ]) % (
             type(self).__name__,
             self.threshold,
             self.lookahead_sequence_count,
             self.exact_word_match_threshold,
+            self.use_begin_prefix,
             self.tag_config_map
         )
 
@@ -364,9 +368,17 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             'setting matching text to "%s": [%s]',
             tag_name, join_tokens_text(matching_tokens)
         )
-        for token in matching_tokens:
-            if not structured_document.get_tag(token):
-                structured_document.set_tag(token, tag_name)
+        untagged_matching_tokens = [
+            token
+            for token in matching_tokens
+            if not structured_document.get_tag(token)
+        ]
+        for index, token in enumerate(untagged_matching_tokens):
+            prefix = None
+            if self.config.use_begin_prefix:
+                prefix = B_TAG_PREFIX if index == 0 else I_TAG_PREFIX
+            full_tag = add_tag_prefix(tag_name, prefix=prefix)
+            structured_document.set_tag(token, full_tag)
 
     def iter_matching_index_ranges(
             self,

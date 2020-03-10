@@ -11,7 +11,8 @@ from sciencebeam_gym.structured_document import (
     SimpleToken,
     B_TAG_PREFIX,
     I_TAG_PREFIX,
-    add_tag_prefix
+    add_tag_prefix,
+    strip_tag_prefix
 )
 
 from sciencebeam_gym.preprocess.annotation.target_annotation import (
@@ -43,6 +44,10 @@ I_TAG2 = add_tag_prefix(TAG2, prefix=I_TAG_PREFIX)
 
 def _get_tags_of_tokens(tokens):
     return [t.get_tag() for t in tokens]
+
+
+def _get_tag_values_of_tokens(tokens):
+    return [strip_tag_prefix(tag) for tag in _get_tags_of_tokens(tokens)]
 
 
 def _tokens_for_text(text):
@@ -202,7 +207,7 @@ class TestSimpleMatchingAnnotator:
         ]
         doc = _document_for_tokens([matching_tokens])
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
-        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+        assert _get_tag_values_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
 
     def test_should_match_case_insensitive(self):
         matching_tokens = _tokens_for_text('This Is Matching')
@@ -211,7 +216,7 @@ class TestSimpleMatchingAnnotator:
         ]
         doc = SimpleStructuredDocument(lines=[SimpleLine(matching_tokens)])
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
-        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+        assert _get_tag_values_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
 
     def test_should_match_single_quotes_with_double_quotes(self):
         matching_tokens = _tokens_for_text('"this is matching"')
@@ -220,7 +225,7 @@ class TestSimpleMatchingAnnotator:
         ]
         doc = SimpleStructuredDocument(lines=[SimpleLine(matching_tokens)])
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
-        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+        assert _get_tag_values_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
 
     def test_should_match_apos_with_double_quotes(self):
         matching_tokens = _tokens_for_text('"this is matching"')
@@ -229,7 +234,7 @@ class TestSimpleMatchingAnnotator:
         ]
         doc = SimpleStructuredDocument(lines=[SimpleLine(matching_tokens)])
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
-        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+        assert _get_tag_values_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
 
     def test_should_prefer_word_boundaries(self):
         pre_tokens = _tokens_for_text('this')
@@ -242,9 +247,9 @@ class TestSimpleMatchingAnnotator:
             pre_tokens + matching_tokens + post_tokens
         ])
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
-        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
-        assert _get_tags_of_tokens(pre_tokens) == [None] * len(pre_tokens)
-        assert _get_tags_of_tokens(post_tokens) == [None] * len(post_tokens)
+        assert _get_tag_values_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+        assert _get_tag_values_of_tokens(pre_tokens) == [None] * len(pre_tokens)
+        assert _get_tag_values_of_tokens(post_tokens) == [None] * len(post_tokens)
 
     def test_should_annotate_fuzzily_matching(self):
         matching_tokens = _tokens_for_text('this is matching')
@@ -253,7 +258,7 @@ class TestSimpleMatchingAnnotator:
         ]
         doc = _document_for_tokens([matching_tokens])
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
-        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+        assert _get_tag_values_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
 
     def test_should_annotate_using_alternative_spellings(self):
         matching_tokens = _tokens_for_text('this is matching')
@@ -269,7 +274,7 @@ class TestSimpleMatchingAnnotator:
                 })
             }
         ).annotate(doc)
-        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+        assert _get_tag_values_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
 
     def test_should_annotate_ignoring_space_after_dot_short_sequence(self):
         matching_tokens = [
@@ -280,7 +285,7 @@ class TestSimpleMatchingAnnotator:
         ]
         doc = _document_for_tokens([matching_tokens])
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
-        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+        assert _get_tag_values_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
 
     def test_should_annotate_ignoring_comma_after_short_sequence(self):
         matching_tokens = [
@@ -291,7 +296,7 @@ class TestSimpleMatchingAnnotator:
         ]
         doc = _document_for_tokens([matching_tokens])
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
-        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+        assert _get_tag_values_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
 
     def test_should_annotate_including_final_dot(self):
         matching_tokens = _tokens_for_text('this is matching.')
@@ -300,7 +305,7 @@ class TestSimpleMatchingAnnotator:
         ]
         doc = _document_for_tokens([matching_tokens])
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
-        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+        assert _get_tag_values_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
 
     def test_should_annotate_ignoring_dots_after_capitals_in_target_annotation(self):
         matching_tokens = _tokens_for_text('PO Box 12345')
@@ -309,7 +314,7 @@ class TestSimpleMatchingAnnotator:
         ]
         doc = _document_for_tokens([matching_tokens])
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
-        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+        assert _get_tag_values_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
 
     @pytest.mark.skip(reason="this is currently failing, needs more investigation")
     def test_should_annotate_ignoring_dots_after_capitals_in_document(self):
@@ -341,8 +346,8 @@ class TestSimpleMatchingAnnotator:
             target_annotations,
             tag_config_map={TAG1: SimpleTagConfig(match_prefix_regex=r'(?=^|\n)\d\s*$')}
         ).annotate(doc)
-        assert _get_tags_of_tokens(number_tokens) == [TAG1] * len(number_tokens)
-        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+        assert _get_tag_values_of_tokens(number_tokens) == [TAG1] * len(number_tokens)
+        assert _get_tag_values_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
 
     def test_should_not_annotate_author_aff_preceding_number_if_it_is_following_text(self):
         number_tokens = _tokens_for_text('Smith 1')
@@ -355,8 +360,8 @@ class TestSimpleMatchingAnnotator:
             target_annotations,
             tag_config_map={TAG1: SimpleTagConfig(match_prefix_regex=r'(?=^|\n)\d\s*$')}
         ).annotate(doc)
-        assert _get_tags_of_tokens(number_tokens) == [None] * len(number_tokens)
-        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+        assert _get_tag_values_of_tokens(number_tokens) == [None] * len(number_tokens)
+        assert _get_tag_values_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
 
     @log_on_exception
     def test_should_not_annotate_author_aff_label_between_author_names(self):
@@ -371,8 +376,28 @@ class TestSimpleMatchingAnnotator:
             target_annotations,
             tag_config_map={}
         ).annotate(doc)
-        assert _get_tags_of_tokens(author_tokens) == [TAG1] * len(author_tokens)
-        assert _get_tags_of_tokens(aff_tokens) == [TAG2] * len(aff_tokens)
+        assert _get_tag_values_of_tokens(author_tokens) == [TAG1] * len(author_tokens)
+        assert _get_tag_values_of_tokens(aff_tokens) == [TAG2] * len(aff_tokens)
+
+    @log_on_exception
+    def test_should_annotate_separate_author_aff_with_begin_prefix(self):
+        aff1_tokens = _tokens_for_text('University of Science')
+        aff2_tokens = _tokens_for_text('University of Madness')
+        target_annotations = [
+            TargetAnnotation(['1', 'University of Science'], TAG1),
+            TargetAnnotation(['2', 'University of Madness'], TAG1)
+        ]
+        doc = _document_for_tokens([aff1_tokens, aff2_tokens])
+        SimpleMatchingAnnotator(
+            target_annotations,
+            tag_config_map={}
+        ).annotate(doc)
+        assert (
+            _get_tags_of_tokens(aff1_tokens) == [B_TAG1] + [I_TAG1] * (len(aff1_tokens) - 1)
+        )
+        assert (
+            _get_tags_of_tokens(aff2_tokens) == [B_TAG1] + [I_TAG1] * (len(aff2_tokens) - 1)
+        )
 
     def test_should_annotate_abstract_section_heading(self):
         matching_tokens = _tokens_for_text('Abstract\nthis is matching.')
@@ -384,7 +409,7 @@ class TestSimpleMatchingAnnotator:
             target_annotations,
             tag_config_map={TAG1: SimpleTagConfig(match_prefix_regex=r'(abstract|summary)\s*$')}
         ).annotate(doc)
-        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+        assert _get_tag_values_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
 
     def test_should_not_annotate_fuzzily_matching_with_many_differences(self):
         matching_tokens = _tokens_for_text('this is matching')
@@ -415,7 +440,7 @@ class TestSimpleMatchingAnnotator:
         ]
         doc = _document_for_tokens(matching_tokens_per_line)
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
-        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+        assert _get_tag_values_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
 
     def test_should_annotate_over_multiple_lines_with_tag_transition(self):
         tag1_tokens_by_line = [
@@ -439,8 +464,8 @@ class TestSimpleMatchingAnnotator:
         ]
         doc = _document_for_tokens(tokens_by_line)
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
-        assert _get_tags_of_tokens(tag1_tokens) == [TAG1] * len(tag1_tokens)
-        assert _get_tags_of_tokens(tag2_tokens) == [TAG2] * len(tag2_tokens)
+        assert _get_tag_values_of_tokens(tag1_tokens) == [TAG1] * len(tag1_tokens)
+        assert _get_tag_values_of_tokens(tag2_tokens) == [TAG2] * len(tag2_tokens)
 
     def test_should_annotate_multiple_value_annotation(self):
         pre_tokens = _tokens_for_text('this is')
@@ -452,9 +477,9 @@ class TestSimpleMatchingAnnotator:
         ]
         doc = _document_for_tokens([doc_tokens])
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
-        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
-        assert _get_tags_of_tokens(pre_tokens) == [None] * len(pre_tokens)
-        assert _get_tags_of_tokens(post_tokens) == [None] * len(post_tokens)
+        assert _get_tag_values_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+        assert _get_tag_values_of_tokens(pre_tokens) == [None] * len(pre_tokens)
+        assert _get_tag_values_of_tokens(post_tokens) == [None] * len(post_tokens)
 
     def test_should_annotate_multiple_value_annotation_in_reverse_order(self):
         pre_tokens = _tokens_for_text('this is')
@@ -466,9 +491,9 @@ class TestSimpleMatchingAnnotator:
         ]
         doc = _document_for_tokens([doc_tokens])
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
-        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
-        assert _get_tags_of_tokens(pre_tokens) == [None] * len(pre_tokens)
-        assert _get_tags_of_tokens(post_tokens) == [None] * len(post_tokens)
+        assert _get_tag_values_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+        assert _get_tag_values_of_tokens(pre_tokens) == [None] * len(pre_tokens)
+        assert _get_tag_values_of_tokens(post_tokens) == [None] * len(post_tokens)
 
     def test_should_annotate_multiple_value_annotation_too_far_away(self):
         pre_tokens = _tokens_for_text('this is')
@@ -480,9 +505,9 @@ class TestSimpleMatchingAnnotator:
         ]
         doc = _document_for_tokens([doc_tokens])
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
-        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
-        assert _get_tags_of_tokens(pre_tokens) == [None] * len(pre_tokens)
-        assert _get_tags_of_tokens(post_tokens) == [None] * len(post_tokens)
+        assert _get_tag_values_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+        assert _get_tag_values_of_tokens(pre_tokens) == [None] * len(pre_tokens)
+        assert _get_tag_values_of_tokens(post_tokens) == [None] * len(post_tokens)
 
     @log_on_exception
     def test_should_annotate_and_merge_multiple_authors_annotation(self):
@@ -495,9 +520,9 @@ class TestSimpleMatchingAnnotator:
         ]
         doc = _document_for_tokens([pre_tokens, matching_tokens, post_tokens])
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
-        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
-        assert _get_tags_of_tokens(pre_tokens) == [None] * len(pre_tokens)
-        assert _get_tags_of_tokens(post_tokens) == [None] * len(post_tokens)
+        assert _get_tag_values_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+        assert _get_tag_values_of_tokens(pre_tokens) == [None] * len(pre_tokens)
+        assert _get_tag_values_of_tokens(post_tokens) == [None] * len(post_tokens)
 
     @log_on_exception
     def test_should_annotate_but_not_merge_multiple_authors_annotation_too_far_apart(self):
@@ -514,11 +539,11 @@ class TestSimpleMatchingAnnotator:
             pre_tokens, matching_tokens_1, mid_tokens, matching_tokens_2, post_tokens
         ])
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
-        assert _get_tags_of_tokens(matching_tokens_1) == [TAG1] * len(matching_tokens_1)
-        assert _get_tags_of_tokens(matching_tokens_2) == [TAG1] * len(matching_tokens_2)
-        assert _get_tags_of_tokens(mid_tokens) == [None] * len(mid_tokens)
-        assert _get_tags_of_tokens(pre_tokens) == [None] * len(pre_tokens)
-        assert _get_tags_of_tokens(post_tokens) == [None] * len(post_tokens)
+        assert _get_tag_values_of_tokens(matching_tokens_1) == [TAG1] * len(matching_tokens_1)
+        assert _get_tag_values_of_tokens(matching_tokens_2) == [TAG1] * len(matching_tokens_2)
+        assert _get_tag_values_of_tokens(mid_tokens) == [None] * len(mid_tokens)
+        assert _get_tag_values_of_tokens(pre_tokens) == [None] * len(pre_tokens)
+        assert _get_tag_values_of_tokens(post_tokens) == [None] * len(post_tokens)
 
     @log_on_exception
     def test_should_annotate_whole_line(self):
@@ -531,9 +556,9 @@ class TestSimpleMatchingAnnotator:
         ]
         doc = _document_for_tokens([matching_tokens])
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
-        assert _get_tags_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
-        assert _get_tags_of_tokens(pre_tokens) == [None] * len(pre_tokens)
-        assert _get_tags_of_tokens(post_tokens) == [None] * len(post_tokens)
+        assert _get_tag_values_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+        assert _get_tag_values_of_tokens(pre_tokens) == [None] * len(pre_tokens)
+        assert _get_tag_values_of_tokens(post_tokens) == [None] * len(post_tokens)
 
 
 class TestGetSimpleTagConfigMap:
