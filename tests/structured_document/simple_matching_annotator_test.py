@@ -103,6 +103,13 @@ class TestSelectIndexRanges:
         assert selected == [(1, 3)]
         assert unselected == [(103, 105)]
 
+    def test_should_select_second_longer_of_two_apart_index_ranges(self):
+        selected, unselected = select_index_ranges([
+            (1, 3), (103, 109)
+        ])
+        assert selected == [(103, 109)]
+        assert unselected == [(1, 3)]
+
     def test_should_select_two_close_and_unselect_apart_index_ranges(self):
         selected, unselected = select_index_ranges([
             (1, 3), (3, 5), (103, 105)
@@ -547,6 +554,7 @@ class TestSimpleMatchingAnnotator:
         ]
         doc = _document_for_tokens([doc_tokens])
         SimpleMatchingAnnotator(target_annotations).annotate(doc)
+        LOGGER.debug('doc: %s', _get_document_token_tags(doc))
         assert _get_tag_values_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
         assert _get_tag_values_of_tokens(pre_tokens) == [None] * len(pre_tokens)
         assert _get_tag_values_of_tokens(post_tokens) == [None] * len(post_tokens)

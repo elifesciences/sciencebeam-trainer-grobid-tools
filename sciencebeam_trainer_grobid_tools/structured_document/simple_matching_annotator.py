@@ -198,12 +198,15 @@ def select_index_ranges(index_ranges: List[Tuple[int, int]]) -> Tuple[int, int]:
         IndexRangeCluster([index_range])
         for index_range in index_ranges
     ])
-    selected = merged_clusters[0].index_ranges
-    unselected = [
+    sorted_by_length_merged_clusters = sorted(
+        merged_clusters, key=lambda cluster: cluster.length, reverse=True
+    )
+    selected = sorted_by_length_merged_clusters[0].index_ranges
+    unselected = sorted([
         index_range
-        for cluster in merged_clusters[1:]
+        for cluster in sorted_by_length_merged_clusters[1:]
         for index_range in cluster.index_ranges
-    ]
+    ])
     return selected, unselected
 
 
