@@ -25,10 +25,15 @@ class FrontTagNames:
     PAGE = 'page'
 
 
+class BackTagNames:
+    REFERENCE = 'reference'
+
+
 class SegmentationTagNames:
     FRONT = 'front'
     PAGE = 'page'
     BODY = 'body'
+    REFERENCE = 'reference'
 
 
 def _get_class_tag_names(c) -> Set[str]:

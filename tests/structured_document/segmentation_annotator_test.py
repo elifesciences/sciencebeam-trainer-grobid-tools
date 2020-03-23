@@ -14,6 +14,7 @@ from sciencebeam_trainer_grobid_tools.structured_document.segmentation_annotator
     SegmentationConfig,
     SegmentationAnnotator,
     FrontTagNames,
+    BackTagNames,
     SegmentationTagNames
 )
 
@@ -25,7 +26,8 @@ SEGMENTATION_CONTAINER_NODE_PATH = ContainerNodePaths.SEGMENTATION_CONTAINER_NOD
 
 
 DEFAULT_CONFIG = SegmentationConfig({
-    SegmentationTagNames.FRONT: {FrontTagNames.TITLE}
+    SegmentationTagNames.FRONT: {FrontTagNames.TITLE},
+    SegmentationTagNames.REFERENCE: {BackTagNames.REFERENCE}
 })
 
 
@@ -116,6 +118,18 @@ class TestSegmentationAnnotator:
         assert _get_document_tagged_token_lines(doc) == [
             [
                 (SegmentationTagNames.FRONT, TOKEN_1)
+            ]
+        ]
+
+    def test_should_annotate_reference_as_reference(self):
+        doc = _simple_document_with_tagged_token_lines(lines=[
+            [(BackTagNames.REFERENCE, TOKEN_1)]
+        ])
+
+        SegmentationAnnotator(DEFAULT_CONFIG).annotate(doc)
+        assert _get_document_tagged_token_lines(doc) == [
+            [
+                (SegmentationTagNames.REFERENCE, TOKEN_1)
             ]
         ]
 
