@@ -65,19 +65,23 @@ class SimpleTagConfig:
             match_prefix_regex: str = None,
             alternative_spellings: Dict[str, List[str]] = None,
             merge_enabled: bool = DEFAULT_MERGE_ENABLED,
-            extend_to_line_enabled: bool = DEFAULT_EXTEND_TO_LINE_ENABLED):
+            extend_to_line_enabled: bool = DEFAULT_EXTEND_TO_LINE_ENABLED,
+            block_name: str = None):
         self.match_prefix_regex = match_prefix_regex
         self.alternative_spellings = alternative_spellings
         self.merge_enabled = merge_enabled
         self.extend_to_line_enabled = extend_to_line_enabled
+        self.block_name = block_name
 
     def __repr__(self):
         return (
             '%s(match_prefix_regex=%s, alternative_spellings=%s,'
-            + ' merge_enabled%s, extend_to_line_enabled=%s)'
+            + ' merge_enabled%s, extend_to_line_enabled=%s,'
+            + ' block_name=%s)'
         ) % (
             type(self).__name__, self.match_prefix_regex, self.alternative_spellings,
-            self.merge_enabled, self.extend_to_line_enabled
+            self.merge_enabled, self.extend_to_line_enabled,
+            self.block_name
         )
 
 
@@ -115,6 +119,9 @@ class SimpleSimpleMatchingConfig:
             self.use_begin_prefix,
             self.tag_config_map
         )
+
+    def get_tag_config(self, tag_name: str) -> SimpleTagConfig:
+        return self.tag_config_map.get(tag_name, DEFAULT_SIMPLE_TAG_CONFIG)
 
 
 def merge_index_ranges(index_ranges: List[Tuple[int, int]]) -> Tuple[int, int]:
@@ -191,12 +198,15 @@ def select_index_ranges(index_ranges: List[Tuple[int, int]]) -> Tuple[int, int]:
         IndexRangeCluster([index_range])
         for index_range in index_ranges
     ])
-    selected = merged_clusters[0].index_ranges
-    unselected = [
+    sorted_by_length_merged_clusters = sorted(
+        merged_clusters, key=lambda cluster: cluster.length, reverse=True
+    )
+    selected = sorted_by_length_merged_clusters[0].index_ranges
+    unselected = sorted([
         index_range
-        for cluster in merged_clusters[1:]
+        for cluster in sorted_by_length_merged_clusters[1:]
         for index_range in cluster.index_ranges
-    ]
+    ])
     return selected, unselected
 
 
@@ -483,21 +493,54 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             structured_document,
             normalize_fn=normalise_and_remove_junk_str
         )
+        current_pending_sequences = pending_sequences
         target_annotations_grouped_by_tag = groupby(
             self.target_annotations,
             key=lambda target_annotation: target_annotation.name
         )
+        current_block_name = None
         for tag_name, grouped_target_annotations in target_annotations_grouped_by_tag:
+            tag_block_name = self.config.get_tag_config(tag_name).block_name or 'default'
+            LOGGER.debug(
+                'tag_block_name: %s (current_block_name: %s)',
+                tag_block_name, current_block_name
+            )
             grouped_target_annotations = list(grouped_target_annotations)
             LOGGER.debug('grouped_target_annotations: %s', grouped_target_annotations)
             for target_annotation in grouped_target_annotations:
-                text = SequencesText(pending_sequences.get_pending_sequences(
+                text = SequencesText(current_pending_sequences.get_pending_sequences(
                     limit=self.config.lookahead_sequence_count
                 ))
                 index_ranges = list(self.iter_matching_index_ranges(
                     text,
                     [target_annotation]
                 ))
+                if not index_ranges and current_block_name != tag_block_name:
+                    LOGGER.debug(
+                        'block name has changed, scanning whole document (%s)',
+                        tag_block_name
+                    )
+                    text = SequencesText(pending_sequences.get_pending_sequences(
+                        limit=None
+                    ))
+                    index_ranges = list(self.iter_matching_index_ranges(
+                        text,
+                        [target_annotation]
+                    ))
+                    if not index_ranges:
+                        continue
+                    index_range = merge_index_ranges(index_ranges)
+                    block_index_range = (index_range[0], text.end_index)
+                    current_pending_sequences = PendingSequences(
+                        list(text.iter_sequences_between(block_index_range))
+                    )
+                    LOGGER.debug(
+                        'set current_pending_sequences to %s (%s), text:\n%s',
+                        block_index_range,
+                        tag_block_name,
+                        SequencesText(current_pending_sequences.get_pending_sequences())
+                    )
+                    current_block_name = tag_block_name
                 if not index_ranges:
                     continue
                 index_range = merge_index_ranges(index_ranges)
@@ -520,6 +563,7 @@ class SimpleTagConfigProps:
     ALTERNATIVE_SPELLINGS = 'alternative-spellings'
     MERGE = 'merge'
     EXTEND_TO_LINE = 'extend-to-line'
+    BLOCK = 'block'
 
 
 def parse_regex(regex_str: str) -> str:
@@ -565,7 +609,10 @@ def get_simple_tag_config(config_map: Dict[str, str], field: str) -> SimpleTagCo
         extend_to_line_enabled=strtobool(config_map.get(
             '%s.%s' % (field, SimpleTagConfigProps.EXTEND_TO_LINE),
             str(DEFAULT_EXTEND_TO_LINE_ENABLED)
-        )) == 1
+        )) == 1,
+        block_name=config_map.get(
+            '%s.%s' % (field, SimpleTagConfigProps.BLOCK)
+        )
     )
 
 

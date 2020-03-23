@@ -1,8 +1,23 @@
 from lxml.builder import E
 
 from sciencebeam_trainer_grobid_tools.annotation.target_annotation import (
+    contains_raw_text,
     get_raw_text_content
 )
+
+
+class TestContainsRawTextContent:
+    def test_should_return_true_if_element_contains_text(self):
+        assert contains_raw_text(E.node('raw text 1'))
+
+    def test_should_return_false_if_element_contains_child_element_with_text(self):
+        assert not contains_raw_text(E.node(E.child('raw text 1')))
+
+    def test_should_return_true_if_child_element_is_followed_by_text(self):
+        assert contains_raw_text(E.node(E.child('child'), 'tail text'))
+
+    def test_should_return_true_if_child_element_contains_child_element_followed_by_text(self):
+        assert contains_raw_text(E.node(E.child(E.innerChild('child'), 'tail text')))
 
 
 class TestGetRawTextContent:
