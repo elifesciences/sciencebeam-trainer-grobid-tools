@@ -99,8 +99,12 @@ def _get_line_token_tags(structured_document: AbstractStructuredDocument, line) 
     ]
 
 
+def _to_tag_values(tags: List[str]) -> List[str]:
+    return list(map(strip_tag_prefix, tags))
+
+
 def _get_line_token_tag_values(*args, **kwargs) -> List[str]:
-    return list(map(strip_tag_prefix, _get_line_token_tags(*args, **kwargs)))
+    return _to_tag_values(_get_line_token_tags(*args, **kwargs))
 
 
 def _get_line_token_tags_or_preserved_tags(
@@ -134,7 +138,8 @@ class SegmentationAnnotator(AbstractAnnotator):
         untagged_indexed_lines = []
         min_max_by_tag = {}
         for line_index, line in enumerate(_iter_all_lines(structured_document)):
-            line_token_tags = _get_line_token_tag_values(structured_document, line)
+            full_line_token_tags = _get_line_token_tags(structured_document, line)
+            line_token_tags = _to_tag_values(full_line_token_tags)
             line_tag_counts = Counter(line_token_tags)
             if not line_tag_counts:
                 continue
@@ -158,7 +163,12 @@ class SegmentationAnnotator(AbstractAnnotator):
                 segmentation_tag = None
                 _clear_line_token_tags(structured_document, line)
 
-            if segmentation_tag:
+            if segmentation_tag and segmentation_tag == majority_tag_name:
+                LOGGER.debug(
+                    'keep line tokens for %s',
+                    segmentation_tag
+                )
+            elif segmentation_tag:
                 if segmentation_tag not in min_max_by_tag:
                     min_max_by_tag[segmentation_tag] = [line_index, line_index]
                 else:

@@ -6,7 +6,10 @@ from lxml.builder import E
 
 from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei import (
     GrobidTrainingTeiStructuredDocument,
-    ContainerNodePaths
+    ContainerNodePaths,
+    add_tag_prefix,
+    B_TAG_PREFIX,
+    I_TAG_PREFIX
 )
 
 from sciencebeam_trainer_grobid_tools.structured_document.segmentation_annotator import (
@@ -34,6 +37,7 @@ DEFAULT_CONFIG = SegmentationConfig({
 TOKEN_1 = 'token1'
 TOKEN_2 = 'token2'
 TOKEN_3 = 'token3'
+TOKEN_4 = 'token4'
 
 
 OTHER_TAG = 'other'
@@ -130,6 +134,30 @@ class TestSegmentationAnnotator:
         assert _get_document_tagged_token_lines(doc) == [
             [
                 (SegmentationTagNames.REFERENCE, TOKEN_1)
+            ]
+        ]
+
+    def test_should_keep_separate_reference(self):
+        doc = _simple_document_with_tagged_token_lines(lines=[
+            [
+                (add_tag_prefix(BackTagNames.REFERENCE, prefix=B_TAG_PREFIX), TOKEN_1),
+                (add_tag_prefix(BackTagNames.REFERENCE, prefix=I_TAG_PREFIX), TOKEN_2)
+            ],
+            [
+                (add_tag_prefix(BackTagNames.REFERENCE, prefix=B_TAG_PREFIX), TOKEN_3),
+                (add_tag_prefix(BackTagNames.REFERENCE, prefix=I_TAG_PREFIX), TOKEN_4)
+            ]
+        ])
+
+        SegmentationAnnotator(DEFAULT_CONFIG).annotate(doc)
+        assert _get_document_tagged_token_lines(doc) == [
+            [
+                (add_tag_prefix(BackTagNames.REFERENCE, prefix=B_TAG_PREFIX), TOKEN_1),
+                (add_tag_prefix(BackTagNames.REFERENCE, prefix=I_TAG_PREFIX), TOKEN_2)
+            ],
+            [
+                (add_tag_prefix(BackTagNames.REFERENCE, prefix=B_TAG_PREFIX), TOKEN_3),
+                (add_tag_prefix(BackTagNames.REFERENCE, prefix=I_TAG_PREFIX), TOKEN_4)
             ]
         ]
 
