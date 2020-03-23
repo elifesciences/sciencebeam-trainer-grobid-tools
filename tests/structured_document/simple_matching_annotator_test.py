@@ -65,6 +65,17 @@ def _document_for_tokens(tokens_by_line):
     return SimpleStructuredDocument(lines=_lines_for_tokens(tokens_by_line))
 
 
+def _get_document_token_tags(doc: SimpleStructuredDocument):
+    return [
+        [
+            (doc.get_text(token), doc.get_tag(token))
+            for token in doc.get_tokens_of_line(line)
+        ]
+        for page in doc.get_pages()
+        for line in doc.get_lines_of_page(page)
+    ]
+
+
 class TestSelectIndexRanges:
     def test_should_select_no_index_ranges(self):
         selected, unselected = select_index_ranges([])
@@ -526,7 +537,7 @@ class TestSimpleMatchingAnnotator:
         assert _get_tag_values_of_tokens(pre_tokens) == [None] * len(pre_tokens)
         assert _get_tag_values_of_tokens(post_tokens) == [None] * len(post_tokens)
 
-    def test_should_annotate_multiple_value_annotation_too_far_away(self):
+    def test_should_not_annotate_multiple_value_annotation_too_far_away(self):
         pre_tokens = _tokens_for_text('this is')
         matching_tokens = _tokens_for_text('smith')
         post_tokens = _tokens_for_text('etc') * 40 + _tokens_for_text('john')
@@ -599,6 +610,27 @@ class TestSimpleMatchingAnnotator:
         assert _get_tag_values_of_tokens(pre_tokens) == [None] * len(pre_tokens)
         assert _get_tag_values_of_tokens(post_tokens) == [None] * len(post_tokens)
 
+    def test_should_annotate_references(self):
+        matching_tokens_list = [
+            _tokens_for_text('1 this is reference A'),
+            _tokens_for_text('2 this is reference B'),
+            _tokens_for_text('3 this is reference C')
+        ]
+        matching_tokens = flatten(matching_tokens_list)
+        target_annotations = [
+            TargetAnnotation('this is reference A', TAG1),
+            TargetAnnotation('this is reference B', TAG1),
+            TargetAnnotation('this is reference C', TAG1)
+        ]
+        pre_tokens = [_tokens_for_text('previous line')] * 5
+        doc = _document_for_tokens(pre_tokens + matching_tokens_list)
+        SimpleMatchingAnnotator(
+            target_annotations,
+            lookahead_sequence_count=3
+        ).annotate(doc)
+        LOGGER.debug('doc: %s', _get_document_token_tags(doc))
+        assert _get_tag_values_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+
 
 class TestGetSimpleTagConfigMap:
     def test_should_parse_merge_flag(self):
@@ -654,3 +686,15 @@ class TestGetSimpleTagConfigMap:
         assert tag_config.alternative_spellings == {
             'Key 1': ['Alternative 1', 'Alternative 2']
         }
+
+    def test_should_parse_block(self):
+        tag_config_map = get_simple_tag_config_map({
+            'any': {
+                'tag1': 'xpath1',
+                'tag1.block': 'block1',
+                'tag2': 'xpath2'
+            }
+        })
+        assert set(tag_config_map.keys()) == {'tag1', 'tag2'}
+        assert tag_config_map['tag1'].block_name == 'block1'
+        assert tag_config_map['tag2'].block_name is None

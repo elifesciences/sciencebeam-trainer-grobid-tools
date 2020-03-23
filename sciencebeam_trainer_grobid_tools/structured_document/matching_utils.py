@@ -1,6 +1,6 @@
 import logging
 from itertools import islice
-from typing import Callable, List, Tuple
+from typing import Callable, Iterable, List, Tuple
 
 from sciencebeam_utils.utils.collection import (
     iter_flatten
@@ -115,6 +115,13 @@ class JoinedText:
 class SequencesText:
     def __init__(self, sequences: List[SequenceWrapper], sep: str = '\n', pad: str = ''):
         self._joined_text = JoinedText(sequences, sep=sep, pad=pad)
+
+    def iter_sequences_between(self, index_range: Tuple[int, int]) -> Iterable[SequenceWrapper]:
+        seq_and_index_range_iterable = self._joined_text.iter_items_and_index_range_between(
+            index_range
+        )
+        for seq, _ in seq_and_index_range_iterable:
+            yield seq
 
     def iter_tokens_between(self, index_range: Tuple[int, int]):
         start, end = index_range
