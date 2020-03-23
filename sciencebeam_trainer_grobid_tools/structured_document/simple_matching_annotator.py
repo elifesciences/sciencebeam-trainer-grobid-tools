@@ -530,7 +530,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                     if not index_ranges:
                         continue
                     index_range = merge_index_ranges(index_ranges)
-                    block_index_range = (index_range[0], index_range[1] + 1000)
+                    block_index_range = (index_range[0], text.end_index)
                     current_pending_sequences = PendingSequences(
                         list(text.iter_sequences_between(block_index_range))
                     )
