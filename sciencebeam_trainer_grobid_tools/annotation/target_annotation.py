@@ -1,5 +1,6 @@
 import logging
 import re
+from typing import List
 
 from lxml import etree
 
@@ -37,6 +38,8 @@ def contains_raw_text(element: etree.Element) -> bool:
     for child in element:
         if not is_blank(child.tail):
             return True
+        if list(child) and contains_raw_text(child):
+            return True
     return False
 
 
@@ -55,6 +58,10 @@ def get_raw_text_content(element: etree.Element) -> str:
             text_list.append(' ')
         text_list.append(text)
     return ''.join(text_list)
+
+
+def is_wildcard_children_xpaths(children_xpaths: List[str]) -> bool:
+    return children_xpaths == ['.//*']
 
 
 def xml_root_to_target_annotations(xml_root, xml_mapping):
@@ -119,13 +126,26 @@ def xml_root_to_target_annotations(xml_root, xml_mapping):
             sub_annotations = extract_sub_annotations(e, sub_xpaths, mapping, k)
             LOGGER.debug('sub_annotations (%s): %s', k, sub_annotations)
 
-            if children_xpaths and not contains_raw_text(e):
+            is_contains_raw_text = contains_raw_text(e)
+            should_use_children_xpaths = (
+                children_xpaths
+                and (
+                    not is_wildcard_children_xpaths(children_xpaths)
+                    or not is_contains_raw_text
+                )
+            )
+            if should_use_children_xpaths:
                 text_content_list, standalone_values = extract_children(
                     e, children_xpaths, children_concat, children_range, unmatched_parent_text
                 )
             else:
                 text_content_list = filter_truthy(strip_all([get_raw_text_content(e)]))
                 standalone_values = []
+            LOGGER.debug(
+                'text_content_list: %s, standalone_values: %s,'
+                ' children_xpaths: %s, is_contains_raw_text: %s',
+                text_content_list, standalone_values, children_xpaths, is_contains_raw_text
+            )
             if re_compiled_pattern:
                 text_content_list = filter_truthy([
                     apply_pattern(s, re_compiled_pattern) for s in text_content_list
