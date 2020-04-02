@@ -11,9 +11,16 @@ from sciencebeam_trainer_grobid_tools.utils.xml import (
 
 class TestParseXmlOrGetErrorLine:
     def test_should_parse_valid_xml(self):
-        assert parse_xml_or_get_error_line(
-            lambda: BytesIO(b'<xml>\n</xml>')
-        )
+        root = parse_xml_or_get_error_line(
+            lambda: BytesIO(b'<xml>test</xml>')
+        ).getroot()
+        assert root.text == 'test'
+
+    def test_should_parse_xml_with_space_infront_of_xml_declaration(self):
+        root = parse_xml_or_get_error_line(
+            lambda: BytesIO(b' <?xml version="1.0" encoding="UTF-8"?>\n<xml>test</xml>')
+        ).getroot()
+        assert root.text == 'test'
 
     def test_should_get_error_line(self):
         try:
