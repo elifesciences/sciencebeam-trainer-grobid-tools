@@ -24,12 +24,10 @@ from sciencebeam_gym.preprocess.annotation.target_annotation import (
     flatten_if_nested
 )
 
+from sciencebeam_trainer_grobid_tools.utils.string import is_blank
+
 
 LOGGER = logging.getLogger(__name__)
-
-
-def is_blank(text: str) -> bool:
-    return not text or not text.strip()
 
 
 def contains_raw_text(element: etree.Element) -> bool:
