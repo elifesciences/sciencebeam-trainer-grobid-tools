@@ -2,4 +2,4 @@ apache_beam[gcp]==2.18.0
 gcloud==0.18.3
 google-api-python-client==1.8.0
 lxml==4.5.0
-numpy==1.18.1
+numpy==1.18.2
