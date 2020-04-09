@@ -12,12 +12,6 @@ from sciencebeam_gym.preprocess.annotation.target_annotation import (
     TargetAnnotation
 )
 
-from sciencebeam_gym.preprocess.annotation.matching_annotator import (
-    normalise_and_remove_junk_str,
-    normalise_str_or_list,
-    normalise_and_remove_junk_str_or_list
-)
-
 from sciencebeam_gym.preprocess.annotation.annotator import (
     AbstractAnnotator
 )
@@ -38,7 +32,10 @@ from sciencebeam_trainer_grobid_tools.structured_document.matching_utils import 
     SequenceWrapper,
     PendingSequences,
     SequencesText,
-    join_tokens_text
+    join_tokens_text,
+    normalise_and_remove_junk_str,
+    normalise_str_or_list,
+    normalise_and_remove_junk_str_or_list
 )
 
 

@@ -1,10 +1,12 @@
 import logging
 from itertools import islice
-from typing import Callable, Iterable, List, Tuple
+from typing import Callable, Iterable, List, Tuple, Union
 
 from sciencebeam_utils.utils.collection import (
     iter_flatten
 )
+
+from sciencebeam_gym.preprocess.annotation.fuzzy_match import remove_junk
 
 from sciencebeam_gym.structured_document import (
     AbstractStructuredDocument
@@ -16,6 +18,51 @@ from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei im
 
 
 LOGGER = logging.getLogger(__name__)
+
+
+THIN_SPACE = u'\u2009'
+EN_DASH = u'\u2013'
+EM_DASH = u'\u2014'
+APOS = u'&apos;'
+
+
+def DEFAULT_ISJUNK(*_, **__):
+    return False
+
+
+def normalise_str(s):
+    return (
+        s.lower().replace(EM_DASH, u'-').replace(EN_DASH, u'-').replace(THIN_SPACE, ' ')
+        .replace('&apos;', '"')
+        .replace('\'', '"')
+    )
+
+
+def normalise_str_or_list(x):
+    if isinstance(x, list):
+        return [normalise_str(s) for s in x]
+    else:
+        return normalise_str(x)
+
+
+def normalise_and_remove_junk_str(
+        text: str,
+        is_junk_fn: Callable[[str, int], bool] = None) -> str:
+    if is_junk_fn is None:
+        is_junk_fn = DEFAULT_ISJUNK
+    return remove_junk(normalise_str(text), is_junk_fn)
+
+
+def normalise_and_remove_junk_str_or_list(
+        text_or_list: Union[str, List[str]],
+        is_junk_fn: Callable[[str, int], bool] = None) -> str:
+    if isinstance(text_or_list, list):
+        return [
+            normalise_and_remove_junk_str(s, is_junk_fn=is_junk_fn)
+            for s in text_or_list
+        ]
+    else:
+        return normalise_and_remove_junk_str(text_or_list, is_junk_fn=is_junk_fn)
 
 
 def iter_lines(structured_document: AbstractStructuredDocument):
