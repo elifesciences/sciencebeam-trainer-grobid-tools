@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import copy
 import logging
-import json
 import re
 from typing import Dict, Iterable, List
 
@@ -93,13 +92,16 @@ class TeiText(object):
         self.whitespace = whitespace
 
     def __repr__(self):
-        return '%s(%s, tag=%s, sub_tag=%s, preserved_tag=%s, preserved_sub_tag=%s)' % (
+        return (
+            '%s(%s, tag=%s, sub_tag=%s, preserved_tag=%s, preserved_sub_tag=%s, whitespace=%s)'
+        ) % (
             type(self).__name__,
-            json.dumps(self.text),
+            repr(self.text),
             self.attrib.get(TAG_ATTRIB_NAME),
             self.attrib.get(SUB_TAG_ATTRIB_NAME),
             self.attrib.get(PRESERVED_TAG_ATTRIB_NAME),
-            self.attrib.get(PRESERVED_SUB_TAG_ATTRIB_NAME)
+            self.attrib.get(PRESERVED_SUB_TAG_ATTRIB_NAME),
+            repr(self.whitespace)
         )
 
 
@@ -146,8 +148,11 @@ class TokenWriter:
         self.tokens = []
 
     def append_tokenized_text_token(self, tokenized_text_token: str):
-        if self.tokens and not tokenized_text_token.strip():
-            self.tokens[-1].whitespace = tokenized_text_token
+        if self.tokens:
+            if not tokenized_text_token.strip():
+                self.tokens[-1].whitespace = tokenized_text_token
+            else:
+                self.tokens[-1].whitespace = ''
         self.append(_to_text_token(
             tokenized_text_token,
             tag=self.next_tag,

@@ -201,6 +201,19 @@ class TestGrobidTrainingStructuredDocument(object):
         tokens = doc.get_all_tokens_of_line(lines[0])
         assert tokens[0].whitespace == ' '
 
+    def test_should_set_empty_token_whitespace(self):
+        doc = GrobidTrainingTeiStructuredDocument(
+            _tei(front_items=[
+                E.note('1.')
+            ])
+        )
+        lines = _get_all_lines(doc)
+        assert _get_token_texts_for_lines(doc, lines) == [
+            ['1', '.']
+        ]
+        tokens = doc.get_all_tokens_of_line(lines[0])
+        assert tokens[0].whitespace == ''
+
     def test_should_be_able_to_set_tag(self):
         doc = GrobidTrainingTeiStructuredDocument(
             _tei(front_items=[
