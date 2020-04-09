@@ -666,6 +666,29 @@ class TestSimpleMatchingAnnotator:
             [TAG2] + [None] * (len(matching_tokens) - 1)
         )
 
+    def test_should_annotate_references_with_sub_tag_with_extend_to_line(self):
+        matching_tokens_list = [
+            _tokens_for_text('1 this is reference A')
+        ]
+        matching_tokens = flatten(matching_tokens_list)
+        target_annotations = [
+            TargetAnnotation('1 this is reference A', TAG1, sub_annotations=[
+                TargetAnnotation('1', TAG2)
+            ]),
+        ]
+        pre_tokens = [_tokens_for_text('previous line')] * 5
+        doc = _document_for_tokens(pre_tokens + matching_tokens_list)
+        SimpleMatchingAnnotator(
+            target_annotations,
+            lookahead_sequence_count=3,
+            extend_to_line_enabled=True
+        ).annotate(doc)
+        LOGGER.debug('doc: %s', _get_document_token_tags(doc))
+        assert _get_tag_values_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+        assert _get_sub_tag_values_of_tokens(matching_tokens) == (
+            [TAG2] + [None] * (len(matching_tokens) - 1)
+        )
+
 
 class TestGetSimpleTagConfigMap:
     def test_should_parse_merge_flag(self):

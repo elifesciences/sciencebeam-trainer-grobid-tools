@@ -30,7 +30,8 @@ REFERENCE_SEGMENTER_CONTAINER_NODE_PATH = 'text'
 
 REFERENCE_SEGMENTER_TAG_TO_TEI_PATH_MAPPING = {
     DEFAULT_TAG_KEY: 'note[type="other"]',
-    'reference': 'listBibl/bibl'
+    'reference': 'listBibl/bibl',
+    'reference-label': 'listBibl/bibl/label'
 }
 
 

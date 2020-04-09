@@ -82,3 +82,28 @@ class TestEndToEnd(object):
         assert get_xpath_text(tei_auto_root, '//listBibl/bibl') == ' '.join([
             LABEL_1, REFERENCE_TEXT_1
         ])
+
+    @log_on_exception
+    def test_should_auto_annotate_label_within_reference(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_reference_segmenter_tei_node([
+                E.note(LABEL_1 + ' ' + REFERENCE_TEXT_1)
+            ])
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(reference_nodes=[
+                get_jats_reference_node(LABEL_1, REFERENCE_TEXT_1),
+            ])
+        ))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'matcher': 'simple',
+            'fields': 'reference'
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text(tei_auto_root, '//listBibl/bibl') == ' '.join([
+            LABEL_1, REFERENCE_TEXT_1
+        ])
+        assert get_xpath_text(tei_auto_root, '//listBibl/bibl/label') == LABEL_1

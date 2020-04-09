@@ -436,6 +436,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
         tokens = list(text.iter_tokens_between(index_range))
         sub_text = SequencesText([SequenceWrapper(structured_document, tokens)])
         sub_text_str = str(sub_text)
+        LOGGER.debug('sub_text_str: %s', sub_text_str)
         for sub_annotation in sub_annotations:
             sub_tag_name = sub_annotation.name
             target_value = sub_annotation.value
@@ -449,6 +450,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             if not index_range:
                 continue
             matching_tokens = list(sub_text.iter_tokens_between(index_range))
+            LOGGER.debug('setting sub matching_tokens to "%s": %s', sub_tag_name, matching_tokens)
             for index, token in enumerate(matching_tokens):
                 prefix = None
                 if self.config.use_begin_prefix:
