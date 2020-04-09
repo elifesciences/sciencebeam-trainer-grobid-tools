@@ -99,7 +99,8 @@ class TestEndToEnd(object):
         main(dict_to_args({
             **test_helper.main_args_dict,
             'matcher': 'simple',
-            'fields': 'reference'
+            'fields': 'reference',
+            'xml-mapping-overrides': 'reference.use-raw-text=true'
         }), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()

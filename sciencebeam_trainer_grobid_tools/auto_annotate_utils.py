@@ -38,7 +38,7 @@ from sciencebeam_trainer_grobid_tools.annotation.target_annotation import (
     xml_root_to_target_annotations
 )
 
-from .utils.string import comma_separated_str_to_list
+from .utils.string import comma_separated_str_to_list, parse_dict
 from .utils.regex import regex_change_name
 from .utils.xml import parse_xml
 from .structured_document.annotator import annotate_structured_document
@@ -205,6 +205,13 @@ def add_annotation_pipeline_arguments(parser: argparse.ArgumentParser):
         ])
     )
 
+    line_no_group.add_argument(
+        '--xml-mapping-overrides', type=parse_dict,
+        help=' '.join([
+            'override xml mapping values, in the format: key1=value1|key2=value2'
+        ])
+    )
+
     add_cloud_args(parser)
     return parser
 
@@ -245,9 +252,29 @@ def get_filtered_xml_mapping_and_fields(
     return xml_mapping, fields
 
 
-def get_xml_mapping_and_fields(xml_mapping_path, fields):
+def get_xml_mapping_with_overrides(
+        xml_mapping: Dict[str, Dict[str, str]],
+        xml_mapping_overrides: Dict[str, str]):
+    if not xml_mapping_overrides:
+        return xml_mapping
+    return {
+        top_level_key: {
+            **field_mapping,
+            **xml_mapping_overrides
+        }
+        for top_level_key, field_mapping in xml_mapping.items()
+    }
+
+
+def get_xml_mapping_and_fields(
+        xml_mapping_path: str,
+        fields: List[str],
+        xml_mapping_overrides: Dict[str, str] = None) -> Dict[str, Dict[str, str]]:
     return get_filtered_xml_mapping_and_fields(
-        parse_xml_mapping(xml_mapping_path),
+        get_xml_mapping_with_overrides(
+            parse_xml_mapping(xml_mapping_path),
+            xml_mapping_overrides=xml_mapping_overrides
+        ),
         fields
     )
 

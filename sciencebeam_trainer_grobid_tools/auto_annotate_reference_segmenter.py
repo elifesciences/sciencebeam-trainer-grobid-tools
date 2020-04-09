@@ -56,7 +56,8 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
         )
         self.xml_mapping, self.fields = get_xml_mapping_and_fields(
             opt.xml_mapping_path,
-            opt.fields
+            opt.fields,
+            xml_mapping_overrides=opt.xml_mapping_overrides
         )
         self.tag_to_tei_path_mapping = self.tag_to_tei_path_mapping.copy()
         for field in self.fields:

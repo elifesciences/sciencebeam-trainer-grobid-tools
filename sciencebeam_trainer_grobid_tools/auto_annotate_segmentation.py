@@ -73,7 +73,8 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
         )
         self.xml_mapping, self.fields = get_xml_mapping_and_fields(
             opt.xml_mapping_path,
-            opt.fields
+            opt.fields,
+            xml_mapping_overrides=opt.xml_mapping_overrides
         )
         self.segmentation_config = parse_segmentation_config(opt.segmentation_config)
 
