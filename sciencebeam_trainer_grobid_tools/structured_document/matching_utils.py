@@ -67,8 +67,8 @@ class SequenceWrapper:
         self.tokens_as_str = str(self.joined_text)
 
     def tokens_between(self, index_range: Tuple[int, int]) -> list:
-        for token, _ in self.joined_text.iter_items_and_index_range_between(index_range):
-            yield token
+        for index, _ in self.joined_text.iter_item_indices_and_index_range_between(index_range):
+            yield self.tokens[index]
 
     def sub_sequence_for_tokens(self, tokens: list):
         return SequenceWrapper(self.structured_document, tokens, str_filter_f=self.str_filter_f)
@@ -199,13 +199,21 @@ class JoinedText:
         _, last_index_end = last_index_range
         return last_index_end
 
-    def iter_items_and_index_range_between(self, index_range: Tuple[int, int]):
+    def iter_item_indices_and_index_range_between(self, index_range: Tuple[int, int]):
         start, end = index_range
-        for item, (item_start, item_end) in zip(self._items, self._item_index_ranges):
+        for item_index, (item_start, item_end) in enumerate(self._item_index_ranges):
             if item_start >= end:
                 break
             if item_end > start:
-                yield item, (item_start, item_end)
+                yield item_index, (item_start, item_end)
+
+    def iter_items_and_index_range_between(self, index_range: Tuple[int, int]):
+        return (
+            (self._items[index], item_index_range)
+            for index, item_index_range in self.iter_item_indices_and_index_range_between(
+                index_range
+            )
+        )
 
     def get_text(self):
         return self._text

@@ -49,3 +49,9 @@ class TestSequenceWrapper:
         doc = SimpleStructuredDocument(lines=[SimpleLine(tokens)])
         seq = SequenceWrapper(doc, tokens)
         assert str(seq) == ''.join([TOKEN_1, TOKEN_2])
+
+    def test_should_get_tokens_between(self):
+        tokens = [SimpleToken(TOKEN_1), SimpleToken(TOKEN_2)]
+        doc = SimpleStructuredDocument(lines=[SimpleLine(tokens)])
+        seq = SequenceWrapper(doc, tokens)
+        assert list(seq.tokens_between((0, len(TOKEN_1)))) == [tokens[0]]
