@@ -335,9 +335,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             self, haystack: str, needle, **kwargs):
         if len(needle) < self.config.min_token_length:
             return None
-        target_value = split_and_join_with_space(
-            normalise_str_or_list(needle)
-        )
+        target_value = normalise_str_or_list(needle)
         LOGGER.debug('target_value: %s', target_value)
         if len(target_value) < self.config.exact_word_match_threshold:
             # line feeds are currently not default separators for WordSequenceMatcher
@@ -438,6 +436,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             return
         LOGGER.debug('processing sub annotations: %s', sub_annotations)
         tokens = list(text.iter_tokens_between(index_range))
+        LOGGER.debug('sub_tokens: %s', tokens)
         sub_text = SequencesText([SequenceWrapper(structured_document, tokens)])
         sub_text_str = str(sub_text)
         LOGGER.debug('sub_text_str: %s', sub_text_str)
