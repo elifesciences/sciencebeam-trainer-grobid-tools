@@ -188,6 +188,19 @@ class TestGrobidTrainingStructuredDocument(object):
             [TOKEN_1, TOKEN_2]
         ]
 
+    def test_should_set_token_whitespace(self):
+        doc = GrobidTrainingTeiStructuredDocument(
+            _tei(front_items=[
+                E.note(' '.join([TOKEN_1, TOKEN_2]))
+            ])
+        )
+        lines = _get_all_lines(doc)
+        assert _get_token_texts_for_lines(doc, lines) == [
+            [TOKEN_1, TOKEN_2]
+        ]
+        tokens = doc.get_all_tokens_of_line(lines[0])
+        assert tokens[0].whitespace == ' '
+
     def test_should_be_able_to_set_tag(self):
         doc = GrobidTrainingTeiStructuredDocument(
             _tei(front_items=[

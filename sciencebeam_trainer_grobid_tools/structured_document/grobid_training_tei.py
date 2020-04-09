@@ -80,6 +80,7 @@ class TeiText(object):
             text: str,
             tag: str = None,
             sub_tag: str = None,
+            whitespace: str = None,
             attrib: Dict[str, str] = None):
         self.text = text
         self.stripped_text = text.strip()
@@ -89,6 +90,7 @@ class TeiText(object):
         if sub_tag is not None:
             self.attrib[SUB_TAG_ATTRIB_NAME] = sub_tag
         self.line = None
+        self.whitespace = whitespace
 
     def __repr__(self):
         return '%s(%s, tag=%s, sub_tag=%s, preserved_tag=%s, preserved_sub_tag=%s)' % (
@@ -144,6 +146,8 @@ class TokenWriter:
         self.tokens = []
 
     def append_tokenized_text_token(self, tokenized_text_token: str):
+        if self.tokens and not tokenized_text_token.strip():
+            self.tokens[-1].whitespace = tokenized_text_token
         self.append(_to_text_token(
             tokenized_text_token,
             tag=self.next_tag,
