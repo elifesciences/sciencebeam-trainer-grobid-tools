@@ -511,13 +511,14 @@ class GrobidTrainingTeiStructuredDocument(AbstractStructuredDocument):
         set_or_remove_attrib(parent.attrib, SUB_TAG_ATTRIB_NAME, tag)
 
     def set_tag(self, parent, tag, scope=None, level=None):
-        _previous_tag = self.get_tag_or_preserved_tag(parent)
+        _previous_tag = self.get_tag_or_preserved_tag(parent, level=level)
         self.set_tag_only(parent, tag, scope=scope, level=level)
         if isinstance(parent, TeiSpace):
             return
         if strip_tag_prefix(tag) != strip_tag_prefix(_previous_tag):
-            self._clear_same_preserved_tag_on_same_line(parent)
-            self._clear_same_preserved_tag_on_same_line(parent, level=SUB_LEVEL)
+            self._clear_same_preserved_tag_on_same_line(parent, level=level)
+            if level is None:
+                self._clear_same_preserved_tag_on_same_line(parent, level=SUB_LEVEL)
 
     def _clear_same_preserved_tag_on_same_line(self, token, level: int = None):
         preserved_tag_attrib_name = get_scoped_attrib_name(PRESERVED_TAG_ATTRIB_NAME, level=level)
