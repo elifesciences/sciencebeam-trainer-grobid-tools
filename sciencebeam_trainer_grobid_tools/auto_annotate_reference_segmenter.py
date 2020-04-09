@@ -80,6 +80,7 @@ def add_main_args(parser):
     parser.add_argument(
         '--fields',
         type=comma_separated_str_to_list,
+        default='reference',
         help='comma separated list of fields to annotate'
     )
 
