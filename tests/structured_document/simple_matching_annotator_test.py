@@ -45,12 +45,16 @@ B_TAG2 = add_tag_prefix(TAG2, prefix=B_TAG_PREFIX)
 I_TAG2 = add_tag_prefix(TAG2, prefix=I_TAG_PREFIX)
 
 
-def _get_tags_of_tokens(tokens):
-    return [t.get_tag() for t in tokens]
+def _get_tags_of_tokens(tokens, **kwargs):
+    return [t.get_tag(**kwargs) for t in tokens]
 
 
-def _get_tag_values_of_tokens(tokens):
-    return [strip_tag_prefix(tag) for tag in _get_tags_of_tokens(tokens)]
+def _get_tag_values_of_tokens(tokens, **kwargs):
+    return [strip_tag_prefix(tag) for tag in _get_tags_of_tokens(tokens, **kwargs)]
+
+
+def _get_sub_tag_values_of_tokens(tokens):
+    return _get_tag_values_of_tokens(tokens, level=2)
 
 
 def _tokens_for_text(text):
@@ -638,6 +642,29 @@ class TestSimpleMatchingAnnotator:
         ).annotate(doc)
         LOGGER.debug('doc: %s', _get_document_token_tags(doc))
         assert _get_tag_values_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+
+    def test_should_annotate_references_with_sub_tag(self):
+        matching_tokens_list = [
+            _tokens_for_text('1 this is reference A')
+        ]
+        matching_tokens = flatten(matching_tokens_list)
+        target_annotations = [
+            TargetAnnotation('1 this is reference A', TAG1, sub_annotations=[
+                TargetAnnotation('1', TAG2)
+            ]),
+        ]
+        pre_tokens = [_tokens_for_text('previous line')] * 5
+        doc = _document_for_tokens(pre_tokens + matching_tokens_list)
+        SimpleMatchingAnnotator(
+            target_annotations,
+            lookahead_sequence_count=3,
+            extend_to_line_enabled=False
+        ).annotate(doc)
+        LOGGER.debug('doc: %s', _get_document_token_tags(doc))
+        assert _get_tag_values_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+        assert _get_sub_tag_values_of_tokens(matching_tokens) == (
+            [TAG2] + [None] * (len(matching_tokens) - 1)
+        )
 
 
 class TestGetSimpleTagConfigMap:

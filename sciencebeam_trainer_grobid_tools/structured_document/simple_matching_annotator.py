@@ -35,6 +35,7 @@ from sciencebeam_trainer_grobid_tools.utils.fuzzy import (
 )
 
 from sciencebeam_trainer_grobid_tools.structured_document.matching_utils import (
+    SequenceWrapper,
     PendingSequences,
     SequencesText,
     join_tokens_text
@@ -96,12 +97,14 @@ class SimpleSimpleMatchingConfig:
             min_token_length: int = 2,
             exact_word_match_threshold: int = 5,
             use_begin_prefix: bool = True,
+            extend_to_line_enabled: bool = True,
             tag_config_map: Dict[str, SimpleTagConfig] = None):
         self.threshold = threshold
         self.lookahead_sequence_count = lookahead_sequence_count
         self.min_token_length = min_token_length
         self.exact_word_match_threshold = exact_word_match_threshold
         self.use_begin_prefix = use_begin_prefix
+        self.extend_to_line_enabled = extend_to_line_enabled
         self.tag_config_map = tag_config_map or {}
 
     def __repr__(self):
@@ -109,7 +112,8 @@ class SimpleSimpleMatchingConfig:
             '%s(threshold=%s,',
             ' lookahead_sequence_count=%s,',
             ' exact_word_match_threshold=%s,',
-            ' use_begin_prefix=%s,'
+            ' use_begin_prefix=%s,',
+            ' extend_to_line_enabled=%s,',
             ' tag_config_map=%s)'
          ]) % (
             type(self).__name__,
@@ -117,6 +121,7 @@ class SimpleSimpleMatchingConfig:
             self.lookahead_sequence_count,
             self.exact_word_match_threshold,
             self.use_begin_prefix,
+            self.extend_to_line_enabled,
             self.tag_config_map
         )
 
@@ -419,6 +424,38 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             full_tag = add_tag_prefix(tag_name, prefix=prefix)
             structured_document.set_tag(token, full_tag)
 
+    def process_sub_annotations(
+            self,
+            structured_document: AbstractStructuredDocument,
+            text: SequencesText,
+            index_range: Tuple[int, int],
+            sub_annotations: List[TargetAnnotation]):
+        if not sub_annotations:
+            return
+        LOGGER.debug('processing sub annotations: %s', sub_annotations)
+        tokens = list(text.iter_tokens_between(index_range))
+        sub_text = SequencesText([SequenceWrapper(structured_document, tokens)])
+        sub_text_str = str(sub_text)
+        for sub_annotation in sub_annotations:
+            sub_tag_name = sub_annotation.name
+            target_value = sub_annotation.value
+            assert not isinstance(target_value, list), 'list sub annotation values not supported'
+            index_range = fuzzy_search_index_range(
+                sub_text_str, target_value,
+                threshold=self.config.threshold,
+                exact_word_match_threshold=self.config.exact_word_match_threshold
+            )
+            LOGGER.debug('sub_annotation index_range: %s', index_range)
+            if not index_range:
+                continue
+            matching_tokens = list(sub_text.iter_tokens_between(index_range))
+            for index, token in enumerate(matching_tokens):
+                prefix = None
+                if self.config.use_begin_prefix:
+                    prefix = B_TAG_PREFIX if index == 0 else I_TAG_PREFIX
+                full_tag = add_tag_prefix(sub_tag_name, prefix=prefix)
+                structured_document.set_sub_tag(token, full_tag)
+
     def iter_matching_index_ranges(
             self,
             text: SequencesText,
@@ -554,7 +591,14 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                     index_range,
                     tag_name
                 )
-        self.extend_annotations_to_whole_line(structured_document)
+                self.process_sub_annotations(
+                    structured_document,
+                    text,
+                    index_range,
+                    sub_annotations=target_annotation.sub_annotations
+                )
+        if self.config.extend_to_line_enabled:
+            self.extend_annotations_to_whole_line(structured_document)
         return structured_document
 
 
