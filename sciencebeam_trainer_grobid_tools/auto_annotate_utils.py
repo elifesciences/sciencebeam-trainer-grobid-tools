@@ -296,12 +296,14 @@ class AnnotatorConfig:
             lookahead_lines: int,
             debug_match: str = None,
             use_line_number_annotator: bool = False,
+            use_sub_annotations: bool = False,
             line_number_annotator_config: TextLineNumberAnnotatorConfig = None):
         self.matcher_name = matcher_name
         self.score_threshold = score_threshold
         self.lookahead_lines = lookahead_lines
         self.debug_match = debug_match
         self.use_line_number_annotator = use_line_number_annotator
+        self.use_sub_annotations = use_sub_annotations
         self.line_number_annotator_config = line_number_annotator_config
 
     def get_match_detail_reporter(self):
@@ -313,7 +315,8 @@ class AnnotatorConfig:
         return SimpleSimpleMatchingConfig(
             threshold=self.score_threshold,
             lookahead_sequence_count=self.lookahead_lines,
-            tag_config_map=get_simple_tag_config_map(xml_mapping)
+            tag_config_map=get_simple_tag_config_map(xml_mapping),
+            use_sub_annotations=self.use_sub_annotations
         )
 
     def get_matching_annotator_config(self) -> MatchingAnnotatorConfig:

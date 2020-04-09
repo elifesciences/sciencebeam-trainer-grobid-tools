@@ -37,6 +37,9 @@ TOKEN_1 = 'token1'
 TOKEN_2 = 'token2'
 TOKEN_3 = 'token3'
 
+LABEL_1 = '1'
+REFERENCE_TEXT_1 = 'reference A'
+
 
 def get_segmentation_tei_node(
         text_items: List[Union[etree.Element, str]]) -> etree.Element:
@@ -45,6 +48,14 @@ def get_segmentation_tei_node(
 
 def get_default_tei_node() -> etree.Element:
     return get_segmentation_tei_node([E.note(TOKEN_1)])
+
+
+def get_jats_reference_node(label: str, text: str) -> etree.Element:
+    ref = E.ref()
+    if label:
+        ref.append(E.label(label))
+    ref.append(E('mixed-citation', text))
+    return ref
 
 
 @pytest.fixture(name='test_helper')
@@ -223,6 +234,35 @@ class TestEndToEnd(object):
 
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text(tei_auto_root, '//text/listBibl') == _reference_text
+
+    @log_on_exception
+    def test_should_auto_annotate_reference_without_separate_label_tag(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_segmentation_tei_node([
+                E.note(TOKEN_1),
+                E.lb(),
+                E.note(LABEL_1 + ' ' + REFERENCE_TEXT_1),
+                E.lb()
+            ])
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(reference_nodes=[
+                get_jats_reference_node(LABEL_1, REFERENCE_TEXT_1),
+            ])
+        ))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'no-preserve-tags': True,
+            'fields': 'reference',
+            'xml-mapping-overrides': 'reference.use-raw-text=true'
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert (
+            get_xpath_text(tei_auto_root, '//text/listBibl')
+            == LABEL_1 + ' ' + REFERENCE_TEXT_1
+        )
 
     @log_on_exception
     def test_should_not_preserve_exclude_existing_tag_and_use_body_by_default(

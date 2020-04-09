@@ -658,7 +658,8 @@ class TestSimpleMatchingAnnotator:
         SimpleMatchingAnnotator(
             target_annotations,
             lookahead_sequence_count=3,
-            extend_to_line_enabled=False
+            extend_to_line_enabled=False,
+            use_sub_annotations=True
         ).annotate(doc)
         LOGGER.debug('doc: %s', _get_document_token_tags(doc))
         assert _get_tag_values_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
@@ -681,7 +682,8 @@ class TestSimpleMatchingAnnotator:
         SimpleMatchingAnnotator(
             target_annotations,
             lookahead_sequence_count=3,
-            extend_to_line_enabled=True
+            extend_to_line_enabled=True,
+            use_sub_annotations=True
         ).annotate(doc)
         LOGGER.debug('doc: %s', _get_document_token_tags(doc))
         assert _get_tag_values_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)

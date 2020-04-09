@@ -63,6 +63,7 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
         for field in self.fields:
             if field not in self.tag_to_tei_path_mapping:
                 self.tag_to_tei_path_mapping[field] = 'note[type="%s"]' % field
+        self.annotator_config.use_sub_annotations = True
 
     def get_annotator(self, source_url: str):
         target_xml_path = self.get_target_xml_for_source_file(source_url)

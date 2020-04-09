@@ -98,6 +98,7 @@ class SimpleSimpleMatchingConfig:
             exact_word_match_threshold: int = 5,
             use_begin_prefix: bool = True,
             extend_to_line_enabled: bool = True,
+            use_sub_annotations: bool = False,
             tag_config_map: Dict[str, SimpleTagConfig] = None):
         self.threshold = threshold
         self.lookahead_sequence_count = lookahead_sequence_count
@@ -105,6 +106,7 @@ class SimpleSimpleMatchingConfig:
         self.exact_word_match_threshold = exact_word_match_threshold
         self.use_begin_prefix = use_begin_prefix
         self.extend_to_line_enabled = extend_to_line_enabled
+        self.use_sub_annotations = use_sub_annotations
         self.tag_config_map = tag_config_map or {}
 
     def __repr__(self):
@@ -114,6 +116,7 @@ class SimpleSimpleMatchingConfig:
             ' exact_word_match_threshold=%s,',
             ' use_begin_prefix=%s,',
             ' extend_to_line_enabled=%s,',
+            ' use_sub_annotations=%s',
             ' tag_config_map=%s)'
          ]) % (
             type(self).__name__,
@@ -122,6 +125,7 @@ class SimpleSimpleMatchingConfig:
             self.exact_word_match_threshold,
             self.use_begin_prefix,
             self.extend_to_line_enabled,
+            self.use_sub_annotations,
             self.tag_config_map
         )
 
@@ -593,12 +597,13 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                     index_range,
                     tag_name
                 )
-                self.process_sub_annotations(
-                    structured_document,
-                    text,
-                    index_range,
-                    sub_annotations=target_annotation.sub_annotations
-                )
+                if self.config.use_sub_annotations:
+                    self.process_sub_annotations(
+                        structured_document,
+                        text,
+                        index_range,
+                        sub_annotations=target_annotation.sub_annotations
+                    )
         if self.config.extend_to_line_enabled:
             self.extend_annotations_to_whole_line(structured_document)
         return structured_document
