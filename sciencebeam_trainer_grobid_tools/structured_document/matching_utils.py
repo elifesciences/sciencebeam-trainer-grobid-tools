@@ -45,6 +45,77 @@ def get_token_whitespace(token: TeiText) -> str:
     return ' '
 
 
+def join_with_index_ranges(
+        items: List[str],
+        sep: str,
+        pad: str = '',
+        whitespace_list: List[str] = None) -> Tuple[str, List[Tuple[int, int]]]:
+    item_str_list = [pad + str(item) + pad for item in items]
+    if whitespace_list:
+        whitespace_list = [
+            whitespace if whitespace is not None else sep
+            for index, whitespace in enumerate(whitespace_list)
+        ]
+        whitespace_list[-1] = ''
+        text = ''.join(iter_flatten(zip(item_str_list, whitespace_list)))
+    else:
+        text = sep.join(item_str_list)
+    item_start = len(pad)
+    item_sep_pad_len = len(sep) + 2 * len(pad)
+    index_ranges = []
+    for index, item_str in enumerate(item_str_list):
+        item_end = item_start + len(item_str)
+        index_ranges.append((item_start, item_end))
+        if whitespace_list:
+            item_start = item_end + len(whitespace_list[index]) + 2 * len(pad)
+        else:
+            item_start = item_end + item_sep_pad_len
+    return text, index_ranges
+
+
+class JoinedText:
+    def __init__(
+            self,
+            items: List[str],
+            sep: str,
+            pad: str = '',
+            whitespace_list: List[str] = None):
+        self._items = items
+        self._text, self._item_index_ranges = join_with_index_ranges(
+            items, sep=sep, pad=pad, whitespace_list=whitespace_list
+        )
+
+    @property
+    def end_index(self):
+        if not self._item_index_ranges:
+            return 0
+        last_index_range = self._item_index_ranges[-1]
+        _, last_index_end = last_index_range
+        return last_index_end
+
+    def iter_item_indices_and_index_range_between(self, index_range: Tuple[int, int]):
+        start, end = index_range
+        for item_index, (item_start, item_end) in enumerate(self._item_index_ranges):
+            if item_start >= end:
+                break
+            if item_end > start:
+                yield item_index, (item_start, item_end)
+
+    def iter_items_and_index_range_between(self, index_range: Tuple[int, int]):
+        return (
+            (self._items[index], item_index_range)
+            for index, item_index_range in self.iter_item_indices_and_index_range_between(
+                index_range
+            )
+        )
+
+    def get_text(self):
+        return self._text
+
+    def __str__(self):
+        return self.get_text()
+
+
 class SequenceWrapper:
     def __init__(
             self,
@@ -149,77 +220,6 @@ class PendingSequences:
                     position=len(pending_sequences)
                 ))
         return PendingSequences(pending_sequences)
-
-
-def join_with_index_ranges(
-        items: List[str],
-        sep: str,
-        pad: str = '',
-        whitespace_list: List[str] = None) -> Tuple[str, List[Tuple[int, int]]]:
-    item_str_list = [pad + str(item) + pad for item in items]
-    if whitespace_list:
-        whitespace_list = [
-            whitespace if whitespace is not None else sep
-            for index, whitespace in enumerate(whitespace_list)
-        ]
-        whitespace_list[-1] = ''
-        text = ''.join(iter_flatten(zip(item_str_list, whitespace_list)))
-    else:
-        text = sep.join(item_str_list)
-    item_start = len(pad)
-    item_sep_pad_len = len(sep) + 2 * len(pad)
-    index_ranges = []
-    for index, item_str in enumerate(item_str_list):
-        item_end = item_start + len(item_str)
-        index_ranges.append((item_start, item_end))
-        if whitespace_list:
-            item_start = item_end + len(whitespace_list[index]) + 2 * len(pad)
-        else:
-            item_start = item_end + item_sep_pad_len
-    return text, index_ranges
-
-
-class JoinedText:
-    def __init__(
-            self,
-            items: List[str],
-            sep: str,
-            pad: str = '',
-            whitespace_list: List[str] = None):
-        self._items = items
-        self._text, self._item_index_ranges = join_with_index_ranges(
-            items, sep=sep, pad=pad, whitespace_list=whitespace_list
-        )
-
-    @property
-    def end_index(self):
-        if not self._item_index_ranges:
-            return 0
-        last_index_range = self._item_index_ranges[-1]
-        _, last_index_end = last_index_range
-        return last_index_end
-
-    def iter_item_indices_and_index_range_between(self, index_range: Tuple[int, int]):
-        start, end = index_range
-        for item_index, (item_start, item_end) in enumerate(self._item_index_ranges):
-            if item_start >= end:
-                break
-            if item_end > start:
-                yield item_index, (item_start, item_end)
-
-    def iter_items_and_index_range_between(self, index_range: Tuple[int, int]):
-        return (
-            (self._items[index], item_index_range)
-            for index, item_index_range in self.iter_item_indices_and_index_range_between(
-                index_range
-            )
-        )
-
-    def get_text(self):
-        return self._text
-
-    def __str__(self):
-        return self.get_text()
 
 
 class SequencesText:
