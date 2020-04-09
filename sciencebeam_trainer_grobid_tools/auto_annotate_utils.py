@@ -180,7 +180,17 @@ def add_annotation_pipeline_arguments(parser: argparse.ArgumentParser):
 
     line_no_group = parser.add_argument_group('line number annotation')
     line_no_group.add_argument(
-        '--no-line-number-annotator', action='store_true', default=False,
+        '--use-line-number-annotator',
+        dest='use_line_number_annotator',
+        action='store_true',
+        default=False,
+        help='Enable line number annotator'
+    )
+    line_no_group.add_argument(
+        '--no-line-number-annotator',
+        dest='use_line_number_annotator',
+        action='store_false',
+        default=False,
         help='Disable line number annotator'
     )
     line_no_group.add_argument(
@@ -406,7 +416,7 @@ class AbstractAnnotatePipelineFactory(ABC):
             score_threshold=opt.matcher_score_threshold,
             lookahead_lines=opt.matcher_lookahead_lines,
             debug_match=opt.debug_match,
-            use_line_number_annotator=not opt.no_line_number_annotator,
+            use_line_number_annotator=opt.use_line_number_annotator,
             line_number_annotator_config=TextLineNumberAnnotatorConfig(
                 min_line_number=opt.min_line_numbers_per_page,
                 line_number_ratio_threshold=opt.min_line_number_ratio,
