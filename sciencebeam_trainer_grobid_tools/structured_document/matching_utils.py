@@ -10,11 +10,6 @@ from sciencebeam_gym.structured_document import (
     AbstractStructuredDocument
 )
 
-from sciencebeam_gym.preprocess.annotation.matching_annotator import (
-    SequenceWrapper,
-    SequenceWrapperWithPosition
-)
-
 from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei import (
     TeiText
 )
@@ -41,6 +36,84 @@ def get_untagged_line_tokens(structured_document: AbstractStructuredDocument, li
 
 def join_tokens_text(tokens: List[TeiText]) -> str:
     return ' '.join([token.text for token in tokens])
+
+
+def get_token_whitespace(token: TeiText) -> str:
+    whitespace = getattr(token, 'whitespace', None)
+    if whitespace is not None:
+        return whitespace
+    return ' '
+
+
+class SequenceWrapper:
+    def __init__(
+            self,
+            structured_document: AbstractStructuredDocument,
+            tokens: list,
+            str_filter_f: callable = None):
+        self.structured_document = structured_document
+        self.str_filter_f = str_filter_f
+        self.tokens = tokens
+        self.token_str_list = [structured_document.get_text(t) or '' for t in tokens]
+        if str_filter_f:
+            self.token_str_list = [str_filter_f(s) for s in self.token_str_list]
+        self.joined_text = JoinedText(
+            self.token_str_list,
+            sep=' ',
+            whitespace_list=[
+                get_token_whitespace(t) for t in tokens
+            ]
+        )
+        self.tokens_as_str = str(self.joined_text)
+
+    def tokens_between(self, index_range: Tuple[int, int]) -> list:
+        for token, _ in self.joined_text.iter_items_and_index_range_between(index_range):
+            yield token
+
+    def sub_sequence_for_tokens(self, tokens: list):
+        return SequenceWrapper(self.structured_document, tokens, str_filter_f=self.str_filter_f)
+
+    def untagged_sub_sequences(self) -> Iterable['SequenceWrapper']:
+        token_tags = [self.structured_document.get_tag(t) for t in self.tokens]
+        tagged_count = len([t for t in token_tags if t])
+        if tagged_count == 0:
+            yield self
+        elif tagged_count == len(self.tokens):
+            pass
+        else:
+            untagged_tokens = []
+            for token, tag in zip(self.tokens, token_tags):
+                if not tag:
+                    untagged_tokens.append(token)
+                elif untagged_tokens:
+                    yield self.sub_sequence_for_tokens(untagged_tokens)
+                    untagged_tokens = []
+            if untagged_tokens:
+                yield self.sub_sequence_for_tokens(untagged_tokens)
+
+    def __str__(self):
+        return self.tokens_as_str
+
+    def __repr__(self):
+        return '{}({})'.format('SequenceWrapper', self.tokens_as_str)
+
+
+class SequenceWrapperWithPosition(SequenceWrapper):
+    def __init__(self, *args, position: int = None, **kwargs):
+        super(SequenceWrapperWithPosition, self).__init__(*args, **kwargs)
+        self.position = position
+
+    def sub_sequence_for_tokens(self, tokens: list) -> 'SequenceWrapperWithPosition':
+        return SequenceWrapperWithPosition(
+            self.structured_document, tokens,
+            str_filter_f=self.str_filter_f,
+            position=self.position
+        )
+
+    def __repr__(self):
+        return '{}({}, {})'.format(
+            'SequenceWrapperWithPosition', self.tokens_as_str, self.position
+        )
 
 
 class PendingSequences:
@@ -78,24 +151,45 @@ class PendingSequences:
         return PendingSequences(pending_sequences)
 
 
-def _join_with_index_ranges(
-        items: List[str], sep: str, pad: str = '') -> Tuple[str, List[Tuple[int, int]]]:
+def join_with_index_ranges(
+        items: List[str],
+        sep: str,
+        pad: str = '',
+        whitespace_list: List[str] = None) -> Tuple[str, List[Tuple[int, int]]]:
     item_str_list = [pad + str(item) + pad for item in items]
-    text = sep.join(item_str_list)
+    if whitespace_list:
+        whitespace_list = [
+            whitespace if whitespace is not None else sep
+            for index, whitespace in enumerate(whitespace_list)
+        ]
+        whitespace_list[-1] = ''
+        text = ''.join(iter_flatten(zip(item_str_list, whitespace_list)))
+    else:
+        text = sep.join(item_str_list)
     item_start = len(pad)
     item_sep_pad_len = len(sep) + 2 * len(pad)
     index_ranges = []
-    for item_str in item_str_list:
+    for index, item_str in enumerate(item_str_list):
         item_end = item_start + len(item_str)
         index_ranges.append((item_start, item_end))
-        item_start = item_end + item_sep_pad_len
+        if whitespace_list:
+            item_start = item_end + len(whitespace_list[index]) + 2 * len(pad)
+        else:
+            item_start = item_end + item_sep_pad_len
     return text, index_ranges
 
 
 class JoinedText:
-    def __init__(self, items: List[str], sep: str, pad: str = ''):
+    def __init__(
+            self,
+            items: List[str],
+            sep: str,
+            pad: str = '',
+            whitespace_list: List[str] = None):
         self._items = items
-        self._text, self._item_index_ranges = _join_with_index_ranges(items, sep=sep, pad=pad)
+        self._text, self._item_index_ranges = join_with_index_ranges(
+            items, sep=sep, pad=pad, whitespace_list=whitespace_list
+        )
 
     @property
     def end_index(self):
