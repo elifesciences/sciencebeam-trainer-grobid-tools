@@ -131,7 +131,7 @@ class TestEndToEnd(object):
         }), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
-        assert get_xpath_text(tei_auto_root, '//listBibl/bibl') == ' '.join([
+        assert get_xpath_text(tei_auto_root, '//listBibl/bibl[1]') == ' '.join([
             label_with_dot, REFERENCE_TEXT_1
         ])
-        assert get_xpath_text(tei_auto_root, '//listBibl/bibl/label') == label_with_dot
+        assert get_xpath_text(tei_auto_root, '//listBibl/bibl[1]/label') == label_with_dot

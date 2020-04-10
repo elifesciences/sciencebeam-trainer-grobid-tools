@@ -8,6 +8,7 @@ from lxml.builder import E
 from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei import (
     GrobidTrainingTeiStructuredDocument,
     TeiTagNames,
+    _get_common_path,
     _tokenize_text,
     _lines_to_tei as _original_lines_to_tei,
     TeiLine,
@@ -79,6 +80,29 @@ class TestToTokenizeText(object):
 
     def test_should_keep_tailing_space_of_item(self):
         assert _tokenize_text('A ') == ['A', ' ']
+
+
+class TestGetCommonPath:
+    def test_should_return_path_if_paths_are_equal(self):
+        assert _get_common_path(['level1'], ['level1']) == ['level1']
+
+    def test_should_return_level1_if_level1_equals(self):
+        assert (
+            _get_common_path(['level1', 'child1'], ['level1', 'child2'])
+            == ['level1']
+        )
+
+    def test_should_return_level2_if_level2_equals(self):
+        assert (
+            _get_common_path(['level1', 'level2', 'child1'], ['level1', 'level2', 'child2'])
+            == ['level1', 'level2']
+        )
+
+    def test_should_return_level2_if_level2_equals_with_different_lengths(self):
+        assert (
+            _get_common_path(['level1', 'level2', 'child1'], ['level1', 'level2'])
+            == ['level1', 'level2']
+        )
 
 
 class TestGrobidTrainingStructuredDocument(object):

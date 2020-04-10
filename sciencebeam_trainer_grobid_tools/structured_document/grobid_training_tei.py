@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import copy
 import logging
 import re
+from itertools import zip_longest
 from typing import Dict, Iterable, List
 
 from apache_beam.io.filesystems import FileSystems
@@ -322,20 +323,22 @@ def _append_text(element, text):
         element.text = text
 
 
-def _get_common_path(path1, path2):
+def _get_common_path(path1: List[str], path2: List[str]) -> List[str]:
     if path1 == path2:
         return path1
-    for path_len in range(1, 1 + min(len(path1), len(path2))):
-        if path1[:path_len] == path2[:path_len]:
-            return path1[:path_len]
-    return []
+    common_path = []
+    for path1_element, path2_element in zip_longest(path1, path2):
+        if path1_element != path2_element:
+            break
+        common_path.append(path1_element)
+    return common_path
 
 
 def _get_element_at_path(current_element, current_path, required_path, token):
     if required_path != current_path:
         common_path = _get_common_path(current_path, required_path)
         get_logger().debug(
-            'required element path: %s -> %s (%s, [%s])',
+            'required element path: %s -> %s (common path: %s, token text: %r)',
             current_path, required_path, common_path, token.text
         )
         for _ in range(len(current_path) - len(common_path)):
@@ -348,6 +351,19 @@ def _get_element_at_path(current_element, current_path, required_path, token):
             current_element = child
             current_path.append(path_fragment)
     return current_element, current_path
+
+
+def _get_tag_required_path(
+        tag: str,
+        tag_to_tei_path_mapping: Dict[str, str] = None) -> List[str]:
+    if tag:
+        required_path = tag_to_tei_path_mapping.get(tag, tag).split('/')
+    else:
+        required_path = []
+        default_path_str = tag_to_tei_path_mapping.get(DEFAULT_TAG_KEY)
+        if default_path_str:
+            required_path = default_path_str.split('/')
+    return required_path
 
 
 def _lines_to_tei(
@@ -366,37 +382,58 @@ def _lines_to_tei(
             if not token.stripped_text:
                 pending_space_tokens.append(token)
                 continue
-            full_tag = token.attrib.get(SUB_TAG_ATTRIB_NAME)
-            if not full_tag:
-                full_tag = token.attrib.get(PRESERVED_SUB_TAG_ATTRIB_NAME)
-            if not full_tag:
-                full_tag = token.attrib.get(TAG_ATTRIB_NAME)
-            if not full_tag:
-                full_tag = token.attrib.get(PRESERVED_TAG_ATTRIB_NAME)
-            prefix, tag = split_tag_prefix(full_tag)
-            if tag:
-                required_path = tag_to_tei_path_mapping.get(tag, tag).split('/')
-            else:
-                required_path = []
-                default_path_str = tag_to_tei_path_mapping.get(DEFAULT_TAG_KEY)
-                if default_path_str:
-                    required_path = default_path_str.split('/')
+            main_full_tag = token.attrib.get(TAG_ATTRIB_NAME)
+            if not main_full_tag:
+                main_full_tag = token.attrib.get(PRESERVED_TAG_ATTRIB_NAME)
+            sub_full_tag = token.attrib.get(SUB_TAG_ATTRIB_NAME)
+            if not sub_full_tag:
+                sub_full_tag = token.attrib.get(PRESERVED_SUB_TAG_ATTRIB_NAME)
+            main_prefix, main_tag = split_tag_prefix(main_full_tag)
+            sub_prefix, sub_tag = split_tag_prefix(sub_full_tag)
+            main_required_path = _get_tag_required_path(main_tag, tag_to_tei_path_mapping)
+            sub_required_path = (
+                _get_tag_required_path(sub_tag, tag_to_tei_path_mapping)
+                if sub_full_tag
+                else None
+            )
+            LOGGER.debug(
+                'output token: %s (main_required_path: %s, sub_required_path: %s)',
+                token, main_required_path, sub_required_path
+            )
 
-            if prefix == B_TAG_PREFIX:
+            if main_prefix == B_TAG_PREFIX:
+                LOGGER.debug('found begin prefix, resetting path: %s', main_full_tag)
                 current_element, current_path = _get_element_at_path(
                     current_element, current_path,
                     _get_common_path(current_path, []),
                     token
                 )
-
-            for pending_space_token in pending_space_tokens:
+            elif sub_prefix == B_TAG_PREFIX:
+                LOGGER.debug('found begin prefix, resetting path to parent: %s', sub_full_tag)
                 current_element, current_path = _get_element_at_path(
                     current_element, current_path,
-                    _get_common_path(current_path, required_path),
-                    pending_space_token
+                    _get_common_path(current_path, main_required_path),
+                    token
                 )
-                _append_text(current_element, pending_space_token.text)
-                pending_space_tokens = []
+
+            required_path = (
+                sub_required_path if sub_full_tag
+                else main_required_path
+            )
+
+            if pending_space_tokens:
+                for pending_space_token in pending_space_tokens:
+                    LOGGER.debug(
+                        'flushing pending space: %s (between %s and %s)',
+                        pending_space_token, current_path, required_path
+                    )
+                    current_element, current_path = _get_element_at_path(
+                        current_element, current_path,
+                        _get_common_path(current_path, required_path),
+                        pending_space_token
+                    )
+                    _append_text(current_element, pending_space_token.text)
+                    pending_space_tokens = []
 
             current_element, current_path = _get_element_at_path(
                 current_element, current_path, required_path, token
