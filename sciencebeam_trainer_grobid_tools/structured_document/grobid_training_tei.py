@@ -405,7 +405,7 @@ def _lines_to_tei(
                 LOGGER.debug('found begin prefix, resetting path: %s', main_full_tag)
                 current_element, current_path = _get_element_at_path(
                     current_element, current_path,
-                    _get_common_path(current_path, []),
+                    [],
                     token
                 )
             elif sub_prefix == B_TAG_PREFIX:
@@ -442,6 +442,11 @@ def _lines_to_tei(
             _append_text(current_element, token.text)
 
     for pending_space_token in pending_space_tokens:
+        current_element, current_path = _get_element_at_path(
+            current_element, current_path,
+            [],
+            pending_space_token
+        )
         _append_text(current_element, pending_space_token.text)
         pending_space_tokens = []
 
