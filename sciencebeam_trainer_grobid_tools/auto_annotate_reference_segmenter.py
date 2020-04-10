@@ -8,7 +8,6 @@ from sciencebeam_gym.preprocess.annotation.annotator import Annotator
 from .utils.string import comma_separated_str_to_list
 
 from .structured_document.grobid_training_tei import (
-    ContainerNodePaths,
     DEFAULT_TAG_KEY
 )
 
@@ -26,16 +25,13 @@ from .auto_annotate_utils import (
 LOGGER = logging.getLogger(__name__)
 
 
-HEADER_CONTAINER_NODE_PATH = ContainerNodePaths.HEADER_CONTAINER_NODE_PATH
+REFERENCE_SEGMENTER_CONTAINER_NODE_PATH = 'text'
 
 
-HEADER_TAG_TO_TEI_PATH_MAPPING = {
+REFERENCE_SEGMENTER_TAG_TO_TEI_PATH_MAPPING = {
     DEFAULT_TAG_KEY: 'note[type="other"]',
-    'title': 'docTitle/titlePart',
-    'abstract': 'div[type="abstract"]',
-    'author': 'byline/docAuthor',
-    'author_aff': 'byline/affiliation',
-    'line_no': 'note[type="line_no"]'
+    'reference': 'listBibl/bibl',
+    'reference-label': 'listBibl/bibl/label'
 }
 
 
@@ -53,9 +49,9 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
     def __init__(self, opt):
         super().__init__(
             opt,
-            tei_filename_pattern='*.header.tei.xml*',
-            container_node_path=HEADER_CONTAINER_NODE_PATH,
-            tag_to_tei_path_mapping=HEADER_TAG_TO_TEI_PATH_MAPPING,
+            tei_filename_pattern='*.references.referenceSegmenter.tei.xml*',
+            container_node_path=REFERENCE_SEGMENTER_CONTAINER_NODE_PATH,
+            tag_to_tei_path_mapping=REFERENCE_SEGMENTER_TAG_TO_TEI_PATH_MAPPING,
             output_fields=opt.fields
         )
         self.xml_mapping, self.fields = get_xml_mapping_and_fields(
@@ -67,6 +63,7 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
         for field in self.fields:
             if field not in self.tag_to_tei_path_mapping:
                 self.tag_to_tei_path_mapping[field] = 'note[type="%s"]' % field
+        self.annotator_config.use_sub_annotations = True
 
     def get_annotator(self, source_url: str):
         target_xml_path = self.get_target_xml_for_source_file(source_url)
@@ -83,6 +80,7 @@ def add_main_args(parser):
     parser.add_argument(
         '--fields',
         type=comma_separated_str_to_list,
+        default='reference',
         help='comma separated list of fields to annotate'
     )
 

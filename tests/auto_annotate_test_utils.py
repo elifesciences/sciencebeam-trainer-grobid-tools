@@ -50,16 +50,20 @@ class SingleFileAutoAnnotateEndToEndTestHelper:
 def get_target_xml_node(
         title: str = None,
         author_nodes: List[etree.Element] = None,
-        abstract_node: etree.Element = None) -> etree.Element:
+        abstract_node: etree.Element = None,
+        reference_nodes: List[etree.Element] = None) -> etree.Element:
     article_meta_node = E('article-meta')
     front_node = E.front(article_meta_node)
+    back_node = E.back()
     if title:
         article_meta_node.append(E('title-group', E('article-title', title)))
     if author_nodes:
         article_meta_node.append(E('contrib-group', *author_nodes))
     if abstract_node is not None:
         article_meta_node.append(abstract_node)
-    return E.article(front_node)
+    if reference_nodes:
+        back_node.append(E('ref-list', *reference_nodes))
+    return E.article(front_node, back_node)
 
 
 def get_default_target_xml_node():

@@ -38,7 +38,7 @@ from sciencebeam_trainer_grobid_tools.annotation.target_annotation import (
     xml_root_to_target_annotations
 )
 
-from .utils.string import comma_separated_str_to_list
+from .utils.string import comma_separated_str_to_list, parse_dict
 from .utils.regex import regex_change_name
 from .utils.xml import parse_xml
 from .structured_document.annotator import annotate_structured_document
@@ -180,7 +180,17 @@ def add_annotation_pipeline_arguments(parser: argparse.ArgumentParser):
 
     line_no_group = parser.add_argument_group('line number annotation')
     line_no_group.add_argument(
-        '--no-line-number-annotator', action='store_true', default=False,
+        '--use-line-number-annotator',
+        dest='use_line_number_annotator',
+        action='store_true',
+        default=False,
+        help='Enable line number annotator'
+    )
+    line_no_group.add_argument(
+        '--no-line-number-annotator',
+        dest='use_line_number_annotator',
+        action='store_false',
+        default=False,
         help='Disable line number annotator'
     )
     line_no_group.add_argument(
@@ -202,6 +212,13 @@ def add_annotation_pipeline_arguments(parser: argparse.ArgumentParser):
         help=' '.join([
             'minimum ratio of line number candidates vs non-line number tokens',
             ' (first token of line)'
+        ])
+    )
+
+    line_no_group.add_argument(
+        '--xml-mapping-overrides', type=parse_dict,
+        help=' '.join([
+            'override xml mapping values, in the format: key1=value1|key2=value2'
         ])
     )
 
@@ -245,9 +262,29 @@ def get_filtered_xml_mapping_and_fields(
     return xml_mapping, fields
 
 
-def get_xml_mapping_and_fields(xml_mapping_path, fields):
+def get_xml_mapping_with_overrides(
+        xml_mapping: Dict[str, Dict[str, str]],
+        xml_mapping_overrides: Dict[str, str]):
+    if not xml_mapping_overrides:
+        return xml_mapping
+    return {
+        top_level_key: {
+            **field_mapping,
+            **xml_mapping_overrides
+        }
+        for top_level_key, field_mapping in xml_mapping.items()
+    }
+
+
+def get_xml_mapping_and_fields(
+        xml_mapping_path: str,
+        fields: List[str],
+        xml_mapping_overrides: Dict[str, str] = None) -> Dict[str, Dict[str, str]]:
     return get_filtered_xml_mapping_and_fields(
-        parse_xml_mapping(xml_mapping_path),
+        get_xml_mapping_with_overrides(
+            parse_xml_mapping(xml_mapping_path),
+            xml_mapping_overrides=xml_mapping_overrides
+        ),
         fields
     )
 
@@ -269,12 +306,14 @@ class AnnotatorConfig:
             lookahead_lines: int,
             debug_match: str = None,
             use_line_number_annotator: bool = False,
+            use_sub_annotations: bool = False,
             line_number_annotator_config: TextLineNumberAnnotatorConfig = None):
         self.matcher_name = matcher_name
         self.score_threshold = score_threshold
         self.lookahead_lines = lookahead_lines
         self.debug_match = debug_match
         self.use_line_number_annotator = use_line_number_annotator
+        self.use_sub_annotations = use_sub_annotations
         self.line_number_annotator_config = line_number_annotator_config
 
     def get_match_detail_reporter(self):
@@ -286,7 +325,8 @@ class AnnotatorConfig:
         return SimpleSimpleMatchingConfig(
             threshold=self.score_threshold,
             lookahead_sequence_count=self.lookahead_lines,
-            tag_config_map=get_simple_tag_config_map(xml_mapping)
+            tag_config_map=get_simple_tag_config_map(xml_mapping),
+            use_sub_annotations=self.use_sub_annotations
         )
 
     def get_matching_annotator_config(self) -> MatchingAnnotatorConfig:
@@ -376,7 +416,7 @@ class AbstractAnnotatePipelineFactory(ABC):
             score_threshold=opt.matcher_score_threshold,
             lookahead_lines=opt.matcher_lookahead_lines,
             debug_match=opt.debug_match,
-            use_line_number_annotator=not opt.no_line_number_annotator,
+            use_line_number_annotator=opt.use_line_number_annotator,
             line_number_annotator_config=TextLineNumberAnnotatorConfig(
                 min_line_number=opt.min_line_numbers_per_page,
                 line_number_ratio_threshold=opt.min_line_number_ratio,

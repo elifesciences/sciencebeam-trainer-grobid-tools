@@ -1,5 +1,6 @@
 import logging
 import re
+from distutils.util import strtobool
 from typing import List
 
 from lxml import etree
@@ -10,7 +11,7 @@ from sciencebeam_utils.utils.collection import (
 )
 
 from sciencebeam_gym.preprocess.annotation.target_annotation import (
-    XmlMappingSuffix,
+    XmlMappingSuffix as _XmlMappingSuffix,
     TargetAnnotation,
     parse_xpaths,
     parse_json_with_default,
@@ -24,12 +25,14 @@ from sciencebeam_gym.preprocess.annotation.target_annotation import (
     flatten_if_nested
 )
 
+from sciencebeam_trainer_grobid_tools.utils.string import is_blank
+
 
 LOGGER = logging.getLogger(__name__)
 
 
-def is_blank(text: str) -> bool:
-    return not text or not text.strip()
+class XmlMappingSuffix(_XmlMappingSuffix):
+    USE_RAW_TEXT = '.use-raw-text'
 
 
 def contains_raw_text(element: etree.Element) -> bool:
@@ -118,6 +121,9 @@ def xml_root_to_target_annotations(xml_root, xml_mapping):
         sub_xpaths = get_sub_mapping(mapping, k)
         LOGGER.debug('sub_xpaths (%s): %s', k, sub_xpaths)
 
+        use_raw_text_value = mapping.get(k + XmlMappingSuffix.USE_RAW_TEXT)
+        use_raw_text_config = strtobool(use_raw_text_value) if use_raw_text_value else None
+
         xpaths = parse_xpaths(mapping[k])
         LOGGER.debug('xpaths(%s): %s', k, xpaths)
         for e in match_xpaths(xml_root, xpaths):
@@ -126,12 +132,15 @@ def xml_root_to_target_annotations(xml_root, xml_mapping):
             sub_annotations = extract_sub_annotations(e, sub_xpaths, mapping, k)
             LOGGER.debug('sub_annotations (%s): %s', k, sub_annotations)
 
-            is_contains_raw_text = contains_raw_text(e)
+            use_raw_text = (
+                use_raw_text_config if use_raw_text_config is not None
+                else contains_raw_text(e)
+            )
             should_use_children_xpaths = (
                 children_xpaths
                 and (
                     not is_wildcard_children_xpaths(children_xpaths)
-                    or not is_contains_raw_text
+                    or not use_raw_text
                 )
             )
             if should_use_children_xpaths:
@@ -143,8 +152,8 @@ def xml_root_to_target_annotations(xml_root, xml_mapping):
                 standalone_values = []
             LOGGER.debug(
                 'text_content_list: %s, standalone_values: %s,'
-                ' children_xpaths: %s, is_contains_raw_text: %s',
-                text_content_list, standalone_values, children_xpaths, is_contains_raw_text
+                ' children_xpaths: %s, use_raw_text: %s',
+                text_content_list, standalone_values, children_xpaths, use_raw_text
             )
             if re_compiled_pattern:
                 text_content_list = filter_truthy([

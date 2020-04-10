@@ -8,7 +8,8 @@ from lxml.builder import E
 from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei import (
     GrobidTrainingTeiStructuredDocument,
     TeiTagNames,
-    _to_text_tokens,
+    _get_common_path,
+    _tokenize_text,
     _lines_to_tei as _original_lines_to_tei,
     TeiLine,
     TeiText,
@@ -67,18 +68,41 @@ def _lines_to_tei(*args, **kwargs):
     return root
 
 
-class TestToTextTokens(object):
+class TestToTokenizeText(object):
     def test_should_not_add_space_to_single_item(self):
-        assert [t.text for t in _to_text_tokens('A')] == ['A']
+        assert _tokenize_text('A') == ['A']
 
     def test_should_add_space_between_two_items(self):
-        assert [t.text for t in _to_text_tokens('A B')] == ['A', ' ', 'B']
+        assert _tokenize_text('A B') == ['A', ' ', 'B']
 
     def test_should_keep_preceding_space_of_item(self):
-        assert [t.text for t in _to_text_tokens(' A')] == [' ', 'A']
+        assert _tokenize_text(' A') == [' ', 'A']
 
     def test_should_keep_tailing_space_of_item(self):
-        assert [t.text for t in _to_text_tokens('A ')] == ['A', ' ']
+        assert _tokenize_text('A ') == ['A', ' ']
+
+
+class TestGetCommonPath:
+    def test_should_return_path_if_paths_are_equal(self):
+        assert _get_common_path(['level1'], ['level1']) == ['level1']
+
+    def test_should_return_level1_if_level1_equals(self):
+        assert (
+            _get_common_path(['level1', 'child1'], ['level1', 'child2'])
+            == ['level1']
+        )
+
+    def test_should_return_level2_if_level2_equals(self):
+        assert (
+            _get_common_path(['level1', 'level2', 'child1'], ['level1', 'level2', 'child2'])
+            == ['level1', 'level2']
+        )
+
+    def test_should_return_level2_if_level2_equals_with_different_lengths(self):
+        assert (
+            _get_common_path(['level1', 'level2', 'child1'], ['level1', 'level2'])
+            == ['level1', 'level2']
+        )
 
 
 class TestGrobidTrainingStructuredDocument(object):
@@ -187,6 +211,32 @@ class TestGrobidTrainingStructuredDocument(object):
         assert _get_token_texts_for_lines(doc, lines) == [
             [TOKEN_1, TOKEN_2]
         ]
+
+    def test_should_set_token_whitespace(self):
+        doc = GrobidTrainingTeiStructuredDocument(
+            _tei(front_items=[
+                E.note(' '.join([TOKEN_1, TOKEN_2]))
+            ])
+        )
+        lines = _get_all_lines(doc)
+        assert _get_token_texts_for_lines(doc, lines) == [
+            [TOKEN_1, TOKEN_2]
+        ]
+        tokens = doc.get_all_tokens_of_line(lines[0])
+        assert tokens[0].whitespace == ' '
+
+    def test_should_set_empty_token_whitespace(self):
+        doc = GrobidTrainingTeiStructuredDocument(
+            _tei(front_items=[
+                E.note('1.')
+            ])
+        )
+        lines = _get_all_lines(doc)
+        assert _get_token_texts_for_lines(doc, lines) == [
+            ['1', '.']
+        ]
+        tokens = doc.get_all_tokens_of_line(lines[0])
+        assert tokens[0].whitespace == ''
 
     def test_should_be_able_to_set_tag(self):
         doc = GrobidTrainingTeiStructuredDocument(
@@ -388,6 +438,50 @@ class TestGrobidTrainingStructuredDocument(object):
         assert _to_xml(front) == (
             '<front><div tag="{TAG_1}">{token1}</div>{token2}</front>'.format(
                 token1=TOKEN_1, token2=TOKEN_2, TAG_1=TAG_1
+            )
+        )
+
+    def test_should_preserve_existing_nested_tag(self):
+        original_tei_xml = _tei(front_items=[
+            E.div(E.label(TOKEN_1), TOKEN_2),
+            TOKEN_3
+        ])
+        LOGGER.debug('original tei xml: %s', _to_xml(original_tei_xml))
+        doc = GrobidTrainingTeiStructuredDocument(
+            original_tei_xml,
+            preserve_tags=True,
+            tag_to_tei_path_mapping={TAG_1: 'div'}
+        )
+        LOGGER.debug('doc: %s', doc)
+
+        root = doc.root
+        front = root.find('./text/front')
+        LOGGER.debug('xml: %s', _to_xml(front))
+        assert _to_xml(front) == (
+            '<front><div><label>{token1}</label>{token2}</div>{token3}</front>'.format(
+                token1=TOKEN_1, token2=TOKEN_2, token3=TOKEN_3
+            )
+        )
+
+    def test_should_not_preserve_existing_nested_tag_if_disabled(self):
+        original_tei_xml = _tei(front_items=[
+            E.div(E.label(TOKEN_1), TOKEN_2),
+            TOKEN_3
+        ])
+        LOGGER.debug('original tei xml: %s', _to_xml(original_tei_xml))
+        doc = GrobidTrainingTeiStructuredDocument(
+            original_tei_xml,
+            preserve_tags=False,
+            tag_to_tei_path_mapping={TAG_1: 'div'}
+        )
+        LOGGER.debug('doc: %s', doc)
+
+        root = doc.root
+        front = root.find('./text/front')
+        LOGGER.debug('xml: %s', _to_xml(front))
+        assert _to_xml(front) == (
+            '<front>{token1}{token2}{token3}</front>'.format(
+                token1=TOKEN_1, token2=TOKEN_2, token3=TOKEN_3
             )
         )
 
