@@ -399,8 +399,8 @@ def _lines_to_tei(
         tag_to_tei_path_mapping = {}
     writer = XmlTreeWriter(parent)
     pending_space_tokens = []
-    for i, line in enumerate(lines):
-        if i:
+    for line_index, line in enumerate(lines):
+        if line_index:
             writer.append(E(TeiTagNames.LB))
         for token in line.tokens:
             if not token.stripped_text:
@@ -429,7 +429,7 @@ def _lines_to_tei(
                 LOGGER.debug('found begin prefix, resetting path: %s', main_full_tag)
                 writer.require_path([], token=token)
             elif sub_prefix == B_TAG_PREFIX:
-                LOGGER.debug('found begin prefix, resetting path to parent: %s', sub_full_tag)
+                LOGGER.debug('found begin sub prefix, resetting path to parent: %s', sub_full_tag)
                 writer.require_path_or_below(main_required_path, token=token)
 
             required_path = (
