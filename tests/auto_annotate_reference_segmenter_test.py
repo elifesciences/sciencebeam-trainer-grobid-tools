@@ -115,7 +115,7 @@ class TestEndToEnd(object):
         label_with_dot = '1.'
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
             get_reference_segmenter_tei_node([
-                E.note(label_with_dot + ' ' + REFERENCE_TEXT_1 +  ' ')
+                E.note(label_with_dot + ' ' + REFERENCE_TEXT_1 + ' ')
             ])
         ))
         test_helper.xml_file_path.write_bytes(etree.tostring(

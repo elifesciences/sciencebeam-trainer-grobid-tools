@@ -366,18 +366,42 @@ def _get_tag_required_path(
     return required_path
 
 
+class XmlTreeWriter:
+    def __init__(self, parent: etree.Element):
+        self.current_element = parent
+        self.current_path = []
+
+    def append(self, element: etree.Element):
+        self.current_element.append(element)
+
+    def append_text(self, text: str):
+        _append_text(self.current_element, text)
+
+    def require_path(self, required_path: List[str], token: TeiText):
+        self.current_element, self.current_path = _get_element_at_path(
+            self.current_element, self.current_path,
+            required_path,
+            token
+        )
+
+    def require_path_or_below(self, required_path: List[str], token: TeiText):
+        self.require_path(
+            _get_common_path(self.current_path, required_path),
+            token=token
+        )
+
+
 def _lines_to_tei(
         parent: etree.Element,
         lines: List[TeiLine],
         tag_to_tei_path_mapping: Dict[str, str] = None):
     if tag_to_tei_path_mapping is None:
         tag_to_tei_path_mapping = {}
-    current_element = parent
-    current_path = []
+    writer = XmlTreeWriter(parent)
     pending_space_tokens = []
     for i, line in enumerate(lines):
         if i:
-            current_element.append(E(TeiTagNames.LB))
+            writer.append(E(TeiTagNames.LB))
         for token in line.tokens:
             if not token.stripped_text:
                 pending_space_tokens.append(token)
@@ -403,18 +427,10 @@ def _lines_to_tei(
 
             if main_prefix == B_TAG_PREFIX:
                 LOGGER.debug('found begin prefix, resetting path: %s', main_full_tag)
-                current_element, current_path = _get_element_at_path(
-                    current_element, current_path,
-                    [],
-                    token
-                )
+                writer.require_path([], token=token)
             elif sub_prefix == B_TAG_PREFIX:
                 LOGGER.debug('found begin prefix, resetting path to parent: %s', sub_full_tag)
-                current_element, current_path = _get_element_at_path(
-                    current_element, current_path,
-                    _get_common_path(current_path, main_required_path),
-                    token
-                )
+                writer.require_path_or_below(main_required_path, token=token)
 
             required_path = (
                 sub_required_path if sub_full_tag
@@ -423,31 +439,16 @@ def _lines_to_tei(
 
             if pending_space_tokens:
                 for pending_space_token in pending_space_tokens:
-                    LOGGER.debug(
-                        'flushing pending space: %s (between %s and %s)',
-                        pending_space_token, current_path, required_path
-                    )
-                    current_element, current_path = _get_element_at_path(
-                        current_element, current_path,
-                        _get_common_path(current_path, required_path),
-                        pending_space_token
-                    )
-                    _append_text(current_element, pending_space_token.text)
+                    writer.require_path_or_below(required_path, token=pending_space_token)
+                    writer.append_text(pending_space_token.text)
                     pending_space_tokens = []
 
-            current_element, current_path = _get_element_at_path(
-                current_element, current_path, required_path, token
-            )
-
-            _append_text(current_element, token.text)
+            writer.require_path(required_path, token=token)
+            writer.append_text(token.text)
 
     for pending_space_token in pending_space_tokens:
-        current_element, current_path = _get_element_at_path(
-            current_element, current_path,
-            [],
-            pending_space_token
-        )
-        _append_text(current_element, pending_space_token.text)
+        writer.require_path_or_below([], token=pending_space_token)
+        writer.append_text(pending_space_token.text)
         pending_space_tokens = []
 
     return parent
