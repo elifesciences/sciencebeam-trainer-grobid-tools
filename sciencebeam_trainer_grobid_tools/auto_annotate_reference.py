@@ -21,6 +21,11 @@ from .auto_annotate_utils import (
     AbstractAnnotatePipelineFactory
 )
 
+from .structured_document.reference_annotator import (
+    ReferenceAnnotatorConfig,
+    ReferencePostProcessingAnnotator
+)
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -38,7 +43,7 @@ REFERENCE_TAG_TO_TEI_PATH_MAPPING = {
     'reference-source': 'listBibl/bibl/title[@level="j"]',
     'reference-volume': 'listBibl/bibl/biblScope[@unit="volume"]',
     'reference-issue': 'listBibl/bibl/biblScope[@unit="issue"]',
-    'reference-fpage': 'listBibl/bibl/biblScope[@unit="page"]',
+    'reference-page': 'listBibl/bibl/biblScope[@unit="page"]',
     'reference-doi': 'listBibl/bibl/idno',
 }
 
@@ -47,8 +52,28 @@ def get_logger():
     return logging.getLogger(__name__)
 
 
-def _get_annotator(*args, **kwargs):
+def _get_annotator(
+        *args,
+        reference_annotator_config: ReferenceAnnotatorConfig = None,
+        **kwargs):
+
+    if reference_annotator_config is None:
+        reference_annotator_config = ReferenceAnnotatorConfig(
+            merge_enabled_sub_tags={
+                'reference-author',
+                'reference-page'
+            },
+            sub_tag_map={
+                'reference-fpage': 'reference-page',
+                'reference-lpage': 'reference-page'
+            }
+        )
     annotators = get_default_annotators(*args, **kwargs)
+    annotators = annotators + [
+        ReferencePostProcessingAnnotator(
+            reference_annotator_config
+        )
+    ]
     annotator = Annotator(annotators)
     return annotator
 

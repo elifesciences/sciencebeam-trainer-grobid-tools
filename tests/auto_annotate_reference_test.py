@@ -32,20 +32,19 @@ TEI_FILENAME_REGEX = r'/(.*).references.tei.xml/\1.xml/'
 TEXT_1 = 'text 1'
 
 LABEL_1 = '1'
-# REFERENCE_TEXT_1 = 'reference A'
 
 ARTICLE_TITLE_1 = 'article title A'
 SOURCE_1 = 'source A'
 LAST_NAME_1 = 'Smith'
 FIRST_NAME_INITIAL_1 = 'A'
+LAST_NAME_2 = 'Johnson'
+FIRST_NAME_INITIAL_2 = 'B'
 YEAR_1 = '2001'
 VOLUME_1 = '11'
 ISSUE_1 = '7'
 FIRST_PAGE_1 = '101'
+LAST_PAGE_1 = '191'
 DOI_1 = '10.12345/test.2001.2.3'
-
-# LABEL_2 = '2'
-# REFERENCE_TEXT_1 = 'reference B'
 
 
 def get_reference_tei_node(
@@ -146,3 +145,74 @@ class TestEndToEnd(object):
         assert get_xpath_text(first_bibl, './idno') == ' '.join([
             DOI_1
         ])
+
+    @log_on_exception
+    def test_should_merge_multiple_author_fields(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        target_reference_content_nodes = [
+            E('string-name', E.surname(LAST_NAME_1), ', ', E('given-names', FIRST_NAME_INITIAL_1)),
+            ', ',
+            E('string-name', E.surname(LAST_NAME_2), ', ', E('given-names', FIRST_NAME_INITIAL_2)),
+            ' (',
+            E.year(YEAR_1),
+            ')',
+            E('article-title', ARTICLE_TITLE_1)
+        ]
+        target_jats_xml = etree.tostring(
+            get_target_xml_node(reference_nodes=[
+                get_jats_reference_node(LABEL_1, *target_reference_content_nodes),
+            ])
+        )
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_reference_tei_node([
+                E.bibl(get_nodes_text(target_reference_content_nodes))
+            ])
+        ))
+        LOGGER.debug('target_jats_xml: %s', target_jats_xml)
+        test_helper.xml_file_path.write_bytes(target_jats_xml)
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'matcher': 'simple',
+            'fields': 'reference'
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        first_bibl = tei_auto_root.xpath('//listBibl/bibl[1]')[0]
+        assert get_xpath_text(first_bibl, './author', '|') == '%s, %s, %s, %s' % (
+            LAST_NAME_1, FIRST_NAME_INITIAL_1,
+            LAST_NAME_2, FIRST_NAME_INITIAL_2
+        )
+
+    @log_on_exception
+    def test_should_merge_multiple_page_fields(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        target_reference_content_nodes = [
+            E.source(SOURCE_1),
+            ', ',
+            E.fpage(FIRST_PAGE_1),
+            '-',
+            E.lpage(LAST_PAGE_1)
+        ]
+        target_jats_xml = etree.tostring(
+            get_target_xml_node(reference_nodes=[
+                get_jats_reference_node(LABEL_1, *target_reference_content_nodes),
+            ])
+        )
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_reference_tei_node([
+                E.bibl(get_nodes_text(target_reference_content_nodes))
+            ])
+        ))
+        LOGGER.debug('target_jats_xml: %s', target_jats_xml)
+        test_helper.xml_file_path.write_bytes(target_jats_xml)
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'matcher': 'simple',
+            'fields': 'reference'
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        first_bibl = tei_auto_root.xpath('//listBibl/bibl[1]')[0]
+        assert get_xpath_text(first_bibl, './biblScope[@unit="page"]', '|') == (
+            '%s-%s' % (FIRST_PAGE_1, LAST_PAGE_1)
+        )
