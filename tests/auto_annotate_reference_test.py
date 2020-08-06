@@ -99,8 +99,8 @@ class TestEndToEnd(object):
             E.issue(ISSUE_1),
             '), ',
             E.fpage(FIRST_PAGE_1),
-            # ', doi: ',
-            # E.fpage(DOI_1)
+            ', doi: ',
+            E('pub-id', DOI_1, {'pub-id-type': 'doi'})
         ]
         target_jats_xml = etree.tostring(
             get_target_xml_node(reference_nodes=[
@@ -143,6 +143,6 @@ class TestEndToEnd(object):
         assert get_xpath_text(first_bibl, './biblScope[@unit="page"]') == ' '.join([
             FIRST_PAGE_1
         ])
-        # assert get_xpath_text(first_bibl, './idno') == ' '.join([
-        #     DOI_1
-        # ])
+        assert get_xpath_text(first_bibl, './idno') == ' '.join([
+            DOI_1
+        ])
