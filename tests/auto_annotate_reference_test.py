@@ -123,33 +123,33 @@ class TestEndToEnd(object):
 
         tei_auto_root = test_helper.get_tei_auto_root()
         first_bibl = tei_auto_root.xpath('//listBibl/bibl[1]')[0]
-        assert get_xpath_text(first_bibl, './author') == ' '.join([
+        assert get_xpath_text(first_bibl, './author') == (
             '%s, %s' % (LAST_NAME_1, FIRST_NAME_INITIAL_1)
-        ])
-        assert get_xpath_text(first_bibl, './date') == ' '.join([
+        )
+        assert get_xpath_text(first_bibl, './date') == (
             YEAR_1
-        ])
-        assert get_xpath_text(first_bibl, './title[@level="a"]') == ' '.join([
+        )
+        assert get_xpath_text(first_bibl, './title[@level="a"]') == (
             ARTICLE_TITLE_1
-        ])
-        assert get_xpath_text(first_bibl, './title[@level="j"]') == ' '.join([
+        )
+        assert get_xpath_text(first_bibl, './title[@level="j"]') == (
             SOURCE_1
-        ])
-        assert get_xpath_text(first_bibl, './biblScope[@unit="volume"]') == ' '.join([
+        )
+        assert get_xpath_text(first_bibl, './biblScope[@unit="volume"]') == (
             VOLUME_1
-        ])
-        assert get_xpath_text(first_bibl, './biblScope[@unit="issue"]') == ' '.join([
+        )
+        assert get_xpath_text(first_bibl, './biblScope[@unit="issue"]') == (
             ISSUE_1
-        ])
-        assert get_xpath_text(first_bibl, './biblScope[@unit="page"]') == ' '.join([
+        )
+        assert get_xpath_text(first_bibl, './biblScope[@unit="page"]') == (
             FIRST_PAGE_1
-        ])
-        assert get_xpath_text(first_bibl, './idno') == ' '.join([
+        )
+        assert get_xpath_text(first_bibl, './idno') == (
             DOI_1
-        ])
-        assert get_xpath_text(first_bibl, './ptr[@type="web"]') == ' '.join([
+        )
+        assert get_xpath_text(first_bibl, './ptr[@type="web"]') == (
             LINK_1
-        ])
+        )
 
     @log_on_exception
     def test_should_merge_multiple_author_fields(
