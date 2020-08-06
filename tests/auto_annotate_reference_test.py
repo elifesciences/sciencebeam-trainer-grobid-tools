@@ -46,6 +46,7 @@ FIRST_PAGE_1 = '101'
 LAST_PAGE_1 = '191'
 DOI_1 = '10.12345/test.2001.2.3'
 PMID_1 = '1234567'
+PMCID_1 = 'PMC1000001'
 LINK_1 = 'https://test.org/path'
 
 def get_reference_tei_node(
@@ -103,6 +104,8 @@ class TestEndToEnd(object):
             E('pub-id', DOI_1, {'pub-id-type': 'doi'}),
             ', PMID: ',
             E('pub-id', PMID_1, {'pub-id-type': 'pmid'}),
+            ', PMCID: ',
+            E('pub-id', PMCID_1, {'pub-id-type': 'pmcid'}),
             ', web: ',
             E('ext-link', LINK_1)
         ]
@@ -149,7 +152,8 @@ class TestEndToEnd(object):
         )
         assert get_xpath_text(first_bibl, './idno', '|') == '|'.join([
             DOI_1,
-            PMID_1
+            PMID_1,
+            PMCID_1
         ])
         assert get_xpath_text(first_bibl, './ptr[@type="web"]') == (
             LINK_1
