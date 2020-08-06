@@ -45,6 +45,7 @@ REFERENCE_TAG_TO_TEI_PATH_MAPPING = {
     'reference-issue': 'listBibl/bibl/biblScope[@unit="issue"]',
     'reference-page': 'listBibl/bibl/biblScope[@unit="page"]',
     'reference-doi': 'listBibl/bibl/idno',
+    'ext-link': 'listBibl/bibl/ptr[@type="web"]'
 }
 
 

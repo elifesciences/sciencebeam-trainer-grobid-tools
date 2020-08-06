@@ -45,7 +45,7 @@ ISSUE_1 = '7'
 FIRST_PAGE_1 = '101'
 LAST_PAGE_1 = '191'
 DOI_1 = '10.12345/test.2001.2.3'
-
+LINK_1 = 'https://test.org/path'
 
 def get_reference_tei_node(
         items: List[Union[etree.Element, str]]) -> etree.Element:
@@ -99,7 +99,9 @@ class TestEndToEnd(object):
             '):',
             E.fpage(FIRST_PAGE_1),
             ', doi: ',
-            E('pub-id', DOI_1, {'pub-id-type': 'doi'})
+            E('pub-id', DOI_1, {'pub-id-type': 'doi'}),
+            ', web: ',
+            E('ext-link', LINK_1)
         ]
         target_jats_xml = etree.tostring(
             get_target_xml_node(reference_nodes=[
@@ -144,6 +146,9 @@ class TestEndToEnd(object):
         ])
         assert get_xpath_text(first_bibl, './idno') == ' '.join([
             DOI_1
+        ])
+        assert get_xpath_text(first_bibl, './ptr[@type="web"]') == ' '.join([
+            LINK_1
         ])
 
     @log_on_exception
