@@ -61,14 +61,14 @@ def _get_annotator(
 
     if reference_annotator_config is None:
         reference_annotator_config = ReferenceAnnotatorConfig(
+            sub_tag_map={
+                'reference-fpage': 'reference-page',
+                'reference-lpage': 'reference-page'
+            },
             merge_enabled_sub_tags={
                 'reference-author',
                 'reference-page'
             },
-            sub_tag_map={
-                'reference-fpage': 'reference-page',
-                'reference-lpage': 'reference-page'
-            }
         )
     annotators = get_default_annotators(*args, **kwargs)
     annotators = annotators + [

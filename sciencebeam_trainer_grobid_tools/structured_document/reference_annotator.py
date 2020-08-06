@@ -21,10 +21,10 @@ LOGGER = logging.getLogger(__name__)
 class ReferenceAnnotatorConfig:
     def __init__(
             self,
-            merge_enabled_sub_tags: Set[str],
-            sub_tag_map: Dict[str, str]):
-        self.merge_enabled_sub_tags = merge_enabled_sub_tags
+            sub_tag_map: Dict[str, str],
+            merge_enabled_sub_tags: Set[str]):
         self.sub_tag_map = sub_tag_map
+        self.merge_enabled_sub_tags = merge_enabled_sub_tags
 
     def __repr__(self):
         return '%s(%s)' % (type(self), self.__dict__)
