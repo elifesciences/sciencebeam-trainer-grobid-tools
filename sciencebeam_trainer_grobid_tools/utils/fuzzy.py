@@ -18,12 +18,15 @@ from sciencebeam_gym.preprocess.annotation.fuzzy_match import (
 LOGGER = logging.getLogger(__name__)
 
 
+DEFAULT_WORD_SEPARATORS = ' ,()[]'
+
+
 def fuzzy_search(
         haystack: str, needle: str,
         threshold: float,
         exact_word_match_threshold: int = 5) -> FuzzyMatchResult:
     if min(len(haystack), len(needle)) < exact_word_match_threshold:
-        sm = WordSequenceMatcher(None, haystack, needle)
+        sm = WordSequenceMatcher(None, haystack, needle, sep=DEFAULT_WORD_SEPARATORS)
     else:
         sm = LocalSequenceMatcher(a=haystack, b=needle, scoring=DEFAULT_SCORING)
     matching_blocks = sm.get_matching_blocks()
