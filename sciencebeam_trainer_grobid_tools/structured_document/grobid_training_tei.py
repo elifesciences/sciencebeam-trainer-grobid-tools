@@ -334,6 +334,10 @@ def _get_common_path(path1: List[str], path2: List[str]) -> List[str]:
     return common_path
 
 
+def _path_starts_with(path1: List[str], path2: List[str]) -> bool:
+    return _get_common_path(path1, path2 or []) == path1
+
+
 def _get_element_at_path(current_element, current_path, required_path, token):
     if required_path != current_path:
         common_path = _get_common_path(current_path, required_path)
@@ -420,6 +424,14 @@ def _lines_to_tei(
                 if sub_full_tag
                 else None
             )
+            if sub_full_tag and not _path_starts_with(main_required_path, sub_required_path):
+                LOGGER.debug(
+                    'ignoring sub tag outside main path: %s (%s)',
+                    sub_tag, sub_required_path
+                )
+                sub_tag = None
+                sub_full_tag = None
+                sub_required_path = []
             LOGGER.debug(
                 'output token: %s (main_required_path: %s, sub_required_path: %s)',
                 token, main_required_path, sub_required_path
