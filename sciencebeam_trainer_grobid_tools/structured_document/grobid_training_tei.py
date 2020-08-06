@@ -218,7 +218,7 @@ def _to_text_token(text: str, *args, **kwargs) -> TeiText:
 
 
 def _parse_tag_expression(tag_expression):
-    match = re.match(r'^([^\[]+)(\[([^=]+)="(.+)"\])?$', tag_expression)
+    match = re.match(r'^([^\[]+)(\[@?([^=]+)="(.+)"\])?$', tag_expression)
     if not match:
         raise ValueError('invalid tag expression: %s' % tag_expression)
     get_logger().debug('match: %s', match.groups())
