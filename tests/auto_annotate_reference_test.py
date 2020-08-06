@@ -51,6 +51,7 @@ PMID_1 = '1234567'
 PMCID_1 = 'PMC1000001'
 LINK_1 = 'https://test.org/path'
 
+
 def get_reference_tei_node(
         items: List[Union[etree.Element, str]]) -> etree.Element:
     return E.tei(E.text(E.back(E.listBibl(*items))))
