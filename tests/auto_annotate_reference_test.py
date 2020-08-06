@@ -35,6 +35,8 @@ LABEL_1 = '1'
 
 ARTICLE_TITLE_1 = 'article title A'
 SOURCE_1 = 'source A'
+PUBLISHER_NAME_1 = 'Publisher A'
+PUBLISHER_LOC_1 = 'New London'
 LAST_NAME_1 = 'Smith'
 FIRST_NAME_INITIAL_1 = 'A'
 LAST_NAME_2 = 'Johnson'
@@ -94,6 +96,10 @@ class TestEndToEnd(object):
             E('article-title', ARTICLE_TITLE_1),
             ' ',
             E.source(SOURCE_1),
+            ' ',
+            E('publisher-name', PUBLISHER_NAME_1),
+            ', ',
+            E('publisher-loc', PUBLISHER_LOC_1),
             ', ',
             E.volume(VOLUME_1),
             ' (',
@@ -140,6 +146,12 @@ class TestEndToEnd(object):
         )
         assert get_xpath_text(first_bibl, './title[@level="j"]') == (
             SOURCE_1
+        )
+        assert get_xpath_text(first_bibl, './publisher') == (
+            PUBLISHER_NAME_1
+        )
+        assert get_xpath_text(first_bibl, './pubPlace') == (
+            PUBLISHER_LOC_1
         )
         assert get_xpath_text(first_bibl, './biblScope[@unit="volume"]') == (
             VOLUME_1

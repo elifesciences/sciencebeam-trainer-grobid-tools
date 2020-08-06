@@ -41,6 +41,8 @@ REFERENCE_TAG_TO_TEI_PATH_MAPPING = {
     'reference-year': 'listBibl/bibl/date',
     'reference-article-title': 'listBibl/bibl/title[@level="a"]',
     'reference-source': 'listBibl/bibl/title[@level="j"]',
+    'reference-publisher-name': 'listBibl/bibl/publisher',
+    'reference-publisher-loc': 'listBibl/bibl/pubPlace',
     'reference-volume': 'listBibl/bibl/biblScope[@unit="volume"]',
     'reference-issue': 'listBibl/bibl/biblScope[@unit="issue"]',
     'reference-page': 'listBibl/bibl/biblScope[@unit="page"]',
