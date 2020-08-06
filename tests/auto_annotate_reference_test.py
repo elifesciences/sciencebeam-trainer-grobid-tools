@@ -96,7 +96,7 @@ class TestEndToEnd(object):
             E.volume(VOLUME_1),
             ' (',
             E.issue(ISSUE_1),
-            '), ',
+            '):',
             E.fpage(FIRST_PAGE_1),
             ', doi: ',
             E('pub-id', DOI_1, {'pub-id-type': 'doi'})
