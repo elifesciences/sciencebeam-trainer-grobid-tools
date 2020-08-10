@@ -93,7 +93,9 @@ def _merge_sub_tags(
         merge_enabled_map={
             key: True
             for key in config.merge_enabled_sub_tags
-        }
+        },
+        default_merge_enabled=False,
+        default_extend_to_line_enabled=True
     )
     LOGGER.debug(
         'sub tokens, transformed: %s -> %s -> %s (tokens: %s)',

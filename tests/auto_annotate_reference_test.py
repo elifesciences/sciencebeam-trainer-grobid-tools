@@ -222,6 +222,53 @@ class TestEndToEnd(object):
         )
 
     @log_on_exception
+    def test_should_merge_multiple_editor_fields(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        target_reference_content_nodes = [
+            E(
+                'person-group',
+                {'person-group-type': 'editor'},
+                E(
+                    'string-name',
+                    E.surname(LAST_NAME_1), ', ', E('given-names', FIRST_NAME_INITIAL_1)
+                ),
+                ', ',
+                E(
+                    'string-name',
+                    E.surname(LAST_NAME_2), ', ', E('given-names', FIRST_NAME_INITIAL_2)
+                )
+            ),
+            ' (',
+            E.year(YEAR_1),
+            ')',
+            E('article-title', ARTICLE_TITLE_1)
+        ]
+        target_jats_xml = etree.tostring(
+            get_target_xml_node(reference_nodes=[
+                get_jats_reference_node(LABEL_1, *target_reference_content_nodes),
+            ])
+        )
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_reference_tei_node([
+                E.bibl(get_nodes_text(target_reference_content_nodes))
+            ])
+        ))
+        LOGGER.debug('target_jats_xml: %s', target_jats_xml)
+        test_helper.xml_file_path.write_bytes(target_jats_xml)
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'matcher': 'simple',
+            'fields': 'reference'
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        first_bibl = tei_auto_root.xpath('//listBibl/bibl[1]')[0]
+        assert get_xpath_text(first_bibl, './editor', '|') == '%s, %s, %s, %s' % (
+            LAST_NAME_1, FIRST_NAME_INITIAL_1,
+            LAST_NAME_2, FIRST_NAME_INITIAL_2
+        )
+
+    @log_on_exception
     def test_should_merge_multiple_page_fields(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_reference_content_nodes = [

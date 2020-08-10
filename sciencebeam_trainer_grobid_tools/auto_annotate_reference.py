@@ -71,6 +71,7 @@ def _get_annotator(
             },
             merge_enabled_sub_tags={
                 'reference-author',
+                'reference-editor',
                 'reference-page'
             },
         )
