@@ -95,6 +95,15 @@ class TestEndToEnd(object):
             E.year(YEAR_1),
             ')',
             E('article-title', ARTICLE_TITLE_1),
+            ' In: ',
+            E(
+                'person-group',
+                {'person-group-type': 'editor'},
+                E(
+                    'string-name',
+                    E.surname(LAST_NAME_2), ', ', E('given-names', FIRST_NAME_INITIAL_2)
+                )
+            ),
             ' ',
             E.source(SOURCE_1),
             ' ',
@@ -138,6 +147,9 @@ class TestEndToEnd(object):
         first_bibl = tei_auto_root.xpath('//listBibl/bibl[1]')[0]
         assert get_xpath_text(first_bibl, './author') == (
             '%s, %s' % (LAST_NAME_1, FIRST_NAME_INITIAL_1)
+        )
+        assert get_xpath_text(first_bibl, './editor') == (
+            '%s, %s' % (LAST_NAME_2, FIRST_NAME_INITIAL_2)
         )
         assert get_xpath_text(first_bibl, './date') == (
             YEAR_1

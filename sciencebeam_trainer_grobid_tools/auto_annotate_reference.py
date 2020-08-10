@@ -38,6 +38,7 @@ REFERENCE_TAG_TO_TEI_PATH_MAPPING = {
     'reference': 'listBibl/bibl',
     'reference-label': 'listBibl/bibl/label',
     'reference-author': 'listBibl/bibl/author',
+    'reference-editor': 'listBibl/bibl/editor',
     'reference-year': 'listBibl/bibl/date',
     'reference-article-title': 'listBibl/bibl/title[@level="a"]',
     'reference-source': 'listBibl/bibl/title[@level="j"]',
