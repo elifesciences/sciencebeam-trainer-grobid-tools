@@ -49,6 +49,7 @@ LAST_PAGE_1 = '191'
 DOI_1 = '10.12345/test.2001.2.3'
 PMID_1 = '1234567'
 PMCID_1 = 'PMC1000001'
+ISSN_1 = '1012-4567'
 LINK_1 = 'https://test.org/path'
 
 
@@ -116,6 +117,8 @@ class TestEndToEnd(object):
             E.issue(ISSUE_1),
             '):',
             E.fpage(FIRST_PAGE_1),
+            ', ISSN: ',
+            E('issn', ISSN_1),
             ', doi: ',
             E('pub-id', DOI_1, {'pub-id-type': 'doi'}),
             ', PMID: ',
@@ -175,11 +178,12 @@ class TestEndToEnd(object):
         assert get_xpath_text(first_bibl, './biblScope[@unit="page"]') == (
             FIRST_PAGE_1
         )
-        assert get_xpath_text(first_bibl, './idno', '|') == '|'.join([
+        assert get_xpath_text(first_bibl, './idno', '|').split('|') == [
+            'ISSN: ' + ISSN_1,
             'doi: ' + DOI_1,
             'PMID: ' + PMID_1,
             'PMCID: ' + PMCID_1
-        ])
+        ]
         assert get_xpath_text(first_bibl, './ptr[@type="web"]') == (
             LINK_1
         )

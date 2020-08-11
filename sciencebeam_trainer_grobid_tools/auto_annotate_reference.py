@@ -47,6 +47,7 @@ REFERENCE_TAG_TO_TEI_PATH_MAPPING = {
     'reference-volume': 'listBibl/bibl/biblScope[@unit="volume"]',
     'reference-issue': 'listBibl/bibl/biblScope[@unit="issue"]',
     'reference-page': 'listBibl/bibl/biblScope[@unit="page"]',
+    'reference-issn': 'listBibl/bibl/idno',
     'reference-doi': 'listBibl/bibl/idno',
     'reference-pmid': 'listBibl/bibl/idno',
     'reference-pmcid': 'listBibl/bibl/idno',
@@ -75,6 +76,7 @@ def _get_annotator(
                 'reference-page'
             },
             idno_sub_tags={
+                'reference-issn',
                 'reference-doi',
                 'reference-pmid',
                 'reference-pmcid'
