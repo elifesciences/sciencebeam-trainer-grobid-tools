@@ -178,12 +178,18 @@ class TestEndToEnd(object):
         assert get_xpath_text(first_bibl, './biblScope[@unit="page"]') == (
             FIRST_PAGE_1
         )
-        assert get_xpath_text(first_bibl, './idno', '|').split('|') == [
-            'ISSN: ' + ISSN_1,
-            'doi: ' + DOI_1,
-            'PMID: ' + PMID_1,
+        assert get_xpath_text(first_bibl, './idno[@type="ISSN"]', '|') == (
+            'ISSN: ' + ISSN_1
+        )
+        assert get_xpath_text(first_bibl, './idno[@type="DOI"]', '|') == (
+            'doi: ' + DOI_1
+        )
+        assert get_xpath_text(first_bibl, './idno[@type="PMID"]', '|') == (
+            'PMID: ' + PMID_1
+        )
+        assert get_xpath_text(first_bibl, './idno[@type="PMC"]', '|') == (
             'PMCID: ' + PMCID_1
-        ]
+        )
         assert get_xpath_text(first_bibl, './ptr[@type="web"]') == (
             LINK_1
         )

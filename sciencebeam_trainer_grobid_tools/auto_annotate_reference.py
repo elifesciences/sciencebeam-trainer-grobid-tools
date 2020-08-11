@@ -47,10 +47,10 @@ REFERENCE_TAG_TO_TEI_PATH_MAPPING = {
     'reference-volume': 'listBibl/bibl/biblScope[@unit="volume"]',
     'reference-issue': 'listBibl/bibl/biblScope[@unit="issue"]',
     'reference-page': 'listBibl/bibl/biblScope[@unit="page"]',
-    'reference-issn': 'listBibl/bibl/idno',
-    'reference-doi': 'listBibl/bibl/idno',
-    'reference-pmid': 'listBibl/bibl/idno',
-    'reference-pmcid': 'listBibl/bibl/idno',
+    'reference-issn': 'listBibl/bibl/idno[@type="ISSN"]',
+    'reference-doi': 'listBibl/bibl/idno[@type="DOI"]',
+    'reference-pmid': 'listBibl/bibl/idno[@type="PMID"]',
+    'reference-pmcid': 'listBibl/bibl/idno[@type="PMC"]',
     'ext-link': 'listBibl/bibl/ptr[@type="web"]'
 }
 
