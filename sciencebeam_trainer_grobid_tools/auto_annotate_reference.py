@@ -55,35 +55,42 @@ REFERENCE_TAG_TO_TEI_PATH_MAPPING = {
     'ext-link': 'listBibl/bibl/ptr[@type="web"]'
 }
 
+DEFAULT_SUB_TAG_MAP = {
+    'reference-fpage': 'reference-page',
+    'reference-lpage': 'reference-page'
+}
+
+DEFAULT_MERGE_ENABLED_SUB_TAGS = {
+    'reference-author',
+    'reference-editor',
+    'reference-page'
+}
+
+IDNO_SUB_TAGS = {
+    'reference-issn',
+    'reference-doi',
+    'reference-pmid',
+    'reference-pmcid',
+    'reference-arxiv'
+}
+
 
 def get_logger():
     return logging.getLogger(__name__)
 
 
+def _get_default_reference_annotator_config() -> ReferenceAnnotatorConfig:
+    return ReferenceAnnotatorConfig(
+        sub_tag_map=DEFAULT_SUB_TAG_MAP,
+        merge_enabled_sub_tags=DEFAULT_MERGE_ENABLED_SUB_TAGS,
+        idno_sub_tags={}
+    )
+
+
 def _get_annotator(
         *args,
-        reference_annotator_config: ReferenceAnnotatorConfig = None,
+        reference_annotator_config: ReferenceAnnotatorConfig,
         **kwargs):
-
-    if reference_annotator_config is None:
-        reference_annotator_config = ReferenceAnnotatorConfig(
-            sub_tag_map={
-                'reference-fpage': 'reference-page',
-                'reference-lpage': 'reference-page'
-            },
-            merge_enabled_sub_tags={
-                'reference-author',
-                'reference-editor',
-                'reference-page'
-            },
-            idno_sub_tags={
-                'reference-issn',
-                'reference-doi',
-                'reference-pmid',
-                'reference-pmcid',
-                'reference-arxiv'
-            }
-        )
     annotators = get_default_annotators(*args, **kwargs)
     annotators = annotators + [
         ReferencePostProcessingAnnotator(
@@ -113,13 +120,17 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
             if field not in self.tag_to_tei_path_mapping:
                 self.tag_to_tei_path_mapping[field] = 'note[type="%s"]' % field
         self.annotator_config.use_sub_annotations = True
+        self.reference_annotator_config = _get_default_reference_annotator_config()
+        if opt.include_idno_prefix:
+            self.reference_annotator_config.idno_sub_tags = IDNO_SUB_TAGS
 
     def get_annotator(self, source_url: str):
         target_xml_path = self.get_target_xml_for_source_file(source_url)
         return _get_annotator(
             target_xml_path,
             self.xml_mapping,
-            annotator_config=self.get_annotator_config()
+            annotator_config=self.get_annotator_config(),
+            reference_annotator_config=self.reference_annotator_config
         )
 
 
@@ -131,6 +142,13 @@ def add_main_args(parser):
         type=comma_separated_str_to_list,
         default='reference',
         help='comma separated list of fields to annotate'
+    )
+
+    parser.add_argument(
+        '--include-idno-prefix',
+        action='store_true',
+        default=False,
+        help='enable including the prefix of an idno, e.g. "doi:"'
     )
 
     add_debug_argument(parser)

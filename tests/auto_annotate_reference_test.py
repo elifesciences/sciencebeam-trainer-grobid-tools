@@ -182,19 +182,19 @@ class TestEndToEnd(object):
             FIRST_PAGE_1
         )
         assert get_xpath_text(first_bibl, './idno[@type="ISSN"]', '|') == (
-            'ISSN: ' + ISSN_1
+            ISSN_1
         )
         assert get_xpath_text(first_bibl, './idno[@type="DOI"]', '|') == (
-            'doi: ' + DOI_1
+            DOI_1
         )
         assert get_xpath_text(first_bibl, './idno[@type="PMID"]', '|') == (
-            'PMID: ' + PMID_1
+            PMID_1
         )
         assert get_xpath_text(first_bibl, './idno[@type="PMC"]', '|') == (
-            'PMCID: ' + PMCID_1
+            PMCID_1
         )
         assert get_xpath_text(first_bibl, './idno[@type="arxiv"]', '|') == (
-            'arXiv: ' + ARXIV_1
+            ARXIV_1
         )
         assert get_xpath_text(first_bibl, './ptr[@type="web"]') == (
             LINK_1
@@ -316,4 +316,57 @@ class TestEndToEnd(object):
         first_bibl = tei_auto_root.xpath('//listBibl/bibl[1]')[0]
         assert get_xpath_text(first_bibl, './biblScope[@unit="page"]', '|') == (
             '%s-%s' % (FIRST_PAGE_1, LAST_PAGE_1)
+        )
+
+    @log_on_exception
+    def test_should_add_idno_prefix_if_enabled(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        target_reference_content_nodes = [
+            E('article-title', ARTICLE_TITLE_1),
+            ', ISSN: ',
+            E('issn', ISSN_1),
+            ', doi: ',
+            E('pub-id', DOI_1, {'pub-id-type': 'doi'}),
+            ', PMID: ',
+            E('pub-id', PMID_1, {'pub-id-type': 'pmid'}),
+            ', PMCID: ',
+            E('pub-id', PMCID_1, {'pub-id-type': 'pmcid'}),
+            ', arXiv: ',
+            E('pub-id', ARXIV_1, {'pub-id-type': 'arXiv'}),
+        ]
+        target_jats_xml = etree.tostring(
+            get_target_xml_node(reference_nodes=[
+                get_jats_reference_node(LABEL_1, *target_reference_content_nodes),
+            ])
+        )
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_reference_tei_node([
+                E.bibl(get_nodes_text(target_reference_content_nodes))
+            ])
+        ))
+        LOGGER.debug('target_jats_xml: %s', target_jats_xml)
+        test_helper.xml_file_path.write_bytes(target_jats_xml)
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'matcher': 'simple',
+            'fields': 'reference',
+            'include-idno-prefix': True
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        first_bibl = tei_auto_root.xpath('//listBibl/bibl[1]')[0]
+        assert get_xpath_text(first_bibl, './idno[@type="ISSN"]', '|') == (
+            'ISSN: ' + ISSN_1
+        )
+        assert get_xpath_text(first_bibl, './idno[@type="DOI"]', '|') == (
+            'doi: ' + DOI_1
+        )
+        assert get_xpath_text(first_bibl, './idno[@type="PMID"]', '|') == (
+            'PMID: ' + PMID_1
+        )
+        assert get_xpath_text(first_bibl, './idno[@type="PMC"]', '|') == (
+            'PMCID: ' + PMCID_1
+        )
+        assert get_xpath_text(first_bibl, './idno[@type="arxiv"]', '|') == (
+            'arXiv: ' + ARXIV_1
         )
