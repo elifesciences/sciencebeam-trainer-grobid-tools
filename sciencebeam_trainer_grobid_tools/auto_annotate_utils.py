@@ -466,7 +466,9 @@ class AbstractAnnotatePipelineFactory(ABC):
                 source_url, skipping_msg, e, exc_info=e
             )
             if not self.skip_errors:
-                raise e
+                raise RuntimeError('failed to process %s due to %s' % (
+                    source_url, e
+                ))
 
     def get_source_file_list(self):
         if self.source_path:

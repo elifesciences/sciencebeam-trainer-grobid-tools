@@ -474,6 +474,10 @@ def _updated_tei_with_lines(
     updated_root = copy.deepcopy(original_root)
     container_node = updated_root.find(container_node_path)
     get_logger().debug('container_node: %s', container_node)
+    if not container_node:
+        raise RuntimeError('container node path not found: %s (has %s)' % (
+            container_node_path, list(updated_root)
+        ))
     container_node.clear()
     _lines_to_tei(container_node, lines, tag_to_tei_path_mapping)
     return updated_root
@@ -627,6 +631,8 @@ def load_grobid_training_tei_structured_document(filename: str, **kwargs):
 
 def save_grobid_training_tei_structured_document(
         filename, grobid_training_tei_structured_document):
-    save_file_content(
-        filename, etree.tostring(grobid_training_tei_structured_document.root)
-    )
+    try:
+        xml = etree.tostring(grobid_training_tei_structured_document.root)
+    except Exception as e:
+        raise RuntimeError('failed to convert to xml for %s due to %s' % (filename, e))
+    save_file_content(filename, xml)
