@@ -34,10 +34,10 @@ class ReferenceAnnotatorConfig:
             self,
             sub_tag_map: Dict[str, str],
             merge_enabled_sub_tags: Set[str],
-            idno_sub_tags: Set[str]):
+            include_prefix_enabled_sub_tags: Set[str]):
         self.sub_tag_map = sub_tag_map
         self.merge_enabled_sub_tags = merge_enabled_sub_tags
-        self.idno_sub_tags = idno_sub_tags
+        self.include_prefix_enabled_sub_tags = include_prefix_enabled_sub_tags
 
     def __repr__(self):
         return '%s(%s)' % (type(self), self.__dict__)
@@ -153,7 +153,7 @@ def _add_idno_text_prefix(
     transformed_sub_tags = get_prefix_extended_token_tags(
         mapped_sub_tags,
         token_texts,
-        enabled_tags=config.idno_sub_tags
+        enabled_tags=config.include_prefix_enabled_sub_tags
     )
     LOGGER.debug(
         'sub tokens, transformed: %s -> %s -> %s (tokens: %s)',

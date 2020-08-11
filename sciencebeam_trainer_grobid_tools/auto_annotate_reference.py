@@ -83,7 +83,7 @@ def _get_default_reference_annotator_config() -> ReferenceAnnotatorConfig:
     return ReferenceAnnotatorConfig(
         sub_tag_map=DEFAULT_SUB_TAG_MAP,
         merge_enabled_sub_tags=DEFAULT_MERGE_ENABLED_SUB_TAGS,
-        idno_sub_tags={}
+        include_prefix_enabled_sub_tags={}
     )
 
 
@@ -122,7 +122,7 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
         self.annotator_config.use_sub_annotations = True
         self.reference_annotator_config = _get_default_reference_annotator_config()
         if opt.include_idno_prefix:
-            self.reference_annotator_config.idno_sub_tags = IDNO_SUB_TAGS
+            self.reference_annotator_config.include_prefix_enabled_sub_tags = IDNO_SUB_TAGS
 
     def get_annotator(self, source_url: str):
         target_xml_path = self.get_target_xml_for_source_file(source_url)
