@@ -51,6 +51,7 @@ REFERENCE_TAG_TO_TEI_PATH_MAPPING = {
     'reference-doi': 'listBibl/bibl/idno[@type="DOI"]',
     'reference-pmid': 'listBibl/bibl/idno[@type="PMID"]',
     'reference-pmcid': 'listBibl/bibl/idno[@type="PMC"]',
+    'reference-arxiv': 'listBibl/bibl/idno[@type="arxiv"]',
     'ext-link': 'listBibl/bibl/ptr[@type="web"]'
 }
 
@@ -79,7 +80,8 @@ def _get_annotator(
                 'reference-issn',
                 'reference-doi',
                 'reference-pmid',
-                'reference-pmcid'
+                'reference-pmcid',
+                'reference-arxiv'
             }
         )
     annotators = get_default_annotators(*args, **kwargs)

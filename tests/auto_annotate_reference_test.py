@@ -46,10 +46,11 @@ VOLUME_1 = '11'
 ISSUE_1 = '7'
 FIRST_PAGE_1 = '101'
 LAST_PAGE_1 = '191'
+ISSN_1 = '1012-4567'
 DOI_1 = '10.12345/test.2001.2.3'
 PMID_1 = '1234567'
 PMCID_1 = 'PMC1000001'
-ISSN_1 = '1012-4567'
+ARXIV_1 = '1723.008484'
 LINK_1 = 'https://test.org/path'
 
 
@@ -125,6 +126,8 @@ class TestEndToEnd(object):
             E('pub-id', PMID_1, {'pub-id-type': 'pmid'}),
             ', PMCID: ',
             E('pub-id', PMCID_1, {'pub-id-type': 'pmcid'}),
+            ', arXiv: ',
+            E('pub-id', ARXIV_1, {'pub-id-type': 'arXiv'}),
             ', web: ',
             E('ext-link', LINK_1)
         ]
@@ -189,6 +192,9 @@ class TestEndToEnd(object):
         )
         assert get_xpath_text(first_bibl, './idno[@type="PMC"]', '|') == (
             'PMCID: ' + PMCID_1
+        )
+        assert get_xpath_text(first_bibl, './idno[@type="arxiv"]', '|') == (
+            'arXiv: ' + ARXIV_1
         )
         assert get_xpath_text(first_bibl, './ptr[@type="web"]') == (
             LINK_1
