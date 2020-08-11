@@ -48,6 +48,7 @@ REFERENCE_TAG_TO_TEI_PATH_MAPPING = {
     'reference-issue': 'listBibl/bibl/biblScope[@unit="issue"]',
     'reference-page': 'listBibl/bibl/biblScope[@unit="page"]',
     'reference-issn': 'listBibl/bibl/idno[@type="ISSN"]',
+    'reference-isbn': 'listBibl/bibl/idno[@type="ISBN"]',
     'reference-doi': 'listBibl/bibl/idno[@type="DOI"]',
     'reference-pmid': 'listBibl/bibl/idno[@type="PMID"]',
     'reference-pmcid': 'listBibl/bibl/idno[@type="PMC"]',
@@ -68,6 +69,7 @@ DEFAULT_MERGE_ENABLED_SUB_TAGS = {
 
 IDNO_SUB_TAGS = {
     'reference-issn',
+    'reference-isbn',
     'reference-doi',
     'reference-pmid',
     'reference-pmcid',

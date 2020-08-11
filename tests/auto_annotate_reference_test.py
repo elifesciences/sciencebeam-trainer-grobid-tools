@@ -47,6 +47,7 @@ ISSUE_1 = '7'
 FIRST_PAGE_1 = '101'
 LAST_PAGE_1 = '191'
 ISSN_1 = '1012-4567'
+ISBN_1 = '978-1-234-05432-5'
 DOI_1 = '10.12345/test.2001.2.3'
 PMID_1 = '1234567'
 PMCID_1 = 'PMC1000001'
@@ -120,6 +121,8 @@ class TestEndToEnd(object):
             E.fpage(FIRST_PAGE_1),
             ', ISSN: ',
             E('issn', ISSN_1),
+            ', ISBN: ',
+            E('isbn', ISBN_1),
             ', doi: ',
             E('pub-id', DOI_1, {'pub-id-type': 'doi'}),
             ', PMID: ',
@@ -183,6 +186,9 @@ class TestEndToEnd(object):
         )
         assert get_xpath_text(first_bibl, './idno[@type="ISSN"]', '|') == (
             ISSN_1
+        )
+        assert get_xpath_text(first_bibl, './idno[@type="ISBN"]', '|') == (
+            ISBN_1
         )
         assert get_xpath_text(first_bibl, './idno[@type="DOI"]', '|') == (
             DOI_1
@@ -325,6 +331,8 @@ class TestEndToEnd(object):
             E('article-title', ARTICLE_TITLE_1),
             ', ISSN: ',
             E('issn', ISSN_1),
+            ', ISBN: ',
+            E('isbn', ISBN_1),
             ', doi: ',
             E('pub-id', DOI_1, {'pub-id-type': 'doi'}),
             ', PMID: ',
@@ -357,6 +365,9 @@ class TestEndToEnd(object):
         first_bibl = tei_auto_root.xpath('//listBibl/bibl[1]')[0]
         assert get_xpath_text(first_bibl, './idno[@type="ISSN"]', '|') == (
             'ISSN: ' + ISSN_1
+        )
+        assert get_xpath_text(first_bibl, './idno[@type="ISBN"]', '|') == (
+            'ISBN: ' + ISBN_1
         )
         assert get_xpath_text(first_bibl, './idno[@type="DOI"]', '|') == (
             'doi: ' + DOI_1
