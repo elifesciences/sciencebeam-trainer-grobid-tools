@@ -176,9 +176,9 @@ class TestEndToEnd(object):
             FIRST_PAGE_1
         )
         assert get_xpath_text(first_bibl, './idno', '|') == '|'.join([
-            DOI_1,
-            PMID_1,
-            PMCID_1
+            'doi: ' + DOI_1,
+            'PMID: ' + PMID_1,
+            'PMCID: ' + PMCID_1
         ])
         assert get_xpath_text(first_bibl, './ptr[@type="web"]') == (
             LINK_1

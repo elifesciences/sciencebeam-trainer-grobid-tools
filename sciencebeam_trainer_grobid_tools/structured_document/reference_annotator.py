@@ -1,17 +1,28 @@
 import logging
+import re
+from itertools import groupby
 from typing import Dict, List, Set, Iterable, Any
 
 from sciencebeam_gym.structured_document import (
     AbstractStructuredDocument,
     split_tag_prefix,
+    strip_tag_prefix,
     add_tag_prefix,
     B_TAG_PREFIX
 )
 from sciencebeam_gym.preprocess.annotation.annotator import (
     AbstractAnnotator
 )
+
+from sciencebeam_trainer_grobid_tools.utils.misc import get_safe
+
 from sciencebeam_trainer_grobid_tools.structured_document.simple_matching_annotator import (
-    get_extended_line_token_tags
+    get_extended_line_token_tags,
+    to_inside_tag
+)
+
+from sciencebeam_trainer_grobid_tools.structured_document.matching_utils import (
+    JoinedText
 )
 
 
@@ -22,9 +33,11 @@ class ReferenceAnnotatorConfig:
     def __init__(
             self,
             sub_tag_map: Dict[str, str],
-            merge_enabled_sub_tags: Set[str]):
+            merge_enabled_sub_tags: Set[str],
+            idno_sub_tags: Set[str]):
         self.sub_tag_map = sub_tag_map
         self.merge_enabled_sub_tags = merge_enabled_sub_tags
+        self.idno_sub_tags = idno_sub_tags
 
     def __repr__(self):
         return '%s(%s)' % (type(self), self.__dict__)
@@ -81,6 +94,78 @@ def _map_tags(tags: List[str], tag_map: Dict[str, str]) -> List[str]:
     ]
 
 
+def get_prefix_extended_token_tags(
+        token_tags: List[str],
+        token_texts: List[str],
+        enabled_tags: Set[str]) -> List[str]:
+    result = []
+    grouped_token_tags = [
+        list(group)
+        for _, group in groupby(
+            zip(token_tags, token_texts),
+            key=lambda pair: strip_tag_prefix(pair[0])
+        )
+    ]
+    for index, group in enumerate(grouped_token_tags):
+        group_tags, group_texts = zip(*group)
+        LOGGER.debug('group: tags=%s, texts=%s', group_tags, group_texts)
+        first_group_tag = group_tags[0]
+        next_group = grouped_token_tags[index + 1] if index + 1 < len(grouped_token_tags) else None
+        first_next_tag = get_safe(get_safe(next_group, 0), 0)
+        first_next_prefix, first_next_tag_value = split_tag_prefix(first_next_tag)
+        if first_group_tag or first_next_tag_value not in enabled_tags:
+            result.extend(group_tags)
+            continue
+        joined_text = JoinedText(group_texts, sep=' ')
+        m = re.search(r'\b[a-zA-Z]{2,}(\s?:)?$', str(joined_text))
+        LOGGER.debug('m: %s', m)
+        if not m:
+            result.extend(group_tags)
+            continue
+        LOGGER.debug('start: %s (%r)', m.start(), str(joined_text)[m.start():])
+        matching_tokens = list(joined_text.iter_items_and_index_range_between(
+            (m.start(), len(str(joined_text)))
+        ))
+        LOGGER.debug('matching_tokens: %s', matching_tokens)
+        if not matching_tokens:
+            result.extend(group_tags)
+            continue
+        unmatched_token_count = len(group_tags) - len(matching_tokens)
+        result.extend([None] * unmatched_token_count)
+        result.extend([first_next_tag])
+        result.extend([to_inside_tag(first_next_tag)] * (len(matching_tokens) - 1))
+        if first_next_prefix == B_TAG_PREFIX:
+            next_group[0] = (
+                to_inside_tag(first_next_tag),
+                next_group[0][1]
+            )
+    LOGGER.debug('result: %s', result)
+    return result
+
+
+def _add_idno_text_prefix(
+        structured_document: AbstractStructuredDocument,
+        tokens: List[Any],
+        config: ReferenceAnnotatorConfig):
+    sub_tags = [structured_document.get_sub_tag(token) for token in tokens]
+    token_texts = [structured_document.get_text(token) for token in tokens]
+    mapped_sub_tags = _map_tags(sub_tags, config.sub_tag_map)
+    transformed_sub_tags = get_prefix_extended_token_tags(
+        mapped_sub_tags,
+        token_texts,
+        enabled_tags=config.idno_sub_tags
+    )
+    LOGGER.debug(
+        'sub tokens, transformed: %s -> %s -> %s (tokens: %s)',
+        sub_tags, mapped_sub_tags, transformed_sub_tags, tokens
+    )
+    for token, token_sub_tag in zip(tokens, transformed_sub_tags):
+        if not token_sub_tag:
+            continue
+        structured_document.set_sub_tag(token, token_sub_tag)
+    return structured_document
+
+
 def _merge_sub_tags(
         structured_document: AbstractStructuredDocument,
         tokens: List[Any],
@@ -121,6 +206,11 @@ class ReferencePostProcessingAnnotator(AbstractAnnotator):
         )
         for entity_tag_value, entity_tokens in grouped_entity_tokens_iterable:
             LOGGER.debug('entity_tokens (%s): %s', entity_tag_value, entity_tokens)
+            _add_idno_text_prefix(
+                structured_document,
+                entity_tokens,
+                config=self.config
+            )
             _merge_sub_tags(
                 structured_document,
                 entity_tokens,

@@ -2,7 +2,7 @@ import logging
 import re
 from distutils.util import strtobool
 from itertools import groupby
-from typing import Dict, List, Tuple, TypeVar
+from typing import Dict, List, Tuple
 
 from sciencebeam_gym.structured_document import (
     AbstractStructuredDocument
@@ -23,6 +23,8 @@ from sciencebeam_gym.structured_document import (
     B_TAG_PREFIX,
     I_TAG_PREFIX
 )
+
+from sciencebeam_trainer_grobid_tools.utils.misc import get_safe
 
 from sciencebeam_trainer_grobid_tools.utils.fuzzy import (
     fuzzy_search_index_range
@@ -224,17 +226,7 @@ def _iter_all_lines(structured_document: AbstractStructuredDocument):
     )
 
 
-T = TypeVar('T')
-
-
-def _get_safe(a: List[T], index: int, default_value: T = None) -> T:
-    try:
-        return a[index]
-    except (IndexError, TypeError):
-        return default_value
-
-
-def _to_inside_tag(tag: str) -> str:
+def to_inside_tag(tag: str) -> str:
     prefix, tag_value = split_tag_prefix(tag)
     return (
         add_tag_prefix(tag_value, prefix=I_TAG_PREFIX)
@@ -266,8 +258,8 @@ def get_extended_line_token_tags(
     for index, group in enumerate(grouped_token_tags):
         prev_group = grouped_token_tags[index - 1] if index > 0 else None
         next_group = grouped_token_tags[index + 1] if index + 1 < len(grouped_token_tags) else None
-        _, last_prev_tag_value = split_tag_prefix(_get_safe(prev_group, -1))
-        first_next_prefix, first_next_tag_value = split_tag_prefix(_get_safe(next_group, 0))
+        _, last_prev_tag_value = split_tag_prefix(get_safe(prev_group, -1))
+        first_next_prefix, first_next_tag_value = split_tag_prefix(get_safe(next_group, 0))
         if (
                 prev_group and not extend_to_line_enabled_map.get(
                     last_prev_tag_value, default_extend_to_line_enabled
@@ -284,18 +276,18 @@ def get_extended_line_token_tags(
                     last_prev_tag_value == first_next_tag_value
                     and merge_enabled_map.get(last_prev_tag_value, default_merge_enabled)
             ):
-                result.extend([_to_inside_tag(prev_group[-1])] * len(group))
+                result.extend([to_inside_tag(prev_group[-1])] * len(group))
                 if first_next_prefix == B_TAG_PREFIX:
-                    next_group[0] = _to_inside_tag(next_group[0])
+                    next_group[0] = to_inside_tag(next_group[0])
             else:
                 result.extend(group)
         elif prev_group and len(prev_group) > len(group):
-            result.extend([_to_inside_tag(prev_group[-1])] * len(group))
+            result.extend([to_inside_tag(prev_group[-1])] * len(group))
         elif next_group and len(next_group) > len(group):
             result.extend([next_group[0]])
-            result.extend([_to_inside_tag(next_group[0])] * (len(group) - 1))
+            result.extend([to_inside_tag(next_group[0])] * (len(group) - 1))
             if first_next_prefix == B_TAG_PREFIX:
-                next_group[0] = _to_inside_tag(next_group[0])
+                next_group[0] = to_inside_tag(next_group[0])
         else:
             result.extend(group)
     LOGGER.debug('result: %s', result)

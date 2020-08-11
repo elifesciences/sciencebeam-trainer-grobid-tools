@@ -74,6 +74,11 @@ def _get_annotator(
                 'reference-editor',
                 'reference-page'
             },
+            idno_sub_tags={
+                'reference-doi',
+                'reference-pmid',
+                'reference-pmcid'
+            }
         )
     annotators = get_default_annotators(*args, **kwargs)
     annotators = annotators + [
