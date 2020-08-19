@@ -6,6 +6,7 @@ import re
 from itertools import zip_longest
 from typing import Dict, Iterable, List
 
+import regex
 from apache_beam.io.filesystems import FileSystems
 
 from lxml import etree
@@ -200,7 +201,14 @@ class TagExpression(object):
         self.attrib = attrib
 
     def create_node(self):
-        return E(self.tag, self.attrib)
+        try:
+            return E(self.tag, self.attrib)
+        except ValueError as e:
+            raise ValueError(
+                'failed to create node with tag=%r, attrib=%r due to %s' % (
+                    self.tag, self.attrib, e
+                )
+            ) from e
 
 
 def get_logger():
@@ -349,24 +357,33 @@ def _get_element_at_path(current_element, current_path, required_path, token):
             current_element = current_element.getparent()
         current_path = common_path
         for path_fragment in required_path[len(common_path):]:
-            parsed_path_fragment = _parse_tag_expression(path_fragment)
-            child = parsed_path_fragment.create_node()
+            try:
+                parsed_path_fragment = _parse_tag_expression(path_fragment)
+                child = parsed_path_fragment.create_node()
+            except ValueError as e:
+                raise ValueError('failed to create node for %r due to %s' % (
+                    path_fragment, e
+                )) from e
             current_element.append(child)
             current_element = child
             current_path.append(path_fragment)
     return current_element, current_path
 
 
+def _split_path(path_str: str) -> List[str]:
+    return regex.split(r'(?<!\{[^}]*)/', path_str)
+
+
 def _get_tag_required_path(
         tag: str,
         tag_to_tei_path_mapping: Dict[str, str] = None) -> List[str]:
     if tag:
-        required_path = tag_to_tei_path_mapping.get(tag, tag).split('/')
+        required_path = _split_path(tag_to_tei_path_mapping.get(tag, tag))
     else:
         required_path = []
         default_path_str = tag_to_tei_path_mapping.get(DEFAULT_TAG_KEY)
         if default_path_str:
-            required_path = default_path_str.split('/')
+            required_path = _split_path(default_path_str)
     return required_path
 
 
@@ -470,13 +487,14 @@ def _updated_tei_with_lines(
         original_root: etree.Element,
         lines: list,
         tag_to_tei_path_mapping: Dict[str, str],
-        container_node_path: str = 'text/front'):
+        container_node_path: str = 'text/front',
+        namespaces: Dict[str, str] = None):
     updated_root = copy.deepcopy(original_root)
-    container_node = updated_root.find(container_node_path)
+    container_node = updated_root.find(container_node_path, namespaces=namespaces)
     get_logger().debug('container_node: %s', container_node)
-    if not container_node:
-        raise RuntimeError('container node path not found: %s (has %s)' % (
-            container_node_path, list(updated_root)
+    if container_node is None:
+        raise RuntimeError('container node path not found: %s (namespaces=%s) (has %s)' % (
+            container_node_path, namespaces, list(updated_root)
         ))
     container_node.clear()
     _lines_to_tei(container_node, lines, tag_to_tei_path_mapping)
@@ -489,16 +507,18 @@ class GrobidTrainingTeiStructuredDocument(AbstractStructuredDocument):
             root: etree.Element,
             tag_to_tei_path_mapping: Dict[str, str] = None,
             preserve_tags: bool = True,
-            container_node_path: str = DEFAULT_CONTAINER_NODE_PATH):
+            container_node_path: str = DEFAULT_CONTAINER_NODE_PATH,
+            namespaces: Dict[str, str] = None):
         self._root = root
         self._container_node_path = container_node_path
         self._lines = list(_iter_extract_lines_from_container_elements(
-            root.findall('./%s' % container_node_path)
+            root.findall('./%s' % container_node_path, namespaces=namespaces)
         ))
         self._tag_to_tei_path_mapping = (
             tag_to_tei_path_mapping if tag_to_tei_path_mapping is not None
             else DEFAULT_TAG_TO_TEI_PATH_MAPPING
         )
+        self._namespaces = namespaces
         if preserve_tags:
             self._preserve_current_tags()
         else:
@@ -534,7 +554,8 @@ class GrobidTrainingTeiStructuredDocument(AbstractStructuredDocument):
             self._root,
             self._lines,
             self._tag_to_tei_path_mapping,
-            container_node_path=self._container_node_path
+            container_node_path=self._container_node_path,
+            namespaces=self._namespaces
         )
 
     def get_pages(self):

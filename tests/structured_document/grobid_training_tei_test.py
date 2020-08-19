@@ -350,12 +350,12 @@ class TestGrobidTrainingStructuredDocument(object):
         )
 
     def test_should_not_include_line_feed_in_tag_if_previous_token_has_different_tag(self):
-        doc = GrobidTrainingTeiStructuredDocument(
-            _tei(front_items=[
-                TOKEN_1,
-                '\n ' + TOKEN_2
-            ])
-        )
+        original_root = _tei(front_items=[
+            TOKEN_1,
+            '\n ' + TOKEN_2
+        ])
+        LOGGER.debug('original_root: %s', _to_xml(original_root))
+        doc = GrobidTrainingTeiStructuredDocument(original_root)
         lines = _get_all_lines(doc)
 
         line1_tokens = list(doc.get_all_tokens_of_line(lines[0]))

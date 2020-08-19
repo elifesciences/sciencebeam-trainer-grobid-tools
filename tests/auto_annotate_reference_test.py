@@ -5,12 +5,14 @@ from typing import List, Union
 import pytest
 
 from lxml import etree
-from lxml.builder import E
+from lxml.builder import ElementMaker, E
 
 from sciencebeam_utils.utils.xml import get_text_content
 
 from sciencebeam_trainer_grobid_tools.auto_annotate_reference import (
-    main
+    main,
+    TEI_NS,
+    TEI_NS_MAP
 )
 
 from .test_utils import log_on_exception, dict_to_args
@@ -55,9 +57,20 @@ ARXIV_1 = '1723.008484'
 LINK_1 = 'https://test.org/path'
 
 
+TEI_E = ElementMaker(namespace=TEI_NS, nsmap=TEI_NS_MAP)
+
+
+def _tei_xpath(parent: etree.Element, xpath: str) -> List[etree.Element]:
+    return parent.xpath(xpath, namespaces=TEI_NS_MAP)
+
+
+def get_tei_xpath_text(*args, **kwargs):
+    return get_xpath_text(*args, namespaces=TEI_NS_MAP, **kwargs)
+
+
 def get_reference_tei_node(
         items: List[Union[etree.Element, str]]) -> etree.Element:
-    return E.tei(E.text(E.back(E.listBibl(*items))))
+    return TEI_E.tei(TEI_E.text(TEI_E.back(TEI_E.listBibl(*items))))
 
 
 @pytest.fixture(name='test_helper')
@@ -88,7 +101,41 @@ def get_nodes_text(nodes: List[Union[str, etree.Element]]) -> str:
     ])
 
 
+def get_first_bibl(root: etree.Element) -> etree.Element:
+    return _tei_xpath(root, '//tei:listBibl/tei:bibl[1]')[0]
+
+
 class TestEndToEnd(object):
+    @log_on_exception
+    def test_should_auto_annotate_single_reference_with_single_field(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        target_reference_content_nodes = [
+            E('article-title', ARTICLE_TITLE_1)
+        ]
+        target_jats_xml = etree.tostring(
+            get_target_xml_node(reference_nodes=[
+                get_jats_reference_node(LABEL_1, *target_reference_content_nodes),
+            ])
+        )
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_reference_tei_node([
+                TEI_E.bibl(get_nodes_text(target_reference_content_nodes))
+            ])
+        ))
+        LOGGER.debug('target_jats_xml: %s', target_jats_xml)
+        test_helper.xml_file_path.write_bytes(target_jats_xml)
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'matcher': 'simple',
+            'fields': 'reference'
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        first_bibl = get_first_bibl(tei_auto_root)
+        assert get_tei_xpath_text(first_bibl, './tei:title[@level="a"]') == (
+            ARTICLE_TITLE_1
+        )
+
     @log_on_exception
     def test_should_auto_annotate_single_reference_with_all_fields(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
@@ -141,7 +188,7 @@ class TestEndToEnd(object):
         )
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
             get_reference_tei_node([
-                E.bibl(get_nodes_text(target_reference_content_nodes))
+                TEI_E.bibl(get_nodes_text(target_reference_content_nodes))
             ])
         ))
         LOGGER.debug('target_jats_xml: %s', target_jats_xml)
@@ -153,56 +200,56 @@ class TestEndToEnd(object):
         }), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
-        first_bibl = tei_auto_root.xpath('//listBibl/bibl[1]')[0]
-        assert get_xpath_text(first_bibl, './author') == (
+        first_bibl = get_first_bibl(tei_auto_root)
+        assert get_tei_xpath_text(first_bibl, './tei:author') == (
             '%s, %s' % (LAST_NAME_1, FIRST_NAME_INITIAL_1)
         )
-        assert get_xpath_text(first_bibl, './editor') == (
+        assert get_tei_xpath_text(first_bibl, './tei:editor') == (
             '%s, %s' % (LAST_NAME_2, FIRST_NAME_INITIAL_2)
         )
-        assert get_xpath_text(first_bibl, './date') == (
+        assert get_tei_xpath_text(first_bibl, './tei:date') == (
             YEAR_1
         )
-        assert get_xpath_text(first_bibl, './title[@level="a"]') == (
+        assert get_tei_xpath_text(first_bibl, './tei:title[@level="a"]') == (
             ARTICLE_TITLE_1
         )
-        assert get_xpath_text(first_bibl, './title[@level="j"]') == (
+        assert get_tei_xpath_text(first_bibl, './tei:title[@level="j"]') == (
             SOURCE_1
         )
-        assert get_xpath_text(first_bibl, './publisher') == (
+        assert get_tei_xpath_text(first_bibl, './tei:publisher') == (
             PUBLISHER_NAME_1
         )
-        assert get_xpath_text(first_bibl, './pubPlace') == (
+        assert get_tei_xpath_text(first_bibl, './tei:pubPlace') == (
             PUBLISHER_LOC_1
         )
-        assert get_xpath_text(first_bibl, './biblScope[@unit="volume"]') == (
+        assert get_tei_xpath_text(first_bibl, './tei:biblScope[@unit="volume"]') == (
             VOLUME_1
         )
-        assert get_xpath_text(first_bibl, './biblScope[@unit="issue"]') == (
+        assert get_tei_xpath_text(first_bibl, './tei:biblScope[@unit="issue"]') == (
             ISSUE_1
         )
-        assert get_xpath_text(first_bibl, './biblScope[@unit="page"]') == (
+        assert get_tei_xpath_text(first_bibl, './tei:biblScope[@unit="page"]') == (
             FIRST_PAGE_1
         )
-        assert get_xpath_text(first_bibl, './idno[@type="ISSN"]', '|') == (
+        assert get_tei_xpath_text(first_bibl, './tei:idno[@type="ISSN"]', '|') == (
             ISSN_1
         )
-        assert get_xpath_text(first_bibl, './idno[@type="ISBN"]', '|') == (
+        assert get_tei_xpath_text(first_bibl, './tei:idno[@type="ISBN"]', '|') == (
             ISBN_1
         )
-        assert get_xpath_text(first_bibl, './idno[@type="DOI"]', '|') == (
+        assert get_tei_xpath_text(first_bibl, './tei:idno[@type="DOI"]', '|') == (
             DOI_1
         )
-        assert get_xpath_text(first_bibl, './idno[@type="PMID"]', '|') == (
+        assert get_tei_xpath_text(first_bibl, './tei:idno[@type="PMID"]', '|') == (
             PMID_1
         )
-        assert get_xpath_text(first_bibl, './idno[@type="PMC"]', '|') == (
+        assert get_tei_xpath_text(first_bibl, './tei:idno[@type="PMC"]', '|') == (
             PMCID_1
         )
-        assert get_xpath_text(first_bibl, './idno[@type="arxiv"]', '|') == (
+        assert get_tei_xpath_text(first_bibl, './tei:idno[@type="arxiv"]', '|') == (
             ARXIV_1
         )
-        assert get_xpath_text(first_bibl, './ptr[@type="web"]') == (
+        assert get_tei_xpath_text(first_bibl, './tei:ptr[@type="web"]') == (
             LINK_1
         )
 
@@ -237,8 +284,8 @@ class TestEndToEnd(object):
         }), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
-        first_bibl = tei_auto_root.xpath('//listBibl/bibl[1]')[0]
-        assert get_xpath_text(first_bibl, './author', '|') == '%s, %s, %s, %s' % (
+        first_bibl = get_first_bibl(tei_auto_root)
+        assert get_tei_xpath_text(first_bibl, './tei:author', '|') == '%s, %s, %s, %s' % (
             LAST_NAME_1, FIRST_NAME_INITIAL_1,
             LAST_NAME_2, FIRST_NAME_INITIAL_2
         )
@@ -272,7 +319,7 @@ class TestEndToEnd(object):
         )
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
             get_reference_tei_node([
-                E.bibl(get_nodes_text(target_reference_content_nodes))
+                TEI_E.bibl(get_nodes_text(target_reference_content_nodes))
             ])
         ))
         LOGGER.debug('target_jats_xml: %s', target_jats_xml)
@@ -284,8 +331,8 @@ class TestEndToEnd(object):
         }), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
-        first_bibl = tei_auto_root.xpath('//listBibl/bibl[1]')[0]
-        assert get_xpath_text(first_bibl, './editor', '|') == '%s, %s, %s, %s' % (
+        first_bibl = get_first_bibl(tei_auto_root)
+        assert get_tei_xpath_text(first_bibl, './tei:editor', '|') == '%s, %s, %s, %s' % (
             LAST_NAME_1, FIRST_NAME_INITIAL_1,
             LAST_NAME_2, FIRST_NAME_INITIAL_2
         )
@@ -319,8 +366,8 @@ class TestEndToEnd(object):
         }), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
-        first_bibl = tei_auto_root.xpath('//listBibl/bibl[1]')[0]
-        assert get_xpath_text(first_bibl, './biblScope[@unit="page"]', '|') == (
+        first_bibl = get_first_bibl(tei_auto_root)
+        assert get_tei_xpath_text(first_bibl, './tei:biblScope[@unit="page"]', '|') == (
             '%s-%s' % (FIRST_PAGE_1, LAST_PAGE_1)
         )
 
@@ -362,22 +409,24 @@ class TestEndToEnd(object):
         }), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
-        first_bibl = tei_auto_root.xpath('//listBibl/bibl[1]')[0]
-        assert get_xpath_text(first_bibl, './idno[@type="ISSN"]', '|') == (
+        first_bibl = get_first_bibl(tei_auto_root)
+        assert get_tei_xpath_text(
+            first_bibl, './tei:idno[@type="ISSN"]', '|'
+        ) == (
             'ISSN: ' + ISSN_1
         )
-        assert get_xpath_text(first_bibl, './idno[@type="ISBN"]', '|') == (
+        assert get_tei_xpath_text(first_bibl, './tei:idno[@type="ISBN"]', '|') == (
             'ISBN: ' + ISBN_1
         )
-        assert get_xpath_text(first_bibl, './idno[@type="DOI"]', '|') == (
+        assert get_tei_xpath_text(first_bibl, './tei:idno[@type="DOI"]', '|') == (
             'doi: ' + DOI_1
         )
-        assert get_xpath_text(first_bibl, './idno[@type="PMID"]', '|') == (
+        assert get_tei_xpath_text(first_bibl, './tei:idno[@type="PMID"]', '|') == (
             'PMID: ' + PMID_1
         )
-        assert get_xpath_text(first_bibl, './idno[@type="PMC"]', '|') == (
+        assert get_tei_xpath_text(first_bibl, './tei:idno[@type="PMC"]', '|') == (
             'PMCID: ' + PMCID_1
         )
-        assert get_xpath_text(first_bibl, './idno[@type="arxiv"]', '|') == (
+        assert get_tei_xpath_text(first_bibl, './tei:idno[@type="arxiv"]', '|') == (
             'arXiv: ' + ARXIV_1
         )

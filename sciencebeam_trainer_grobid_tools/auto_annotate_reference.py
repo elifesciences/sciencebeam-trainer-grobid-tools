@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 import argparse
 import logging
+import re
+from typing import Dict
 
 from sciencebeam_gym.preprocess.annotation.annotator import Annotator
 
@@ -30,30 +32,37 @@ from .structured_document.reference_annotator import (
 LOGGER = logging.getLogger(__name__)
 
 
-REFERENCE_CONTAINER_NODE_PATH = 'text'
+TEI_NS = 'http://www.tei-c.org/ns/1.0'
+
+TEI_NS_MAP = {
+    'tei': TEI_NS
+}
+
+
+REFERENCE_CONTAINER_NODE_PATH = 'tei:text'
 
 
 REFERENCE_TAG_TO_TEI_PATH_MAPPING = {
-    DEFAULT_TAG_KEY: 'note[@type="other"]',
-    'reference': 'listBibl/bibl',
-    'reference-label': 'listBibl/bibl/label',
-    'reference-author': 'listBibl/bibl/author',
-    'reference-editor': 'listBibl/bibl/editor',
-    'reference-year': 'listBibl/bibl/date',
-    'reference-article-title': 'listBibl/bibl/title[@level="a"]',
-    'reference-source': 'listBibl/bibl/title[@level="j"]',
-    'reference-publisher-name': 'listBibl/bibl/publisher',
-    'reference-publisher-loc': 'listBibl/bibl/pubPlace',
-    'reference-volume': 'listBibl/bibl/biblScope[@unit="volume"]',
-    'reference-issue': 'listBibl/bibl/biblScope[@unit="issue"]',
-    'reference-page': 'listBibl/bibl/biblScope[@unit="page"]',
-    'reference-issn': 'listBibl/bibl/idno[@type="ISSN"]',
-    'reference-isbn': 'listBibl/bibl/idno[@type="ISBN"]',
-    'reference-doi': 'listBibl/bibl/idno[@type="DOI"]',
-    'reference-pmid': 'listBibl/bibl/idno[@type="PMID"]',
-    'reference-pmcid': 'listBibl/bibl/idno[@type="PMC"]',
-    'reference-arxiv': 'listBibl/bibl/idno[@type="arxiv"]',
-    'ext-link': 'listBibl/bibl/ptr[@type="web"]'
+    DEFAULT_TAG_KEY: 'tei:note[@type="other"]',
+    'reference': 'tei:listBibl/tei:bibl',
+    'reference-label': 'tei:listBibl/tei:bibl/tei:label',
+    'reference-author': 'tei:listBibl/tei:bibl/tei:author',
+    'reference-editor': 'tei:listBibl/tei:bibl/tei:editor',
+    'reference-year': 'tei:listBibl/tei:bibl/tei:date',
+    'reference-article-title': 'tei:listBibl/tei:bibl/tei:title[@level="a"]',
+    'reference-source': 'tei:listBibl/tei:bibl/tei:title[@level="j"]',
+    'reference-publisher-name': 'tei:listBibl/tei:bibl/tei:publisher',
+    'reference-publisher-loc': 'tei:listBibl/tei:bibl/tei:pubPlace',
+    'reference-volume': 'tei:listBibl/tei:bibl/tei:biblScope[@unit="volume"]',
+    'reference-issue': 'tei:listBibl/tei:bibl/tei:biblScope[@unit="issue"]',
+    'reference-page': 'tei:listBibl/tei:bibl/tei:biblScope[@unit="page"]',
+    'reference-issn': 'tei:listBibl/tei:bibl/tei:idno[@type="ISSN"]',
+    'reference-isbn': 'tei:listBibl/tei:bibl/tei:idno[@type="ISBN"]',
+    'reference-doi': 'tei:listBibl/tei:bibl/tei:idno[@type="DOI"]',
+    'reference-pmid': 'tei:listBibl/tei:bibl/tei:idno[@type="PMID"]',
+    'reference-pmcid': 'tei:listBibl/tei:bibl/tei:idno[@type="PMC"]',
+    'reference-arxiv': 'tei:listBibl/tei:bibl/tei:idno[@type="arxiv"]',
+    'ext-link': 'tei:listBibl/tei:bibl/tei:ptr[@type="web"]'
 }
 
 DEFAULT_SUB_TAG_MAP = {
@@ -103,14 +112,36 @@ def _get_annotator(
     return annotator
 
 
+def _resolve_tag_expression_namespace(
+        tag_expression: str) -> str:
+    if not tag_expression:
+        return tag_expression
+    return re.sub(
+        r'\btei:',
+        '{' + TEI_NS + '}',
+        tag_expression
+    )
+
+
+def _resolve_tag_to_tei_mapping_namespace(
+        tag_to_tei_path_mapping: Dict[str, str]) -> Dict[str, str]:
+    return {
+        key: _resolve_tag_expression_namespace(value)
+        for key, value in tag_to_tei_path_mapping.items()
+    }
+
+
 class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
     def __init__(self, opt):
         super().__init__(
             opt,
             tei_filename_pattern='*.references.tei.xml*',
             container_node_path=REFERENCE_CONTAINER_NODE_PATH,
-            tag_to_tei_path_mapping=REFERENCE_TAG_TO_TEI_PATH_MAPPING,
-            output_fields=opt.fields
+            tag_to_tei_path_mapping=_resolve_tag_to_tei_mapping_namespace(
+                REFERENCE_TAG_TO_TEI_PATH_MAPPING
+            ),
+            output_fields=opt.fields,
+            namespaces=TEI_NS_MAP
         )
         self.xml_mapping, self.fields = get_xml_mapping_and_fields(
             opt.xml_mapping_path,
