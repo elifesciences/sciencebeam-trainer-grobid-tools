@@ -102,7 +102,7 @@ def get_nodes_text(nodes: List[Union[str, etree.Element]]) -> str:
 
 
 def get_first_bibl(root: etree.Element) -> etree.Element:
-    return _tei_xpath(root, '//tei:listBibl/tei:bibl[1]')[0]
+    return _tei_xpath(root, '//tei:back/tei:listBibl/tei:bibl[1]')[0]
 
 
 class TestEndToEnd(object):
