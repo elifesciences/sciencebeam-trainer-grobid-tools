@@ -68,7 +68,7 @@ def _lines_to_tei(*args, **kwargs):
     return root
 
 
-class TestToTokenizeText(object):
+class TestTokenizeText(object):
     def test_should_not_add_space_to_single_item(self):
         assert _tokenize_text('A') == ['A']
 
@@ -80,6 +80,19 @@ class TestToTokenizeText(object):
 
     def test_should_keep_tailing_space_of_item(self):
         assert _tokenize_text('A ') == ['A', ' ']
+
+    def test_should_split_on_comma(self):
+        assert _tokenize_text(' ,A, ') == [' ', ',', 'A', ',', ' ']
+
+    def test_should_split_on_dot(self):
+        assert _tokenize_text(' .A. ') == [' ', '.', 'A', '.', ' ']
+
+    def test_should_brackets(self):
+        text = r' <{[(A)]}> '
+        assert _tokenize_text(text) == list(text)
+
+    def test_should_not_split_word(self):
+        assert _tokenize_text('Abc') == ['Abc']
 
 
 class TestGetCommonPath:
