@@ -39,30 +39,30 @@ TEI_NS_MAP = {
 }
 
 
-REFERENCE_CONTAINER_NODE_PATH = 'tei:text/tei:back'
+REFERENCE_CONTAINER_NODE_PATH = 'tei:text/tei:back/tei:listBibl'
 
 
 REFERENCE_TAG_TO_TEI_PATH_MAPPING = {
     DEFAULT_TAG_KEY: 'tei:note[@type="other"]',
-    'reference': 'tei:listBibl/tei:bibl',
-    'reference-label': 'tei:listBibl/tei:bibl/tei:label',
-    'reference-author': 'tei:listBibl/tei:bibl/tei:author',
-    'reference-editor': 'tei:listBibl/tei:bibl/tei:editor',
-    'reference-year': 'tei:listBibl/tei:bibl/tei:date',
-    'reference-article-title': 'tei:listBibl/tei:bibl/tei:title[@level="a"]',
-    'reference-source': 'tei:listBibl/tei:bibl/tei:title[@level="j"]',
-    'reference-publisher-name': 'tei:listBibl/tei:bibl/tei:publisher',
-    'reference-publisher-loc': 'tei:listBibl/tei:bibl/tei:pubPlace',
-    'reference-volume': 'tei:listBibl/tei:bibl/tei:biblScope[@unit="volume"]',
-    'reference-issue': 'tei:listBibl/tei:bibl/tei:biblScope[@unit="issue"]',
-    'reference-page': 'tei:listBibl/tei:bibl/tei:biblScope[@unit="page"]',
-    'reference-issn': 'tei:listBibl/tei:bibl/tei:idno[@type="ISSN"]',
-    'reference-isbn': 'tei:listBibl/tei:bibl/tei:idno[@type="ISBN"]',
-    'reference-doi': 'tei:listBibl/tei:bibl/tei:idno[@type="DOI"]',
-    'reference-pmid': 'tei:listBibl/tei:bibl/tei:idno[@type="PMID"]',
-    'reference-pmcid': 'tei:listBibl/tei:bibl/tei:idno[@type="PMC"]',
-    'reference-arxiv': 'tei:listBibl/tei:bibl/tei:idno[@type="arxiv"]',
-    'ext-link': 'tei:listBibl/tei:bibl/tei:ptr[@type="web"]'
+    'reference': 'tei:bibl',
+    'reference-label': 'tei:bibl/tei:label',
+    'reference-author': 'tei:bibl/tei:author',
+    'reference-editor': 'tei:bibl/tei:editor',
+    'reference-year': 'tei:bibl/tei:date',
+    'reference-article-title': 'tei:bibl/tei:title[@level="a"]',
+    'reference-source': 'tei:bibl/tei:title[@level="j"]',
+    'reference-publisher-name': 'tei:bibl/tei:publisher',
+    'reference-publisher-loc': 'tei:bibl/tei:pubPlace',
+    'reference-volume': 'tei:bibl/tei:biblScope[@unit="volume"]',
+    'reference-issue': 'tei:bibl/tei:biblScope[@unit="issue"]',
+    'reference-page': 'tei:bibl/tei:biblScope[@unit="page"]',
+    'reference-issn': 'tei:bibl/tei:idno[@type="ISSN"]',
+    'reference-isbn': 'tei:bibl/tei:idno[@type="ISBN"]',
+    'reference-doi': 'tei:bibl/tei:idno[@type="DOI"]',
+    'reference-pmid': 'tei:bibl/tei:idno[@type="PMID"]',
+    'reference-pmcid': 'tei:bibl/tei:idno[@type="PMC"]',
+    'reference-arxiv': 'tei:bibl/tei:idno[@type="arxiv"]',
+    'ext-link': 'tei:bibl/tei:ptr[@type="web"]'
 }
 
 DEFAULT_SUB_TAG_MAP = {
