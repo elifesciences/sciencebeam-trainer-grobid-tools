@@ -434,17 +434,17 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             sub_tag_name = sub_annotation.name
             target_value = sub_annotation.value
             assert not isinstance(target_value, list), 'list sub annotation values not supported'
-            index_ranges_iterable = iter_fuzzy_search_all_index_ranges(
+            sub_index_ranges_iterable = iter_fuzzy_search_all_index_ranges(
                 sub_text_str, target_value,
                 threshold=self.config.threshold,
                 exact_word_match_threshold=self.config.exact_word_match_threshold
             )
-            for index_range in index_ranges_iterable:
+            for sub_index_range in sub_index_ranges_iterable:
                 LOGGER.debug(
-                    'sub_annotation match: sub_tag=%r, value=%r index_range=%s',
-                    sub_tag_name, target_value, index_range
+                    'sub_annotation match: sub_tag=%r, value=%r sub_index_range=%s',
+                    sub_tag_name, target_value, sub_index_range
                 )
-                matching_tokens = list(sub_text.iter_tokens_between(index_range))
+                matching_tokens = list(sub_text.iter_tokens_between(sub_index_range))
                 LOGGER.debug(
                     'setting sub matching_tokens to "%s": %s',
                     sub_tag_name, matching_tokens
