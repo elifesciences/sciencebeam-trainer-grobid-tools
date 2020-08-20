@@ -599,6 +599,10 @@ class GrobidTrainingTeiStructuredDocument(AbstractStructuredDocument):
             self, parent: TeiText, tag: str):
         set_or_remove_attrib(parent.attrib, SUB_TAG_ATTRIB_NAME, tag)
 
+    def clear_preserved_sub_tag(
+            self, parent: TeiText):
+        set_or_remove_attrib(parent.attrib, PRESERVED_SUB_TAG_ATTRIB_NAME, None)
+
     def set_tag(self, parent, tag, scope=None, level=None):
         _previous_tag = self.get_tag_or_preserved_tag(parent, level=level)
         self.set_tag_only(parent, tag, scope=scope, level=level)

@@ -8,9 +8,14 @@ from typing import Dict
 from sciencebeam_gym.preprocess.annotation.annotator import Annotator
 
 from .utils.string import comma_separated_str_to_list
+from .utils.xml import parse_xml
 
 from .structured_document.grobid_training_tei import (
     DEFAULT_TAG_KEY
+)
+
+from .annotation.target_annotation import (
+    xml_root_to_target_annotations
 )
 
 from .auto_annotate_utils import (
@@ -19,12 +24,13 @@ from .auto_annotate_utils import (
     get_xml_mapping_and_fields,
     add_annotation_pipeline_arguments,
     process_annotation_pipeline_arguments,
-    get_default_annotators,
-    AbstractAnnotatePipelineFactory
+    AbstractAnnotatePipelineFactory,
+    AnnotatorConfig
 )
 
 from .structured_document.reference_annotator import (
     ReferenceAnnotatorConfig,
+    ReferenceSubTagOnlyAnnotator,
     ReferencePostProcessingAnnotator
 )
 
@@ -100,11 +106,21 @@ def _get_default_reference_annotator_config() -> ReferenceAnnotatorConfig:
 
 
 def _get_annotator(
-        *args,
-        reference_annotator_config: ReferenceAnnotatorConfig,
-        **kwargs):
-    annotators = get_default_annotators(*args, **kwargs)
-    annotators = annotators + [
+        xml_path,
+        xml_mapping,
+        annotator_config: AnnotatorConfig,
+        reference_annotator_config: ReferenceAnnotatorConfig):
+    target_annotations = xml_root_to_target_annotations(
+        parse_xml(xml_path).getroot(),
+        xml_mapping
+    )
+    annotators = [
+        ReferenceSubTagOnlyAnnotator(
+            target_annotations,
+            config=annotator_config.get_simple_annotator_config(
+                xml_mapping=xml_mapping
+            )
+        ),
         ReferencePostProcessingAnnotator(
             reference_annotator_config
         )
@@ -144,6 +160,7 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
             output_fields=opt.fields,
             namespaces=TEI_NS_MAP
         )
+        self.always_preserve_fields = ['reference']
         self.xml_mapping, self.fields = get_xml_mapping_and_fields(
             opt.xml_mapping_path,
             opt.fields,

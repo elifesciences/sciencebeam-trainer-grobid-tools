@@ -106,6 +106,10 @@ def get_first_bibl(root: etree.Element) -> etree.Element:
     return _tei_xpath(root, '//tei:back/tei:listBibl/tei:bibl[1]')[0]
 
 
+def get_all_bibl(root: etree.Element) -> etree.Element:
+    return _tei_xpath(root, '//tei:back/tei:listBibl/tei:bibl')
+
+
 class TestEndToEnd(object):
     @log_on_exception
     def test_should_auto_annotate_single_reference_with_single_field(
@@ -273,7 +277,7 @@ class TestEndToEnd(object):
         )
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
             get_reference_tei_node([
-                E.bibl(get_nodes_text(target_reference_content_nodes))
+                TEI_E.bibl(get_nodes_text(target_reference_content_nodes))
             ])
         ))
         LOGGER.debug('target_jats_xml: %s', target_jats_xml)
@@ -355,7 +359,7 @@ class TestEndToEnd(object):
         )
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
             get_reference_tei_node([
-                E.bibl(get_nodes_text(target_reference_content_nodes))
+                TEI_E.bibl(get_nodes_text(target_reference_content_nodes))
             ])
         ))
         LOGGER.debug('target_jats_xml: %s', target_jats_xml)
@@ -389,7 +393,7 @@ class TestEndToEnd(object):
         )
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
             get_reference_tei_node([
-                E.bibl(get_nodes_text(target_reference_content_nodes))
+                TEI_E.bibl(get_nodes_text(target_reference_content_nodes))
             ])
         ))
         LOGGER.debug('target_jats_xml: %s', target_jats_xml)
@@ -424,7 +428,7 @@ class TestEndToEnd(object):
         )
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
             get_reference_tei_node([
-                E.bibl(get_nodes_text(target_reference_content_nodes))
+                TEI_E.bibl(get_nodes_text(target_reference_content_nodes))
             ])
         ))
         LOGGER.debug('target_jats_xml: %s', target_jats_xml)
@@ -462,7 +466,7 @@ class TestEndToEnd(object):
         )
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
             get_reference_tei_node([
-                E.bibl(get_nodes_text(target_reference_content_nodes))
+                TEI_E.bibl(get_nodes_text(target_reference_content_nodes))
             ])
         ))
         LOGGER.debug('target_jats_xml: %s', target_jats_xml)
@@ -507,7 +511,7 @@ class TestEndToEnd(object):
         )
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
             get_reference_tei_node([
-                E.bibl(get_nodes_text(target_reference_content_nodes))
+                TEI_E.bibl(get_nodes_text(target_reference_content_nodes))
             ])
         ))
         LOGGER.debug('target_jats_xml: %s', target_jats_xml)
@@ -541,3 +545,69 @@ class TestEndToEnd(object):
         assert get_tei_xpath_text(first_bibl, './tei:idno[@type="arxiv"]', '|') == (
             'arXiv: ' + ARXIV_1
         )
+
+    @log_on_exception
+    def test_should_preserve_original_bibl_segmentation(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        # we only create a single jats reference that would usually change the tei refererences
+        # but for the references we expect to retain the original bibl segmentation
+        prefix = ARTICLE_TITLE_1
+        jats_text = prefix + '.'
+        tei_text = prefix + ' .'
+        target_jats_xml = etree.tostring(
+            get_target_xml_node(reference_nodes=[
+                get_jats_reference_node(LABEL_1, jats_text, jats_text),
+            ])
+        )
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_reference_tei_node([
+                TEI_E.bibl(tei_text),
+                TEI_E.bibl(tei_text)
+            ])
+        ))
+        LOGGER.debug('target_jats_xml: %s', target_jats_xml)
+        test_helper.xml_file_path.write_bytes(target_jats_xml)
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'matcher': 'simple',
+            'fields': 'reference'
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        bibl_list = get_all_bibl(tei_auto_root)
+        assert (
+            [get_text_content(bibl) for bibl in bibl_list]
+            == [tei_text, tei_text]
+        )
+
+    @log_on_exception
+    def test_should_not_preserve_sub_tag(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        text_1 = ARTICLE_TITLE_1
+        text_2 = FIRST_PAGE_1
+        text = text_1 + ' ' + text_2
+        target_reference_content_nodes = [
+            text
+        ]
+        target_jats_xml = etree.tostring(
+            get_target_xml_node(reference_nodes=[
+                get_jats_reference_node(LABEL_1, *target_reference_content_nodes),
+            ])
+        )
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_reference_tei_node([
+                TEI_E.bibl(text_1, ' ', TEI_E.idno(text_2)),
+            ])
+        ))
+        LOGGER.debug('target_jats_xml: %s', target_jats_xml)
+        test_helper.xml_file_path.write_bytes(target_jats_xml)
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'matcher': 'simple',
+            'fields': 'reference'
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        first_bibl = get_first_bibl(tei_auto_root)
+        assert get_text_content(first_bibl) == text
+        assert get_tei_xpath_text(first_bibl, './tei:idno', '|') == ''

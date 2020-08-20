@@ -67,14 +67,15 @@ def annotate_structured_document_inplace(
     if not fields:
         fields = set()
     if preserve_tags or preserve_fields:
+        exclude_fields = set(fields) - set(preserve_fields or [])
         LOGGER.debug(
             'preserving tags, including %s, except for fields: %s',
-            preserve_fields, fields
+            preserve_fields, exclude_fields
         )
         tag_fn = partial(
             _preserve_tag_fn,
             include_fields=preserve_fields,
-            exclude_fields=fields,
+            exclude_fields=exclude_fields,
             structured_document=structured_document
         )
     else:
