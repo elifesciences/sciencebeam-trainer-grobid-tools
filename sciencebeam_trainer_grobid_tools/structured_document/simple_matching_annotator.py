@@ -27,7 +27,8 @@ from sciencebeam_gym.structured_document import (
 from sciencebeam_trainer_grobid_tools.utils.misc import get_safe
 
 from sciencebeam_trainer_grobid_tools.utils.fuzzy import (
-    fuzzy_search_index_range
+    fuzzy_search_index_range,
+    iter_fuzzy_search_all_index_ranges
 )
 
 from sciencebeam_trainer_grobid_tools.structured_document.matching_utils import (
@@ -433,25 +434,36 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             sub_tag_name = sub_annotation.name
             target_value = sub_annotation.value
             assert not isinstance(target_value, list), 'list sub annotation values not supported'
-            index_range = fuzzy_search_index_range(
+            index_ranges_iterable = iter_fuzzy_search_all_index_ranges(
                 sub_text_str, target_value,
                 threshold=self.config.threshold,
                 exact_word_match_threshold=self.config.exact_word_match_threshold
             )
-            LOGGER.debug(
-                'sub_annotation match: sub_tag=%r, value=%r index_range=%s',
-                sub_tag_name, target_value, index_range
-            )
-            if not index_range:
-                continue
-            matching_tokens = list(sub_text.iter_tokens_between(index_range))
-            LOGGER.debug('setting sub matching_tokens to "%s": %s', sub_tag_name, matching_tokens)
-            for index, token in enumerate(matching_tokens):
-                prefix = None
-                if self.config.use_begin_prefix:
-                    prefix = B_TAG_PREFIX if index == 0 else I_TAG_PREFIX
-                full_tag = add_tag_prefix(sub_tag_name, prefix=prefix)
-                structured_document.set_sub_tag(token, full_tag)
+            for index_range in index_ranges_iterable:
+                LOGGER.debug(
+                    'sub_annotation match: sub_tag=%r, value=%r index_range=%s',
+                    sub_tag_name, target_value, index_range
+                )
+                matching_tokens = list(sub_text.iter_tokens_between(index_range))
+                LOGGER.debug(
+                    'setting sub matching_tokens to "%s": %s',
+                    sub_tag_name, matching_tokens
+                )
+                existing_matching_sub_tags = [
+                    structured_document.get_sub_tag(token)
+                    for token in matching_tokens
+                ]
+                if any(existing_matching_sub_tags):
+                    LOGGER.debug('some tokens already have sub tags, skipping')
+                    continue
+                for index, token in enumerate(matching_tokens):
+                    prefix = None
+                    if self.config.use_begin_prefix:
+                        prefix = B_TAG_PREFIX if index == 0 else I_TAG_PREFIX
+                    full_tag = add_tag_prefix(sub_tag_name, prefix=prefix)
+                    structured_document.set_sub_tag(token, full_tag)
+                # accept the index range and move to next sub tag
+                break
 
     def iter_matching_index_ranges(
             self,

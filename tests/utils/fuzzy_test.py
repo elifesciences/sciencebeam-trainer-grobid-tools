@@ -1,5 +1,6 @@
 from sciencebeam_trainer_grobid_tools.utils.fuzzy import (
-    fuzzy_search_index_range
+    fuzzy_search_index_range,
+    iter_fuzzy_search_all_index_ranges
 )
 
 
@@ -48,3 +49,17 @@ class TestFuzzySearchIndexRange:
         haystack = 'abc.'
         needle = 'abc.'
         assert fuzzy_search_index_range(haystack, needle, 0.8) == (0, 4)
+
+
+class TestIterFuzzySearchAllIndexRanges:
+    def test_should_find_exact_complete_match(self):
+        haystack = 'abc'
+        needle = 'abc'
+        assert list(iter_fuzzy_search_all_index_ranges(haystack, needle, 0.8)) == [(0, 3)]
+
+    def test_should_find_multiple_exact_matches(self):
+        haystack = 'abc abc abc'
+        needle = 'abc'
+        assert list(iter_fuzzy_search_all_index_ranges(haystack, needle, 0.8)) == [
+            (0, 3), (4, 7), (8, 11)
+        ]

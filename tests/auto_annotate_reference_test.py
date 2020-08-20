@@ -407,6 +407,47 @@ class TestEndToEnd(object):
         )
 
     @log_on_exception
+    def test_should_annotate_with_same_issue_and_last_page_number(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        issue_number = '6'
+        last_page = issue_number
+        target_reference_content_nodes = [
+            '(',
+            E.issue(issue_number),
+            '), ',
+            E.fpage(FIRST_PAGE_1),
+            '-',
+            E.lpage(last_page),
+            '.'
+        ]
+        target_jats_xml = etree.tostring(
+            get_target_xml_node(reference_nodes=[
+                get_jats_reference_node(LABEL_1, *target_reference_content_nodes),
+            ])
+        )
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_reference_tei_node([
+                E.bibl(get_nodes_text(target_reference_content_nodes))
+            ])
+        ))
+        LOGGER.debug('target_jats_xml: %s', target_jats_xml)
+        test_helper.xml_file_path.write_bytes(target_jats_xml)
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'matcher': 'simple',
+            'fields': 'reference'
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        first_bibl = get_first_bibl(tei_auto_root)
+        assert get_tei_xpath_text(first_bibl, './tei:biblScope[@unit="issue"]', '|') == (
+            issue_number
+        )
+        assert get_tei_xpath_text(first_bibl, './tei:biblScope[@unit="page"]', '|') == (
+            '%s-%s' % (FIRST_PAGE_1, last_page)
+        )
+
+    @log_on_exception
     def test_should_add_idno_prefix_if_enabled(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_reference_content_nodes = [
