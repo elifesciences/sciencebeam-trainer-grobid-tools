@@ -18,6 +18,16 @@ LOGGER = logging.getLogger(__name__)
 DEFAULT_WORD_SEPARATORS = ' .,-:()[]'
 
 
+def DEFAULT_ISJUNK(s, i):
+    return (
+        (i > 0 and s[i - 1] == '.' and (s[i] == ' ' or s[i] == ','))
+        or (i > 0 and s[i - 1].isalpha() and s[i] == '.')
+        or (i > 0 and s[i - 1] == s[i])
+        or s[i] == '*'
+        or s[i] == ' '
+    )
+
+
 def split_with_offset(s: str, sep: str, include_separators: bool = True):
     previous_start = 0
     tokens = []
@@ -69,7 +79,8 @@ def fuzzy_search(
         haystack: str, needle: str,
         threshold: float,
         exact_word_match_threshold: int = 5,
-        start_index: int = 0) -> FuzzyMatchResult:
+        start_index: int = 0,
+        isjunk: callable = None) -> FuzzyMatchResult:
     original_haystack = haystack
     if start_index:
         haystack = haystack[start_index:]
@@ -83,7 +94,12 @@ def fuzzy_search(
             (ai + start_index, bi, size)
             for ai, bi, size in matching_blocks
         ]
-    fm = FuzzyMatchResult(original_haystack, needle, matching_blocks)
+    fm = FuzzyMatchResult(
+        original_haystack,
+        needle,
+        matching_blocks,
+        isjunk=isjunk or DEFAULT_ISJUNK
+    )
     LOGGER.debug('fm (sm=%s, threshold=%.2f): %s', type(sm).__name__, threshold, fm)
     if fm.b_gap_ratio() >= threshold:
         return fm
