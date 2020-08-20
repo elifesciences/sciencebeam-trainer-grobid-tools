@@ -73,6 +73,7 @@ DEFAULT_SUB_TAG_MAP = {
 DEFAULT_MERGE_ENABLED_SUB_TAGS = {
     'reference-author',
     'reference-editor',
+    'reference-issue',
     'reference-page'
 }
 

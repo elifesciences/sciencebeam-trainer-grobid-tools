@@ -46,6 +46,7 @@ FIRST_NAME_INITIAL_2 = 'B'
 YEAR_1 = '2001'
 VOLUME_1 = '11'
 ISSUE_1 = '7'
+ISSUE_2 = '8'
 FIRST_PAGE_1 = '101'
 LAST_PAGE_1 = '191'
 ISSN_1 = '1012-4567'
@@ -335,6 +336,40 @@ class TestEndToEnd(object):
         assert get_tei_xpath_text(first_bibl, './tei:editor', '|') == '%s, %s, %s, %s' % (
             LAST_NAME_1, FIRST_NAME_INITIAL_1,
             LAST_NAME_2, FIRST_NAME_INITIAL_2
+        )
+
+    @log_on_exception
+    def test_should_merge_multiple_issue_fields(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        target_reference_content_nodes = [
+            E.source(SOURCE_1),
+            ', ',
+            E.issue(ISSUE_1),
+            '-',
+            E.issue(ISSUE_2)
+        ]
+        target_jats_xml = etree.tostring(
+            get_target_xml_node(reference_nodes=[
+                get_jats_reference_node(LABEL_1, *target_reference_content_nodes),
+            ])
+        )
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_reference_tei_node([
+                E.bibl(get_nodes_text(target_reference_content_nodes))
+            ])
+        ))
+        LOGGER.debug('target_jats_xml: %s', target_jats_xml)
+        test_helper.xml_file_path.write_bytes(target_jats_xml)
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'matcher': 'simple',
+            'fields': 'reference'
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        first_bibl = get_first_bibl(tei_auto_root)
+        assert get_tei_xpath_text(first_bibl, './tei:biblScope[@unit="issue"]', '|') == (
+            '%s-%s' % (ISSUE_1, ISSUE_2)
         )
 
     @log_on_exception
