@@ -428,7 +428,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
         LOGGER.debug('sub_tokens: %s', tokens)
         sub_text = SequencesText([SequenceWrapper(structured_document, tokens)])
         sub_text_str = str(sub_text)
-        LOGGER.debug('sub_text_str: %s', sub_text_str)
+        LOGGER.debug('sub_text_str: %r', sub_text_str)
         for sub_annotation in sub_annotations:
             sub_tag_name = sub_annotation.name
             target_value = sub_annotation.value
@@ -438,7 +438,10 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                 threshold=self.config.threshold,
                 exact_word_match_threshold=self.config.exact_word_match_threshold
             )
-            LOGGER.debug('sub_annotation index_range: %s', index_range)
+            LOGGER.debug(
+                'sub_annotation match: sub_tag=%r, value=%r index_range=%s',
+                sub_tag_name, target_value, index_range
+            )
             if not index_range:
                 continue
             matching_tokens = list(sub_text.iter_tokens_between(index_range))
