@@ -83,6 +83,11 @@ DEFAULT_MERGE_ENABLED_SUB_TAGS = {
     'reference-page'
 }
 
+NAME_SUFFIX_ENABLED_SUB_TAGS = {
+    'reference-author',
+    'reference-editor'
+}
+
 IDNO_SUB_TAGS = {
     'reference-issn',
     'reference-isbn',
@@ -109,6 +114,7 @@ def _get_default_reference_annotator_config() -> ReferenceAnnotatorConfig:
         sub_tag_map=DEFAULT_SUB_TAG_MAP,
         merge_enabled_sub_tags=DEFAULT_MERGE_ENABLED_SUB_TAGS,
         include_prefix_enabled_sub_tags={},
+        include_suffix_enabled_sub_tags=NAME_SUFFIX_ENABLED_SUB_TAGS,
         etal_sub_tag=ETAL_SUB_TAG,
         etal_merge_enabled_sub_tags=ETAL_MERGE_ENABLED_SUB_TAGS
     )

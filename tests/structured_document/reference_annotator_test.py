@@ -1,5 +1,6 @@
 from sciencebeam_trainer_grobid_tools.structured_document.reference_annotator import (
     get_prefix_extended_token_tags,
+    get_suffix_extended_token_tags,
     get_etal_mapped_tags
 )
 
@@ -28,6 +29,15 @@ class TestPrefixExtendedTokenTags:
             ['DOI', ':', '12345'],
             enabled_tags={'reference-doi'}
         ) == [None, None, 'b-other']
+
+
+class TestSuffixExtendedTokenTags:
+    def test_should_extend_dot_after_author_initials(self):
+        assert get_suffix_extended_token_tags(
+            ['b-reference-author', 'i-reference-author', None, None],
+            ['Smith', ', J', '.', 'other'],
+            enabled_tags={'reference-author'}
+        ) == ['b-reference-author', 'i-reference-author', 'i-reference-author', None]
 
 
 class TestGetEtalMappedTags:

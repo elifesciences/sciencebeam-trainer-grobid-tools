@@ -40,11 +40,13 @@ class ReferenceAnnotatorConfig:
             sub_tag_map: Dict[str, str],
             merge_enabled_sub_tags: Set[str],
             include_prefix_enabled_sub_tags: Set[str],
+            include_suffix_enabled_sub_tags: Set[str],
             etal_sub_tag: str,
             etal_merge_enabled_sub_tags: Set[str]):
         self.sub_tag_map = sub_tag_map
         self.merge_enabled_sub_tags = merge_enabled_sub_tags
         self.include_prefix_enabled_sub_tags = include_prefix_enabled_sub_tags
+        self.include_suffix_enabled_sub_tags = include_suffix_enabled_sub_tags
         self.etal_sub_tag = etal_sub_tag
         self.etal_merge_enabled_sub_tags = etal_merge_enabled_sub_tags
 
@@ -185,6 +187,84 @@ def _add_idno_text_prefix(
     return structured_document
 
 
+def get_suffix_extended_token_tags(
+        token_tags: List[str],
+        token_texts: List[str],
+        token_whitespaces: List[str] = None,
+        enabled_tags: Set[str] = None) -> List[str]:
+    result = []
+    if token_whitespaces is None:
+        token_whitespaces = [' '] * len(token_texts)
+    grouped_token_tags = [
+        list(group)
+        for _, group in groupby(
+            zip(token_tags, token_texts, token_whitespaces),
+            key=lambda pair: strip_tag_prefix(pair[0])
+        )
+    ]
+    LOGGER.debug('suffix grouped_token_tags=%s', grouped_token_tags)
+    for index, group in enumerate(grouped_token_tags):
+        LOGGER.debug('suffix group: unpacked=%s', group)
+        group_tags, group_texts, group_whitespaces = zip(*group)
+        LOGGER.debug(
+            'suffix group: tags=%s, texts=%s, whitespace=%s',
+            group_tags, group_texts, group_whitespaces
+        )
+        first_group_tag = group_tags[0]
+
+        prev_group = grouped_token_tags[index - 1] if index > 0 else None
+        first_prev_tag = get_safe(get_safe(prev_group, 0), 0)
+        _, first_prev_tag_value = split_tag_prefix(first_prev_tag)
+
+        if first_group_tag or first_prev_tag_value not in enabled_tags:
+            result.extend(group_tags)
+            continue
+        joined_text = JoinedText(group_texts, sep=' ', whitespace_list=group_whitespaces)
+        m = re.search(r'^\.', str(joined_text))
+        LOGGER.debug('suffix match: %s', m)
+        if not m:
+            result.extend(group_tags)
+            continue
+        LOGGER.debug('suffix match end: %s (%r)', m.end(), str(joined_text)[:m.end()])
+        matching_tokens = list(joined_text.iter_items_and_index_range_between(
+            (0, m.end())
+        ))
+        LOGGER.debug('suffix matching_tokens: %s', matching_tokens)
+        if not matching_tokens:
+            result.extend(group_tags)
+            continue
+        unmatched_token_count = len(group_tags) - len(matching_tokens)
+        result.extend([to_inside_tag(first_prev_tag)] * len(matching_tokens))
+        result.extend([None] * unmatched_token_count)
+    LOGGER.debug('suffix result: %s', result)
+    return result
+
+
+def _add_name_text_suffix(
+        structured_document: GrobidTrainingTeiStructuredDocument,
+        tokens: List[Any],
+        config: ReferenceAnnotatorConfig):
+    sub_tags = [structured_document.get_sub_tag(token) for token in tokens]
+    token_texts = [structured_document.get_text(token) for token in tokens]
+    token_whitespaces = [structured_document.get_whitespace(token) for token in tokens]
+    mapped_sub_tags = _map_tags(sub_tags, config.sub_tag_map)
+    transformed_sub_tags = get_suffix_extended_token_tags(
+        mapped_sub_tags,
+        token_texts,
+        token_whitespaces,
+        enabled_tags=config.include_suffix_enabled_sub_tags
+    )
+    LOGGER.debug(
+        'name suffix sub tokens, transformed: %s -> %s -> %s (tokens: %s)',
+        sub_tags, mapped_sub_tags, transformed_sub_tags, tokens
+    )
+    for token, token_sub_tag in zip(tokens, transformed_sub_tags):
+        if not token_sub_tag:
+            continue
+        structured_document.set_sub_tag(token, token_sub_tag)
+    return structured_document
+
+
 def get_etal_mapped_tags(
         token_tags: List[str],
         etal_sub_tag: str,
@@ -310,6 +390,11 @@ class ReferencePostProcessingAnnotator(AbstractAnnotator):
         for entity_tag_value, entity_tokens in grouped_entity_tokens_iterable:
             LOGGER.debug('entity_tokens (%s): %s', entity_tag_value, entity_tokens)
             _map_etal_sub_tag(
+                structured_document,
+                entity_tokens,
+                config=self.config
+            )
+            _add_name_text_suffix(
                 structured_document,
                 entity_tokens,
                 config=self.config
