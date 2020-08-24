@@ -60,6 +60,11 @@ class TestFuzzySearchIndexRange:
         needle = 'abc.'
         assert fuzzy_search_index_range(haystack, needle, 0.9) == (0, 5)
 
+    def test_should_tolerate_varying_space_in_haystack_and_needle(self):
+        haystack = 'Smith ,J .A .'
+        needle = 'Smith, J. A.'
+        assert fuzzy_search_index_range(haystack, needle, 0.5) == (0, 13)
+
 
 class TestIterFuzzySearchAllIndexRanges:
     def test_should_find_exact_complete_match(self):

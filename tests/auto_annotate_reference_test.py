@@ -446,6 +446,40 @@ class TestEndToEnd(object):
         assert get_tei_xpath_text(first_bibl, './tei:editor', '|') == expected_editor_string
 
     @log_on_exception
+    def test_should_allow_varying_spaces_in_author_name(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        target_reference_content_nodes = [
+            E('string-name', E.surname('Smith'), ', ', E('given-names', 'J. A')),
+            ' (',
+            E.year(YEAR_1),
+            ') ',
+            E('article-title', ARTICLE_TITLE_1)
+        ]
+        tei_author_text = 'Smith ,J .A .'
+        tei_text = get_nodes_text([tei_author_text] + target_reference_content_nodes[1:])
+        target_jats_xml = etree.tostring(
+            get_target_xml_node(reference_nodes=[
+                get_jats_reference_node(LABEL_1, *target_reference_content_nodes),
+            ])
+        )
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_reference_tei_node([
+                TEI_E.bibl(tei_text)
+            ])
+        ))
+        LOGGER.debug('target_jats_xml: %s', target_jats_xml)
+        test_helper.xml_file_path.write_bytes(target_jats_xml)
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'matcher': 'simple',
+            'fields': 'reference'
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        first_bibl = get_first_bibl(tei_auto_root)
+        assert get_tei_xpath_text(first_bibl, './tei:author', '|') == tei_author_text
+
+    @log_on_exception
     def test_should_merge_multiple_issue_fields(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_reference_content_nodes = [
