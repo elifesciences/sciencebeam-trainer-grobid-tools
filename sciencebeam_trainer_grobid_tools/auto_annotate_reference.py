@@ -92,6 +92,13 @@ IDNO_SUB_TAGS = {
     'reference-arxiv'
 }
 
+ETAL_SUB_TAG = 'reference-etal'
+
+ETAL_MERGE_ENABLED_SUB_TAGS = {
+    'reference-author',
+    'reference-editor'
+}
+
 
 def get_logger():
     return logging.getLogger(__name__)
@@ -101,7 +108,9 @@ def _get_default_reference_annotator_config() -> ReferenceAnnotatorConfig:
     return ReferenceAnnotatorConfig(
         sub_tag_map=DEFAULT_SUB_TAG_MAP,
         merge_enabled_sub_tags=DEFAULT_MERGE_ENABLED_SUB_TAGS,
-        include_prefix_enabled_sub_tags={}
+        include_prefix_enabled_sub_tags={},
+        etal_sub_tag=ETAL_SUB_TAG,
+        etal_merge_enabled_sub_tags=ETAL_MERGE_ENABLED_SUB_TAGS
     )
 
 

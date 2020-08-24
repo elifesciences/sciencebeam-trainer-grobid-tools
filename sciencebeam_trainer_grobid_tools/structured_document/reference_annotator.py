@@ -39,10 +39,14 @@ class ReferenceAnnotatorConfig:
             self,
             sub_tag_map: Dict[str, str],
             merge_enabled_sub_tags: Set[str],
-            include_prefix_enabled_sub_tags: Set[str]):
+            include_prefix_enabled_sub_tags: Set[str],
+            etal_sub_tag: str,
+            etal_merge_enabled_sub_tags: Set[str]):
         self.sub_tag_map = sub_tag_map
         self.merge_enabled_sub_tags = merge_enabled_sub_tags
         self.include_prefix_enabled_sub_tags = include_prefix_enabled_sub_tags
+        self.etal_sub_tag = etal_sub_tag
+        self.etal_merge_enabled_sub_tags = etal_merge_enabled_sub_tags
 
     def __repr__(self):
         return '%s(%s)' % (type(self), self.__dict__)
@@ -171,7 +175,58 @@ def _add_idno_text_prefix(
         enabled_tags=config.include_prefix_enabled_sub_tags
     )
     LOGGER.debug(
-        'sub tokens, transformed: %s -> %s -> %s (tokens: %s)',
+        'idno prefix sub tokens, transformed: %s -> %s -> %s (tokens: %s)',
+        sub_tags, mapped_sub_tags, transformed_sub_tags, tokens
+    )
+    for token, token_sub_tag in zip(tokens, transformed_sub_tags):
+        if not token_sub_tag:
+            continue
+        structured_document.set_sub_tag(token, token_sub_tag)
+    return structured_document
+
+
+def get_etal_mapped_tags(
+        token_tags: List[str],
+        etal_sub_tag: str,
+        etal_merge_enabled_sub_tags: Set[str]) -> List[str]:
+    grouped_token_tags = [
+        list(group)
+        for _, group in groupby(token_tags, key=strip_tag_prefix)
+    ]
+    LOGGER.debug('grouped_token_tags: %s', grouped_token_tags)
+    result = []
+    previous_accepted_group_sub_tag = None
+    for group in grouped_token_tags:
+        group_tag = group[0]
+        group_tag_value = strip_tag_prefix(group_tag)
+        if group_tag_value != etal_sub_tag or not previous_accepted_group_sub_tag:
+            result.extend(group)
+            if group_tag_value in etal_merge_enabled_sub_tags:
+                previous_accepted_group_sub_tag = group_tag
+            elif group_tag:
+                previous_accepted_group_sub_tag = None
+            continue
+        result.append(previous_accepted_group_sub_tag)
+        result.extend(
+            [to_inside_tag(previous_accepted_group_sub_tag)]
+            * (len(group) - 1)
+        )
+    return result
+
+
+def _map_etal_sub_tag(
+        structured_document: AbstractStructuredDocument,
+        tokens: List[Any],
+        config: ReferenceAnnotatorConfig):
+    sub_tags = [structured_document.get_sub_tag(token) for token in tokens]
+    mapped_sub_tags = _map_tags(sub_tags, config.sub_tag_map)
+    transformed_sub_tags = get_etal_mapped_tags(
+        mapped_sub_tags,
+        etal_sub_tag=config.etal_sub_tag,
+        etal_merge_enabled_sub_tags=config.etal_merge_enabled_sub_tags
+    )
+    LOGGER.debug(
+        'etal sub tokens, transformed: %s -> %s -> %s (tokens: %s)',
         sub_tags, mapped_sub_tags, transformed_sub_tags, tokens
     )
     for token, token_sub_tag in zip(tokens, transformed_sub_tags):
@@ -254,6 +309,11 @@ class ReferencePostProcessingAnnotator(AbstractAnnotator):
         )
         for entity_tag_value, entity_tokens in grouped_entity_tokens_iterable:
             LOGGER.debug('entity_tokens (%s): %s', entity_tag_value, entity_tokens)
+            _map_etal_sub_tag(
+                structured_document,
+                entity_tokens,
+                config=self.config
+            )
             _add_idno_text_prefix(
                 structured_document,
                 entity_tokens,

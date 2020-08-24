@@ -290,7 +290,7 @@ class TestEndToEnd(object):
         assert get_xpath_text(tei_auto_root, '//docTitle/titlePart') == title_text
         assert get_xpath_text(tei_auto_root, '//byline/docAuthor') == author_text
         assert get_xpath_text(tei_auto_root, '//byline/affiliation') == affiliation_text
-        assert get_xpath_text(tei_auto_root, '//div[@type="abstract"]') == (
+        assert get_xpath_text(tei_auto_root, '//div[@type="abstract"]', '|') == (
             abstract_prefix + abstract_text
         )
 

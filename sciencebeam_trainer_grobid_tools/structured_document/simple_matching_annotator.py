@@ -227,12 +227,45 @@ def _iter_all_lines(structured_document: AbstractStructuredDocument):
     )
 
 
+def to_begin_tag(tag: str) -> str:
+    prefix, tag_value = split_tag_prefix(tag)
+    return (
+        add_tag_prefix(tag_value, prefix=B_TAG_PREFIX)
+        if prefix == I_TAG_PREFIX
+        else tag
+    )
+
+
 def to_inside_tag(tag: str) -> str:
     prefix, tag_value = split_tag_prefix(tag)
     return (
         add_tag_prefix(tag_value, prefix=I_TAG_PREFIX)
         if prefix == B_TAG_PREFIX
         else tag
+    )
+
+
+def to_begin_inside_tags(tag: str, length: int) -> List[str]:
+    if not length:
+        return []
+    prefix, tag_value = split_tag_prefix(tag)
+    if not prefix:
+        return [tag] * length
+    return (
+        [add_tag_prefix(tag_value, prefix=B_TAG_PREFIX)] +
+        [add_tag_prefix(tag_value, prefix=I_TAG_PREFIX)] * (length - 1)
+    )
+
+
+def get_merged_begin_inside_tags_of_same_tag_value(tags: List[str]) -> List[str]:
+    if not tags:
+        return []
+    prefix, tag_value = split_tag_prefix(tags[0])
+    if not prefix:
+        return tags
+    return (
+        tags[:1] +
+        [add_tag_prefix(tag_value, prefix=I_TAG_PREFIX)] * (len(tags) - 1)
     )
 
 
@@ -254,6 +287,14 @@ def get_extended_line_token_tags(
         list(group)
         for _, group in groupby(line_token_tags, key=strip_tag_prefix)
     ]
+    grouped_token_tags = [
+        (
+            get_merged_begin_inside_tags_of_same_tag_value(group)
+            if merge_enabled_map.get(strip_tag_prefix(group[0]), default_merge_enabled)
+            else group
+        )
+        for group in grouped_token_tags
+    ]
     LOGGER.debug('grouped_token_tags: %s', grouped_token_tags)
     result = []
     for index, group in enumerate(grouped_token_tags):
@@ -261,6 +302,7 @@ def get_extended_line_token_tags(
         next_group = grouped_token_tags[index + 1] if index + 1 < len(grouped_token_tags) else None
         _, last_prev_tag_value = split_tag_prefix(get_safe(prev_group, -1))
         first_next_prefix, first_next_tag_value = split_tag_prefix(get_safe(next_group, 0))
+        LOGGER.debug('group: %s', group)
         if (
                 prev_group and not extend_to_line_enabled_map.get(
                     last_prev_tag_value, default_extend_to_line_enabled
@@ -285,8 +327,7 @@ def get_extended_line_token_tags(
         elif prev_group and len(prev_group) > len(group):
             result.extend([to_inside_tag(prev_group[-1])] * len(group))
         elif next_group and len(next_group) > len(group):
-            result.extend([next_group[0]])
-            result.extend([to_inside_tag(next_group[0])] * (len(group) - 1))
+            result.extend(to_begin_inside_tags(next_group[0], len(group)))
             if first_next_prefix == B_TAG_PREFIX:
                 next_group[0] = to_inside_tag(next_group[0])
         else:
