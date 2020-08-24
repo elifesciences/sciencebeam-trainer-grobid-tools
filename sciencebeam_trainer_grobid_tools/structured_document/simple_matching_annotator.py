@@ -505,6 +505,10 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                     structured_document.set_sub_tag(token, full_tag)
                 # accept the index range and move to next sub tag
                 break
+            LOGGER.debug(
+                'sub_annotation match not found: sub_tag=%r, value=%r',
+                sub_tag_name, target_value
+            )
 
     def iter_matching_index_ranges(
             self,
