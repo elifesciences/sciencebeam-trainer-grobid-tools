@@ -215,8 +215,23 @@ def get_logger():
     return logging.getLogger(__name__)
 
 
+def _iter_split_lower_to_upper_case(text: str) -> List[str]:
+    start = 0
+    for index, c in enumerate(text):
+        if index > 0 and c.isupper() and text[index - 1].islower():
+            yield text[start:index]
+            start = index
+    if start < len(text):
+        yield text[start:]
+
+
 def _tokenize_text(text: str) -> List[str]:
-    return [s for s in re.split(r'(\W)', text) if s]
+    return [
+        s
+        for s1 in regex.split(r'(\W)', text)
+        for s in _iter_split_lower_to_upper_case(s1)
+        if s
+    ]
 
 
 def _to_text_token(text: str, *args, **kwargs) -> TeiText:
@@ -577,6 +592,9 @@ class GrobidTrainingTeiStructuredDocument(AbstractStructuredDocument):
 
     def get_text(self, parent):
         return parent.stripped_text
+
+    def get_whitespace(self, parent):
+        return parent.whitespace
 
     def get_tag(self, parent, scope=None, level=None):
         return parent.attrib.get(_get_tag_attrib_name(scope, level))

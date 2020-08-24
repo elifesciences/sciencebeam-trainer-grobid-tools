@@ -102,18 +102,26 @@ def _map_tags(tags: List[str], tag_map: Dict[str, str]) -> List[str]:
 def get_prefix_extended_token_tags(
         token_tags: List[str],
         token_texts: List[str],
-        enabled_tags: Set[str]) -> List[str]:
+        token_whitespaces: List[str] = None,
+        enabled_tags: Set[str] = None) -> List[str]:
     result = []
+    if token_whitespaces is None:
+        token_whitespaces = [' '] * len(token_texts)
     grouped_token_tags = [
         list(group)
         for _, group in groupby(
-            zip(token_tags, token_texts),
+            zip(token_tags, token_texts, token_whitespaces),
             key=lambda pair: strip_tag_prefix(pair[0])
         )
     ]
+    LOGGER.debug('grouped_token_tags=%s', grouped_token_tags)
     for index, group in enumerate(grouped_token_tags):
-        group_tags, group_texts = zip(*group)
-        LOGGER.debug('group: tags=%s, texts=%s', group_tags, group_texts)
+        LOGGER.debug('group: unpacked=%s', group)
+        group_tags, group_texts, group_whitespaces = zip(*group)
+        LOGGER.debug(
+            'group: tags=%s, texts=%s, whitespace=%s',
+            group_tags, group_texts, group_whitespaces
+        )
         first_group_tag = group_tags[0]
         next_group = grouped_token_tags[index + 1] if index + 1 < len(grouped_token_tags) else None
         first_next_tag = get_safe(get_safe(next_group, 0), 0)
@@ -121,7 +129,7 @@ def get_prefix_extended_token_tags(
         if first_group_tag or first_next_tag_value not in enabled_tags:
             result.extend(group_tags)
             continue
-        joined_text = JoinedText(group_texts, sep=' ')
+        joined_text = JoinedText(group_texts, sep=' ', whitespace_list=group_whitespaces)
         m = re.search(r'\b[a-zA-Z]{2,}(\s?:)?$', str(joined_text))
         LOGGER.debug('m: %s', m)
         if not m:
@@ -142,22 +150,24 @@ def get_prefix_extended_token_tags(
         if first_next_prefix == B_TAG_PREFIX:
             next_group[0] = (
                 to_inside_tag(first_next_tag),
-                next_group[0][1]
+                *next_group[0][1:]
             )
     LOGGER.debug('result: %s', result)
     return result
 
 
 def _add_idno_text_prefix(
-        structured_document: AbstractStructuredDocument,
+        structured_document: GrobidTrainingTeiStructuredDocument,
         tokens: List[Any],
         config: ReferenceAnnotatorConfig):
     sub_tags = [structured_document.get_sub_tag(token) for token in tokens]
     token_texts = [structured_document.get_text(token) for token in tokens]
+    token_whitespaces = [structured_document.get_whitespace(token) for token in tokens]
     mapped_sub_tags = _map_tags(sub_tags, config.sub_tag_map)
     transformed_sub_tags = get_prefix_extended_token_tags(
         mapped_sub_tags,
         token_texts,
+        token_whitespaces,
         enabled_tags=config.include_prefix_enabled_sub_tags
     )
     LOGGER.debug(

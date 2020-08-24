@@ -94,6 +94,9 @@ class TestTokenizeText(object):
     def test_should_not_split_word(self):
         assert _tokenize_text('Abc') == ['Abc']
 
+    def test_should_split_word_on_lower_to_upper_case(self):
+        assert _tokenize_text('abcDEF') == ['abc', 'DEF']
+
 
 class TestGetCommonPath:
     def test_should_return_path_if_paths_are_equal(self):
