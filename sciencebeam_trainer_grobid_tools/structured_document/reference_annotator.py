@@ -42,13 +42,15 @@ class ReferenceAnnotatorConfig:
             include_prefix_enabled_sub_tags: Set[str],
             include_suffix_enabled_sub_tags: Set[str],
             etal_sub_tag: str,
-            etal_merge_enabled_sub_tags: Set[str]):
+            etal_merge_enabled_sub_tags: Set[str],
+            remove_untagged_enabled: bool):
         self.sub_tag_map = sub_tag_map
         self.merge_enabled_sub_tags = merge_enabled_sub_tags
         self.include_prefix_enabled_sub_tags = include_prefix_enabled_sub_tags
         self.include_suffix_enabled_sub_tags = include_suffix_enabled_sub_tags
         self.etal_sub_tag = etal_sub_tag
         self.etal_merge_enabled_sub_tags = etal_merge_enabled_sub_tags
+        self.remove_untagged_enabled = remove_untagged_enabled
 
     def __repr__(self):
         return '%s(%s)' % (type(self), self.__dict__)
@@ -409,4 +411,6 @@ class ReferencePostProcessingAnnotator(AbstractAnnotator):
                 entity_tokens,
                 config=self.config
             )
+        if self.config.remove_untagged_enabled:
+            structured_document.remove_all_untagged()
         return structured_document
