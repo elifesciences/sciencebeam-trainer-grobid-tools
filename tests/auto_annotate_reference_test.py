@@ -684,7 +684,44 @@ class TestEndToEnd(object):
         )
 
     @log_on_exception
-    def test_should_preserve_original_bibl_segmentation(
+    def test_should_not_preserve_original_bibl_segmentation_if_disabled(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        # we only create a single jats reference that we expect to be reflected
+        # in the updated tei refererence tagging
+        prefix = ARTICLE_TITLE_1
+        jats_text = prefix + '.'
+        tei_text = prefix + ' .'
+        other_text = 'other'
+        target_jats_xml = etree.tostring(
+            get_target_xml_node(reference_nodes=[
+                get_jats_reference_node(LABEL_1, jats_text, jats_text),
+            ])
+        )
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_reference_tei_node([
+                TEI_E.bibl(tei_text),
+                TEI_E.bibl(tei_text),
+                TEI_E.bibl(other_text)
+            ])
+        ))
+        LOGGER.debug('target_jats_xml: %s', target_jats_xml)
+        test_helper.xml_file_path.write_bytes(target_jats_xml)
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'matcher': 'simple',
+            'fields': 'reference',
+            'segment-references': True
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        bibl_list = get_all_bibl(tei_auto_root)
+        assert (
+            [get_text_content(bibl) for bibl in bibl_list]
+            == [tei_text + tei_text]
+        )
+
+    @log_on_exception
+    def test_should_preserve_original_bibl_segmentation_if_enabled(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         # we only create a single jats reference that would usually change the tei refererences
         # but for the references we expect to retain the original bibl segmentation
