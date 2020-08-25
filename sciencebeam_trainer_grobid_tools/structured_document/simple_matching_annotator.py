@@ -2,7 +2,7 @@ import logging
 import re
 from distutils.util import strtobool
 from itertools import groupby
-from typing import Dict, List, Tuple, TypeVar
+from typing import Dict, List, Tuple
 
 from sciencebeam_gym.structured_document import (
     AbstractStructuredDocument
@@ -24,8 +24,11 @@ from sciencebeam_gym.structured_document import (
     I_TAG_PREFIX
 )
 
+from sciencebeam_trainer_grobid_tools.utils.misc import get_safe
+
 from sciencebeam_trainer_grobid_tools.utils.fuzzy import (
-    fuzzy_search_index_range
+    fuzzy_search_index_range,
+    iter_fuzzy_search_all_index_ranges
 )
 
 from sciencebeam_trainer_grobid_tools.structured_document.matching_utils import (
@@ -224,22 +227,45 @@ def _iter_all_lines(structured_document: AbstractStructuredDocument):
     )
 
 
-T = TypeVar('T')
+def to_begin_tag(tag: str) -> str:
+    prefix, tag_value = split_tag_prefix(tag)
+    return (
+        add_tag_prefix(tag_value, prefix=B_TAG_PREFIX)
+        if prefix == I_TAG_PREFIX
+        else tag
+    )
 
 
-def _get_safe(a: List[T], index: int, default_value: T = None) -> T:
-    try:
-        return a[index]
-    except (IndexError, TypeError):
-        return default_value
-
-
-def _to_inside_tag(tag: str) -> str:
+def to_inside_tag(tag: str) -> str:
     prefix, tag_value = split_tag_prefix(tag)
     return (
         add_tag_prefix(tag_value, prefix=I_TAG_PREFIX)
         if prefix == B_TAG_PREFIX
         else tag
+    )
+
+
+def to_begin_inside_tags(tag: str, length: int) -> List[str]:
+    if not length:
+        return []
+    prefix, tag_value = split_tag_prefix(tag)
+    if not prefix:
+        return [tag] * length
+    return (
+        [add_tag_prefix(tag_value, prefix=B_TAG_PREFIX)] +
+        [add_tag_prefix(tag_value, prefix=I_TAG_PREFIX)] * (length - 1)
+    )
+
+
+def get_merged_begin_inside_tags_of_same_tag_value(tags: List[str]) -> List[str]:
+    if not tags:
+        return []
+    prefix, tag_value = split_tag_prefix(tags[0])
+    if not prefix:
+        return tags
+    return (
+        tags[:1] +
+        [add_tag_prefix(tag_value, prefix=I_TAG_PREFIX)] * (len(tags) - 1)
     )
 
 
@@ -261,13 +287,22 @@ def get_extended_line_token_tags(
         list(group)
         for _, group in groupby(line_token_tags, key=strip_tag_prefix)
     ]
+    grouped_token_tags = [
+        (
+            get_merged_begin_inside_tags_of_same_tag_value(group)
+            if merge_enabled_map.get(strip_tag_prefix(group[0]), default_merge_enabled)
+            else group
+        )
+        for group in grouped_token_tags
+    ]
     LOGGER.debug('grouped_token_tags: %s', grouped_token_tags)
     result = []
     for index, group in enumerate(grouped_token_tags):
         prev_group = grouped_token_tags[index - 1] if index > 0 else None
         next_group = grouped_token_tags[index + 1] if index + 1 < len(grouped_token_tags) else None
-        _, last_prev_tag_value = split_tag_prefix(_get_safe(prev_group, -1))
-        first_next_prefix, first_next_tag_value = split_tag_prefix(_get_safe(next_group, 0))
+        _, last_prev_tag_value = split_tag_prefix(get_safe(prev_group, -1))
+        first_next_prefix, first_next_tag_value = split_tag_prefix(get_safe(next_group, 0))
+        LOGGER.debug('group: %s', group)
         if (
                 prev_group and not extend_to_line_enabled_map.get(
                     last_prev_tag_value, default_extend_to_line_enabled
@@ -284,18 +319,17 @@ def get_extended_line_token_tags(
                     last_prev_tag_value == first_next_tag_value
                     and merge_enabled_map.get(last_prev_tag_value, default_merge_enabled)
             ):
-                result.extend([_to_inside_tag(prev_group[-1])] * len(group))
+                result.extend([to_inside_tag(prev_group[-1])] * len(group))
                 if first_next_prefix == B_TAG_PREFIX:
-                    next_group[0] = _to_inside_tag(next_group[0])
+                    next_group[0] = to_inside_tag(next_group[0])
             else:
                 result.extend(group)
         elif prev_group and len(prev_group) > len(group):
-            result.extend([_to_inside_tag(prev_group[-1])] * len(group))
+            result.extend([to_inside_tag(prev_group[-1])] * len(group))
         elif next_group and len(next_group) > len(group):
-            result.extend([next_group[0]])
-            result.extend([_to_inside_tag(next_group[0])] * (len(group) - 1))
+            result.extend(to_begin_inside_tags(next_group[0], len(group)))
             if first_next_prefix == B_TAG_PREFIX:
-                next_group[0] = _to_inside_tag(next_group[0])
+                next_group[0] = to_inside_tag(next_group[0])
         else:
             result.extend(group)
     LOGGER.debug('result: %s', result)
@@ -436,27 +470,45 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
         LOGGER.debug('sub_tokens: %s', tokens)
         sub_text = SequencesText([SequenceWrapper(structured_document, tokens)])
         sub_text_str = str(sub_text)
-        LOGGER.debug('sub_text_str: %s', sub_text_str)
+        LOGGER.debug('sub_text_str: %r', sub_text_str)
         for sub_annotation in sub_annotations:
             sub_tag_name = sub_annotation.name
             target_value = sub_annotation.value
             assert not isinstance(target_value, list), 'list sub annotation values not supported'
-            index_range = fuzzy_search_index_range(
+            sub_index_ranges_iterable = iter_fuzzy_search_all_index_ranges(
                 sub_text_str, target_value,
                 threshold=self.config.threshold,
                 exact_word_match_threshold=self.config.exact_word_match_threshold
             )
-            LOGGER.debug('sub_annotation index_range: %s', index_range)
-            if not index_range:
-                continue
-            matching_tokens = list(sub_text.iter_tokens_between(index_range))
-            LOGGER.debug('setting sub matching_tokens to "%s": %s', sub_tag_name, matching_tokens)
-            for index, token in enumerate(matching_tokens):
-                prefix = None
-                if self.config.use_begin_prefix:
-                    prefix = B_TAG_PREFIX if index == 0 else I_TAG_PREFIX
-                full_tag = add_tag_prefix(sub_tag_name, prefix=prefix)
-                structured_document.set_sub_tag(token, full_tag)
+            for sub_index_range in sub_index_ranges_iterable:
+                LOGGER.debug(
+                    'sub_annotation match: sub_tag=%r, value=%r sub_index_range=%s',
+                    sub_tag_name, target_value, sub_index_range
+                )
+                matching_tokens = list(sub_text.iter_tokens_between(sub_index_range))
+                LOGGER.debug(
+                    'setting sub matching_tokens to "%s": %s',
+                    sub_tag_name, matching_tokens
+                )
+                existing_matching_sub_tags = [
+                    structured_document.get_sub_tag(token)
+                    for token in matching_tokens
+                ]
+                if any(existing_matching_sub_tags):
+                    LOGGER.debug('some tokens already have sub tags, skipping')
+                    continue
+                for index, token in enumerate(matching_tokens):
+                    prefix = None
+                    if self.config.use_begin_prefix:
+                        prefix = B_TAG_PREFIX if index == 0 else I_TAG_PREFIX
+                    full_tag = add_tag_prefix(sub_tag_name, prefix=prefix)
+                    structured_document.set_sub_tag(token, full_tag)
+                # accept the index range and move to next sub tag
+                break
+            LOGGER.debug(
+                'sub_annotation match not found: sub_tag=%r, value=%r',
+                sub_tag_name, target_value
+            )
 
     def iter_matching_index_ranges(
             self,

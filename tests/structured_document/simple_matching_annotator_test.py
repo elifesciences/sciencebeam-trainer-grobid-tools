@@ -168,6 +168,13 @@ class TestGetExtendedLineTokenTags:
             merge_enabled_map={TAG1: True}
         ) == [B_TAG1, I_TAG1, I_TAG1]
 
+    def test_should_adjust_begin_inside_tag_prefix_if_merge_enabled(self):
+        assert get_extended_line_token_tags(
+            [B_TAG1, I_TAG1, B_TAG1],
+            extend_to_line_enabled_map={TAG1: True},
+            merge_enabled_map={TAG1: True}
+        ) == [B_TAG1, I_TAG1, I_TAG1]
+
     def test_should_not_fill_gaps_if_same_tag_with_begin_prefix_but_merge_disabled(self):
         assert get_extended_line_token_tags(
             [B_TAG1, None, B_TAG1],

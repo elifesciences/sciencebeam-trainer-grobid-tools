@@ -68,7 +68,7 @@ def _lines_to_tei(*args, **kwargs):
     return root
 
 
-class TestToTokenizeText(object):
+class TestTokenizeText(object):
     def test_should_not_add_space_to_single_item(self):
         assert _tokenize_text('A') == ['A']
 
@@ -80,6 +80,22 @@ class TestToTokenizeText(object):
 
     def test_should_keep_tailing_space_of_item(self):
         assert _tokenize_text('A ') == ['A', ' ']
+
+    def test_should_split_on_comma(self):
+        assert _tokenize_text(' ,A, ') == [' ', ',', 'A', ',', ' ']
+
+    def test_should_split_on_dot(self):
+        assert _tokenize_text(' .A. ') == [' ', '.', 'A', '.', ' ']
+
+    def test_should_brackets(self):
+        text = r' <{[(A)]}> '
+        assert _tokenize_text(text) == list(text)
+
+    def test_should_not_split_word(self):
+        assert _tokenize_text('Abc') == ['Abc']
+
+    def test_should_split_word_on_lower_to_upper_case(self):
+        assert _tokenize_text('abcDEF') == ['abc', 'DEF']
 
 
 class TestGetCommonPath:
@@ -350,12 +366,12 @@ class TestGrobidTrainingStructuredDocument(object):
         )
 
     def test_should_not_include_line_feed_in_tag_if_previous_token_has_different_tag(self):
-        doc = GrobidTrainingTeiStructuredDocument(
-            _tei(front_items=[
-                TOKEN_1,
-                '\n ' + TOKEN_2
-            ])
-        )
+        original_root = _tei(front_items=[
+            TOKEN_1,
+            '\n ' + TOKEN_2
+        ])
+        LOGGER.debug('original_root: %s', _to_xml(original_root))
+        doc = GrobidTrainingTeiStructuredDocument(original_root)
         lines = _get_all_lines(doc)
 
         line1_tokens = list(doc.get_all_tokens_of_line(lines[0]))

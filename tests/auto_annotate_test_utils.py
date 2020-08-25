@@ -70,5 +70,5 @@ def get_default_target_xml_node():
     return get_target_xml_node(title=TOKEN_1)
 
 
-def get_xpath_text(root: etree.Element, xpath: str, delimiter: str = ' ') -> str:
-    return delimiter.join(get_text_content(node) for node in root.xpath(xpath))
+def get_xpath_text(root: etree.Element, xpath: str, delimiter: str = ' ', **kwargs) -> str:
+    return delimiter.join(get_text_content(node) for node in root.xpath(xpath, **kwargs))

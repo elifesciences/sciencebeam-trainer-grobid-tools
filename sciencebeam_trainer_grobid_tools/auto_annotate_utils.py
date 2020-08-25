@@ -396,7 +396,8 @@ class AbstractAnnotatePipelineFactory(ABC):
             tei_filename_pattern: str,
             container_node_path: str,
             tag_to_tei_path_mapping: Dict[str, str] = None,
-            output_fields: Set[str] = None):
+            output_fields: Set[str] = None,
+            namespaces: Dict[str, str] = None):
         self.tei_filename_pattern = tei_filename_pattern
         self.container_node_path = container_node_path
         self.tag_to_tei_path_mapping = tag_to_tei_path_mapping
@@ -411,6 +412,7 @@ class AbstractAnnotatePipelineFactory(ABC):
         self.preserve_tags = not opt.no_preserve_tags
         self.always_preserve_fields = opt.always_preserve_fields
         self.output_fields = output_fields
+        self.namespaces = namespaces
         self.annotator_config = AnnotatorConfig(
             matcher_name=opt.matcher,
             score_threshold=opt.matcher_score_threshold,
@@ -457,7 +459,8 @@ class AbstractAnnotatePipelineFactory(ABC):
                 fields=self.output_fields,
                 always_preserve_fields=self.always_preserve_fields,
                 container_node_path=self.container_node_path,
-                tag_to_tei_path_mapping=self.tag_to_tei_path_mapping
+                tag_to_tei_path_mapping=self.tag_to_tei_path_mapping,
+                namespaces=self.namespaces
             )
         except Exception as e:  # pylint: disable=broad-except
             skipping_msg = ' (skipping)' if self.skip_errors else ''
@@ -466,7 +469,9 @@ class AbstractAnnotatePipelineFactory(ABC):
                 source_url, skipping_msg, e, exc_info=e
             )
             if not self.skip_errors:
-                raise e
+                raise RuntimeError('failed to process %s due to %s' % (
+                    source_url, e
+                ))
 
     def get_source_file_list(self):
         if self.source_path:
