@@ -5,6 +5,11 @@ elifePipeline {
         stage 'Checkout', {
             checkout scm
             commit = elifeGitRevision()
+            if (env.TAG_NAME) {
+                version = env.TAG_NAME - 'v'
+            } else {
+                version = 'develop'
+            }
         }
 
         stage 'Build and run tests', {
@@ -35,6 +40,14 @@ elifePipeline {
                 def unstable_image = image.addSuffixAndTag('_unstable', commit)
                 unstable_image.tag('latest').push()
                 unstable_image.push()
+            }
+        }
+
+        elifeTagOnly { tag ->
+            stage 'Push release image', {
+                def image = DockerImage.elifesciences(this, 'sciencebeam-trainer-grobid-tools', commit)
+                image.tag('latest').push()
+                image.tag(version).push()
             }
         }
     }
