@@ -321,12 +321,14 @@ class AnnotatorConfig:
 
     def get_simple_annotator_config(
             self,
-            xml_mapping: Dict[str, Dict[str, str]]) -> SimpleSimpleMatchingConfig:
+            xml_mapping: Dict[str, Dict[str, str]],
+            **kwargs) -> SimpleSimpleMatchingConfig:
         return SimpleSimpleMatchingConfig(
             threshold=self.score_threshold,
             lookahead_sequence_count=self.lookahead_lines,
             tag_config_map=get_simple_tag_config_map(xml_mapping),
-            use_sub_annotations=self.use_sub_annotations
+            use_sub_annotations=self.use_sub_annotations,
+            **kwargs
         )
 
     def get_matching_annotator_config(self) -> MatchingAnnotatorConfig:

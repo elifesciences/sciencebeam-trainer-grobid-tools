@@ -28,6 +28,10 @@ from .auto_annotate_utils import (
     AnnotatorConfig
 )
 
+from .structured_document.simple_matching_annotator import (
+    SimpleMatchingAnnotator
+)
+
 from .structured_document.reference_annotator import (
     ReferenceAnnotatorConfig,
     ReferenceSubTagOnlyAnnotator,
@@ -124,22 +128,32 @@ def _get_annotator(
         xml_path,
         xml_mapping,
         annotator_config: AnnotatorConfig,
-        reference_annotator_config: ReferenceAnnotatorConfig):
+        reference_annotator_config: ReferenceAnnotatorConfig,
+        segment_references: bool):
     target_annotations = xml_root_to_target_annotations(
         parse_xml(xml_path).getroot(),
         xml_mapping
     )
-    annotators = [
-        ReferenceSubTagOnlyAnnotator(
+    simple_annotator_config = annotator_config.get_simple_annotator_config(
+        xml_mapping=xml_mapping,
+        extend_to_line_enabled=False
+    )
+    annotators = []
+    if segment_references:
+        annotators.append(SimpleMatchingAnnotator(
             target_annotations,
-            config=annotator_config.get_simple_annotator_config(
-                xml_mapping=xml_mapping
-            )
-        ),
+            config=simple_annotator_config
+        ))
+    else:
+        annotators.append(ReferenceSubTagOnlyAnnotator(
+            target_annotations,
+            config=simple_annotator_config
+        ))
+    annotators.append(
         ReferencePostProcessingAnnotator(
             reference_annotator_config
         )
-    ]
+    )
     annotator = Annotator(annotators)
     return annotator
 
@@ -175,7 +189,9 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
             output_fields=opt.fields,
             namespaces=TEI_NS_MAP
         )
-        self.always_preserve_fields = ['reference']
+        self.segment_references = opt.segment_references
+        if not opt.segment_references:
+            self.always_preserve_fields = ['reference']
         self.xml_mapping, self.fields = get_xml_mapping_and_fields(
             opt.xml_mapping_path,
             opt.fields,
@@ -196,7 +212,8 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
             target_xml_path,
             self.xml_mapping,
             annotator_config=self.get_annotator_config(),
-            reference_annotator_config=self.reference_annotator_config
+            reference_annotator_config=self.reference_annotator_config,
+            segment_references=self.segment_references
         )
 
 
@@ -215,6 +232,13 @@ def add_main_args(parser):
         action='store_true',
         default=False,
         help='enable including the prefix of an idno, e.g. "doi:"'
+    )
+
+    parser.add_argument(
+        '--segment-references',
+        action='store_true',
+        default=False,
+        help='enable segmentation of references. bibl element will be set or replaced by note.'
     )
 
     add_debug_argument(parser)
