@@ -120,7 +120,8 @@ def _get_default_reference_annotator_config() -> ReferenceAnnotatorConfig:
         include_prefix_enabled_sub_tags={},
         include_suffix_enabled_sub_tags=NAME_SUFFIX_ENABLED_SUB_TAGS,
         etal_sub_tag=ETAL_SUB_TAG,
-        etal_merge_enabled_sub_tags=ETAL_MERGE_ENABLED_SUB_TAGS
+        etal_merge_enabled_sub_tags=ETAL_MERGE_ENABLED_SUB_TAGS,
+        remove_untagged_enabled=False
     )
 
 
@@ -205,6 +206,9 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
         self.reference_annotator_config = _get_default_reference_annotator_config()
         if opt.include_idno_prefix:
             self.reference_annotator_config.include_prefix_enabled_sub_tags = IDNO_SUB_TAGS
+        self.reference_annotator_config.remove_untagged_enabled = (
+            opt.remove_invalid_references
+        )
 
     def get_annotator(self, source_url: str):
         target_xml_path = self.get_target_xml_for_source_file(source_url)
@@ -239,6 +243,16 @@ def add_main_args(parser):
         action='store_true',
         default=False,
         help='enable segmentation of references. bibl element will be set or replaced by note.'
+    )
+
+    parser.add_argument(
+        '--remove-invalid-references',
+        action='store_true',
+        default=False,
+        help=(
+            'enable removing invalid references'
+            + ' (usually in combination with --segment-references).'
+        )
     )
 
     add_debug_argument(parser)

@@ -93,6 +93,10 @@ class TeiText(object):
         self.line = None
         self.whitespace = whitespace
 
+    @property
+    def tag(self):
+        return self.attrib.get(TAG_ATTRIB_NAME)
+
     def __repr__(self):
         return (
             '%s(%s, tag=%s, sub_tag=%s, preserved_tag=%s, preserved_sub_tag=%s, whitespace=%s)'
@@ -664,6 +668,24 @@ class GrobidTrainingTeiStructuredDocument(AbstractStructuredDocument):
 
     def set_bounding_box(self, parent, bounding_box):
         raise NotImplementedError()
+
+    def remove_all_untagged(self):
+        updated_lines = []
+        current_result_line_tokens = []
+        output_enabled = True
+        for line in self._lines:
+            for token in line.tokens:
+                if isinstance(token, TeiSpace):
+                    if output_enabled:
+                        current_result_line_tokens.append(token)
+                    continue
+                output_enabled = (token.tag or '') != ''
+                if not output_enabled:
+                    continue
+                current_result_line_tokens.append(token)
+            if current_result_line_tokens:
+                updated_lines.append(TeiLine(current_result_line_tokens))
+        self._lines = updated_lines
 
     def __repr__(self):
         return '%s(lines=%s)' % (type(self).__name__, self._lines)

@@ -365,6 +365,33 @@ class TestGrobidTrainingStructuredDocument(object):
             )
         )
 
+    def test_should_remove_untagged_including_line_feed(self):
+        doc = GrobidTrainingTeiStructuredDocument(
+            _tei(front_items=[
+                TOKEN_1,
+                E(TeiTagNames.LB),
+                ' ' + TOKEN_2 + ' ' + TOKEN_3
+            ])
+        )
+        lines = _get_all_lines(doc)
+
+        line1_tokens = list(doc.get_tokens_of_line(lines[0]))
+        doc.set_tag(line1_tokens[0], None)
+
+        line2_tokens = list(doc.get_tokens_of_line(lines[1]))
+        doc.set_tag(line2_tokens[-1], TAG_1)
+
+        doc.remove_all_untagged()
+
+        root = doc.root
+        front = root.find('./text/front')
+        LOGGER.debug('xml: %s', _to_xml(front))
+        assert _to_xml(front) == (
+            '<front><{tag1}>{token3}</{tag1}></front>'.format(
+                tag1=TAG_1, token3=TOKEN_3
+            )
+        )
+
     def test_should_not_include_line_feed_in_tag_if_previous_token_has_different_tag(self):
         original_root = _tei(front_items=[
             TOKEN_1,
