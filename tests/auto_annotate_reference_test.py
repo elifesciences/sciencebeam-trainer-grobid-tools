@@ -718,6 +718,35 @@ class TestEndToEnd(object):
         )
 
     @log_on_exception
+    def test_should_preserve_original_bibl_element_with_single_immediately_child(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        text = ARTICLE_TITLE_1
+        target_jats_xml = etree.tostring(
+            get_target_xml_node(reference_nodes=[
+                get_jats_reference_node(LABEL_1, text),
+            ])
+        )
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_reference_tei_node([
+                TEI_E.bibl(TEI_E.ptr(text)),
+            ])
+        ))
+        LOGGER.debug('target_jats_xml: %s', target_jats_xml)
+        test_helper.xml_file_path.write_bytes(target_jats_xml)
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'matcher': 'simple',
+            'fields': 'reference'
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        bibl_list = get_all_bibl(tei_auto_root)
+        assert (
+            [get_text_content(bibl) for bibl in bibl_list]
+            == [text]
+        )
+
+    @log_on_exception
     def test_should_not_preserve_sub_tag(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         text_1 = ARTICLE_TITLE_1

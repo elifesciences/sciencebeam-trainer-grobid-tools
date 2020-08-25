@@ -4,7 +4,7 @@ import copy
 import logging
 import re
 from itertools import zip_longest
-from typing import Dict, Iterable, List
+from typing import Dict, Iterable, List, Set
 
 import regex
 from apache_beam.io.filesystems import FileSystems
@@ -275,11 +275,12 @@ def _iter_extract_lines_from_element(
         parent_element: etree.Element,
         line_buffer: LineBuffer,
         current_path: List[str],
+        root_paths: Set[str],
         parent_tagged_path: List[str] = None,
         begin_tag: bool = True) -> Iterable[TeiLine]:
     previous_tag = line_buffer.next_tag
     current_tag = '/'.join(current_path) if current_path else None
-    if has_direct_text(parent_element):
+    if has_direct_text(parent_element) or current_tag in root_paths:
         if not previous_tag:
             line_buffer.set_next_tag(current_tag)
         else:
@@ -298,6 +299,7 @@ def _iter_extract_lines_from_element(
             child_element,
             line_buffer,
             child_path,
+            root_paths=root_paths,
             parent_tagged_path=parent_tagged_path,
             begin_tag=begin_tag
         )
@@ -309,12 +311,16 @@ def _iter_extract_lines_from_element(
     line_buffer.append_text(parent_element.tail)
 
 
-def _iter_extract_lines_from_container_elements(container_elements):
+def _iter_extract_lines_from_container_elements(
+        container_elements: Iterable[etree.Element],
+        **kwargs):
     line_buffer = LineBuffer()
     current_path = []
 
     for container_element in container_elements:
-        lines = _iter_extract_lines_from_element(container_element, line_buffer, current_path)
+        lines = _iter_extract_lines_from_element(
+            container_element, line_buffer, current_path, **kwargs
+        )
         for line in lines:
             yield line
         if line_buffer:
@@ -526,14 +532,15 @@ class GrobidTrainingTeiStructuredDocument(AbstractStructuredDocument):
             namespaces: Dict[str, str] = None):
         self._root = root
         self._container_node_path = container_node_path
-        self._lines = list(_iter_extract_lines_from_container_elements(
-            root.findall('./%s' % container_node_path, namespaces=namespaces)
-        ))
         self._tag_to_tei_path_mapping = (
             tag_to_tei_path_mapping if tag_to_tei_path_mapping is not None
             else DEFAULT_TAG_TO_TEI_PATH_MAPPING
         )
         self._namespaces = namespaces
+        self._lines = list(_iter_extract_lines_from_container_elements(
+            root.findall('./%s' % container_node_path, namespaces=namespaces),
+            root_paths=self._tag_to_tei_path_mapping.values()
+        ))
         if preserve_tags:
             self._preserve_current_tags()
         else:
