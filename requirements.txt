@@ -2,5 +2,5 @@ apache_beam[gcp]==2.23.0
 gcloud==0.18.3
 google-api-python-client==1.11.0
 lxml==4.5.2
-numpy==1.19.1
+numpy==1.19.2
 regex==2020.7.14
