@@ -40,6 +40,11 @@ class TestFuzzySearchIndexRange:
         needle = 'abc'
         assert fuzzy_search_index_range(haystack, needle, 0.8) == (1, 4)
 
+    def test_should_find_exact_match_surrounded_by_semicolon(self):
+        haystack = ';abc;'
+        needle = 'abc'
+        assert fuzzy_search_index_range(haystack, needle, 0.8) == (1, 4)
+
     def test_should_find_exact_match_surrounded_by_dot(self):
         haystack = '.abc.'
         needle = 'abc'
