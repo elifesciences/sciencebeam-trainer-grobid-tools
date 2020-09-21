@@ -303,16 +303,7 @@ def get_extended_line_token_tags(
         _, last_prev_tag_value = split_tag_prefix(get_safe(prev_group, -1))
         first_next_prefix, first_next_tag_value = split_tag_prefix(get_safe(next_group, 0))
         LOGGER.debug('group: %s', group)
-        if (
-                prev_group and not extend_to_line_enabled_map.get(
-                    last_prev_tag_value, default_extend_to_line_enabled
-                )
-        ):
-            result.extend(group)
-        elif next_group and not extend_to_line_enabled_map.get(
-                first_next_tag_value, default_extend_to_line_enabled):
-            result.extend(group)
-        elif group[0]:
+        if group[0]:
             result.extend(group)
         elif prev_group and next_group:
             if (
@@ -324,6 +315,15 @@ def get_extended_line_token_tags(
                     next_group[0] = to_inside_tag(next_group[0])
             else:
                 result.extend(group)
+        elif (
+                prev_group and not extend_to_line_enabled_map.get(
+                    last_prev_tag_value, default_extend_to_line_enabled
+                )
+        ):
+            result.extend(group)
+        elif next_group and not extend_to_line_enabled_map.get(
+                first_next_tag_value, default_extend_to_line_enabled):
+            result.extend(group)
         elif prev_group and len(prev_group) > len(group):
             result.extend([to_inside_tag(prev_group[-1])] * len(group))
         elif next_group and len(next_group) > len(group):

@@ -184,7 +184,8 @@ class TestEndToEnd(object):
             ', arXiv: ',
             E('pub-id', ARXIV_1, {'pub-id-type': 'arXiv'}),
             ', web: ',
-            E('ext-link', LINK_1)
+            E('ext-link', LINK_1),
+            '.'
         ]
         target_jats_xml = etree.tostring(
             get_target_xml_node(reference_nodes=[
