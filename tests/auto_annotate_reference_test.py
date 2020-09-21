@@ -165,7 +165,7 @@ class TestEndToEnd(object):
             E('publisher-name', PUBLISHER_NAME_1),
             ', ',
             E('publisher-loc', PUBLISHER_LOC_1),
-            ', ',
+            ', ;',
             E.volume(VOLUME_1),
             ' (',
             E.issue(ISSUE_1),
