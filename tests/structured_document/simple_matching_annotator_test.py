@@ -37,6 +37,7 @@ LOGGER = logging.getLogger(__name__)
 
 TAG1 = 'tag1'
 TAG2 = 'tag2'
+TAG3 = 'tag3'
 
 B_TAG1 = add_tag_prefix(TAG1, prefix=B_TAG_PREFIX)
 I_TAG1 = add_tag_prefix(TAG1, prefix=I_TAG_PREFIX)
@@ -704,6 +705,31 @@ class TestSimpleMatchingAnnotator:
         assert _get_tag_values_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
         assert _get_sub_tag_values_of_tokens(matching_tokens) == (
             [TAG2] + [None] * (len(matching_tokens) - 1)
+        )
+
+    def test_should_match_sub_tag_case_insensitive(self):
+        matching_tokens_list = [
+            _tokens_for_text('1 THIS IS REFERENCE A')
+        ]
+        matching_tokens = flatten(matching_tokens_list)
+        target_annotations = [
+            TargetAnnotation('1 this is reference A', TAG1, sub_annotations=[
+                TargetAnnotation('1', TAG2),
+                TargetAnnotation('this is reference A', TAG3)
+            ]),
+        ]
+        pre_tokens = [_tokens_for_text('previous line')] * 5
+        doc = _document_for_tokens(pre_tokens + matching_tokens_list)
+        SimpleMatchingAnnotator(
+            target_annotations,
+            lookahead_sequence_count=3,
+            extend_to_line_enabled=False,
+            use_sub_annotations=True
+        ).annotate(doc)
+        LOGGER.debug('doc: %s', _get_document_token_tags(doc))
+        assert _get_tag_values_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
+        assert _get_sub_tag_values_of_tokens(matching_tokens) == (
+            [TAG2] + [TAG3] * (len(matching_tokens) - 1)
         )
 
 

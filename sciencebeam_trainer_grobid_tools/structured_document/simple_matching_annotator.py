@@ -469,12 +469,13 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
         tokens = list(text.iter_tokens_between(index_range))
         LOGGER.debug('sub_tokens: %s', tokens)
         sub_text = SequencesText([SequenceWrapper(structured_document, tokens)])
-        sub_text_str = str(sub_text)
+        sub_text_str = str(sub_text).lower()
         LOGGER.debug('sub_text_str: %r', sub_text_str)
         for sub_annotation in sub_annotations:
             sub_tag_name = sub_annotation.name
             target_value = sub_annotation.value
             assert not isinstance(target_value, list), 'list sub annotation values not supported'
+            target_value = target_value.lower()
             sub_index_ranges_iterable = iter_fuzzy_search_all_index_ranges(
                 sub_text_str, target_value,
                 threshold=self.config.threshold,
