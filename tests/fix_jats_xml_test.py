@@ -241,6 +241,14 @@ class TestFixReference:
         assert fixed_pmid == PMID_1
         assert get_text_content(fixed_ref) == original_ref_text
 
+    def test_should_annotate_missing_pmid_in_comment(self):
+        original_ref = get_jats_mixed_ref(E.comment('PMID:' + PMID_1))
+        original_ref_text = get_text_content(original_ref)
+        fixed_ref = fix_reference(clone_node(original_ref))
+        fixed_pmid = '|'.join(get_text_content_list(fixed_ref.xpath(PMID_XPATH)))
+        assert fixed_pmid == PMID_1
+        assert get_text_content(fixed_ref) == original_ref_text
+
     def test_should_remove_double_pmc_prefix_from_pmcid(self):
         original_ref = get_jats_mixed_ref('PMCID: ', get_jats_pmcid('PMC' + PMCID_1))
         original_ref_text = get_text_content(original_ref)
