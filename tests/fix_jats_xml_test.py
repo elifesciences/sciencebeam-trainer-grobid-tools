@@ -257,6 +257,14 @@ class TestFixReference:
         assert fixed_pmcid == PMCID_1
         assert get_text_content(fixed_ref) == original_ref_text
 
+    def test_should_annotate_missing_pmcid_in_comment(self):
+        original_ref = get_jats_mixed_ref(E.comment(PMCID_1))
+        original_ref_text = get_text_content(original_ref)
+        fixed_ref = fix_reference(clone_node(original_ref))
+        fixed_pmcid = '|'.join(get_text_content_list(fixed_ref.xpath(PMCID_XPATH)))
+        assert fixed_pmcid == PMCID_1
+        assert get_text_content(fixed_ref) == original_ref_text
+
 
 class TestMain:
     def test_should_fix_jats_xml_using_source_path(self, temp_dir: Path):

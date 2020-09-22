@@ -249,6 +249,24 @@ def add_pmcid_annotation_if_not_present(reference_element: etree.Element) -> etr
             )
         )
         child_element.tail = child_tail_text[:m.start(1)]
+    for child_element in reference_element.xpath(MIXED_CITATION_XPATH + '/comment'):
+        child_text = child_element.text
+        if not child_text:
+            continue
+        m = re.search(PMCID_PATTERN, child_text)
+        if not m:
+            LOGGER.debug('pmcid not found in: %r', child_text)
+            continue
+        matching_pmcid = m.group(1)
+        LOGGER.debug('m: %s (%r)', m, matching_pmcid)
+        child_element.getparent().insert(
+            child_element.getparent().index(child_element) + 1,
+            get_jats_pmcid_element(
+                matching_pmcid,
+                tail=child_text[m.end(1):]
+            )
+        )
+        child_element.text = child_text[:m.start(1)]
     return reference_element
 
 
