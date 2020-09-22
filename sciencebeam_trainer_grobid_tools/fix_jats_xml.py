@@ -1,11 +1,28 @@
 import argparse
+import concurrent
 import logging
+import os
 import re
 from pathlib import Path
+from typing import List
 
 from lxml import etree
 from lxml.builder import E
 
+from sciencebeam_utils.beam_utils.main import (
+    add_cloud_args,
+    process_cloud_args
+)
+
+from sciencebeam_utils.utils.file_path import (
+    relative_path
+)
+
+from sciencebeam_utils.beam_utils.files import find_matching_filenames_with_limit
+
+from sciencebeam_trainer_grobid_tools.utils.progress_logger import (
+    logging_tqdm
+)
 from sciencebeam_trainer_grobid_tools.utils.xml import parse_xml
 
 from sciencebeam_trainer_grobid_tools.auto_annotate_utils import (
@@ -175,15 +192,94 @@ def fix_jats_xml_file(input_file: str, output_file: str):
     Path(output_file).write_bytes(etree.tostring(root))
 
 
+class FixJatsProcessor:
+    def __init__(self, opt: argparse.Namespace):
+        self.num_workers = opt.num_workers
+        self.multi_processing = opt.multi_processing
+        self.source_path = opt.source_path
+        self.source_base_path = opt.source_base_path or os.path.dirname(self.source_path)
+        self.output_path = opt.output_path
+        self.source_filename_pattern = opt.source_filename_pattern
+        self.limit = opt.limit
+
+    def get_output_file_for_source_file(self, source_url: str):
+        return os.path.join(
+            self.output_path,
+            relative_path(self.source_base_path, source_url)
+        )
+
+    def process_source_file(self, source_file: str):
+        output_file = self.get_output_file_for_source_file(source_file)
+        assert output_file != source_file
+        fix_jats_xml_file(source_file, output_file)
+
+    def run_local_pipeline(self, xml_file_list: List[str]):
+        num_workers = min(self.num_workers, len(xml_file_list))
+        multi_processing = self.multi_processing
+        LOGGER.info('using %d workers (multi_processing: %s)', num_workers, multi_processing)
+        PoolExecutor = (
+            concurrent.futures.ProcessPoolExecutor if multi_processing
+            else concurrent.futures.ThreadPoolExecutor
+        )
+        with PoolExecutor(max_workers=num_workers) as executor:
+            with logging_tqdm(total=len(xml_file_list)) as pbar:
+                future_to_url = {
+                    executor.submit(self.process_source_file, url): url
+                    for url in xml_file_list
+                }
+                LOGGER.debug('future_to_url: %s', future_to_url)
+                for future in concurrent.futures.as_completed(future_to_url):
+                    pbar.update(1)
+                    future.result()
+
+    def get_source_file_list(self):
+        if self.source_path:
+            return [self.source_path]
+        return list(find_matching_filenames_with_limit(os.path.join(
+            self.source_base_path,
+            self.source_filename_pattern
+        ), limit=self.limit))
+
+    def run(self):
+        xml_file_list = self.get_source_file_list()
+        if not xml_file_list:
+            LOGGER.warning('no files found to process')
+            return
+        self.run_local_pipeline(xml_file_list)
+
+
 def add_args(parser: argparse.ArgumentParser):
-    parser.add_argument(
-        '--input', type=str, required=True,
-        help='path to input xml file'
+    source_group = parser.add_argument_group('source')
+    source_group.add_argument(
+        '--source-base-path', type=str,
+        help='source base data path for files to fix'
     )
-    parser.add_argument(
-        '--output', type=str, required=True,
-        help='path to output xml file'
+    source_group.add_argument(
+        '--source-path', type=str,
+        help='source path to a specific file to fix'
     )
+    source_group.add_argument(
+        '--source-filename-pattern', type=str,
+        default='**.xml*',
+        help='file pattern within source base path to find files to process'
+    )
+
+    parser.add_argument(
+        '--output-path', type=str, required=True,
+        help='output base path'
+    )
+
+    parser.add_argument(
+        '--limit', type=int, required=False,
+        help='limit the number of files to process'
+    )
+
+    parser.add_argument(
+        '--multi-processing', action='store_true', default=False,
+        help='enable multi processing rather than multi threading'
+    )
+
+    add_cloud_args(parser)
 
 
 def parse_args(argv=None):
@@ -192,15 +288,17 @@ def parse_args(argv=None):
     add_debug_argument(parser)
 
     parsed_args = parser.parse_args(argv)
+    process_cloud_args(
+        parsed_args,
+        parsed_args.output_path,
+        name='sciencebeam-grobid-trainer-tools'
+    )
     LOGGER.info('parsed_args: %s', parsed_args)
     return parsed_args
 
 
 def run(args: argparse.Namespace):
-    fix_jats_xml_file(
-        args.input,
-        args.output
-    )
+    FixJatsProcessor(args).run()
 
 
 def main(argv=None):

@@ -226,7 +226,7 @@ class TestFixReference:
 
 
 class TestMain:
-    def test_should_fix_jats_xml(self, temp_dir: Path):
+    def test_should_fix_jats_xml_using_source_path(self, temp_dir: Path):
         original_ref = get_jats_mixed_ref('doi: ', get_jats_doi(HTTPS_DOI_URL_PREFIX + DOI_1))
         input_file = temp_dir / 'input' / 'file1.xml'
         input_file.parent.mkdir()
@@ -235,8 +235,42 @@ class TestMain:
         ])))
         output_file = temp_dir / 'output' / 'file1.xml'
         main([
-            '--input=%s' % input_file,
-            '--output=%s' % output_file
+            '--source-path=%s' % input_file,
+            '--output-path=%s' % output_file.parent
+        ])
+        assert output_file.exists()
+        fixed_root = parse_xml(str(output_file))
+        fixed_doi = '|'.join(get_text_content_list(fixed_root.xpath(DOI_XPATH)))
+        assert fixed_doi == DOI_1
+
+    def test_should_fix_jats_xml_using_source_base_path(self, temp_dir: Path):
+        original_ref = get_jats_mixed_ref('doi: ', get_jats_doi(HTTPS_DOI_URL_PREFIX + DOI_1))
+        input_file = temp_dir / 'input' / 'file1.xml'
+        input_file.parent.mkdir()
+        input_file.write_bytes(etree.tostring(get_jats(references=[
+            original_ref
+        ])))
+        output_file = temp_dir / 'output' / 'file1.xml'
+        main([
+            '--source-base-path=%s' % input_file.parent,
+            '--output-path=%s' % output_file.parent
+        ])
+        assert output_file.exists()
+        fixed_root = parse_xml(str(output_file))
+        fixed_doi = '|'.join(get_text_content_list(fixed_root.xpath(DOI_XPATH)))
+        assert fixed_doi == DOI_1
+
+    def test_should_fix_jats_xml_using_source_base_path_in_sub_directory(self, temp_dir: Path):
+        original_ref = get_jats_mixed_ref('doi: ', get_jats_doi(HTTPS_DOI_URL_PREFIX + DOI_1))
+        input_file = temp_dir / 'input' / 'sub' / 'file1.xml'
+        input_file.parent.mkdir(parents=True)
+        input_file.write_bytes(etree.tostring(get_jats(references=[
+            original_ref
+        ])))
+        output_file = temp_dir / 'output' / 'sub' / 'file1.xml'
+        main([
+            '--source-base-path=%s' % input_file.parent,
+            '--output-path=%s' % output_file.parent
         ])
         assert output_file.exists()
         fixed_root = parse_xml(str(output_file))
