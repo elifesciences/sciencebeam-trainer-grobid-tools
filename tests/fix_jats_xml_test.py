@@ -59,6 +59,14 @@ class TestFixReference:
         assert fixed_doi == DOI_1
         assert get_text_content(fixed_ref) == original_ref_text
 
+    def test_should_remove_doi_pub_id_element_if_not_containing_valid_doi(self):
+        original_ref = get_jats_mixed_ref('doi: ', get_jats_doi('not a doi'))
+        original_ref_text = get_text_content(original_ref)
+        fixed_ref = fix_reference(clone_node(original_ref))
+        fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(DOI_XPATH)))
+        assert fixed_doi == ''
+        assert get_text_content(fixed_ref) == original_ref_text
+
     def test_should_remove_doi_url_prefix_from_doi(self):
         original_ref = get_jats_mixed_ref('doi: ', get_jats_doi(HTTPS_DOI_URL_PREFIX + DOI_1))
         original_ref_text = get_text_content(original_ref)

@@ -46,12 +46,18 @@ def add_text_to_tail_prefix(current: etree.Element, text: str):
     current.tail = text + (current.tail or '')
 
 
+def replace_element_with_text(current: etree.Element, text: str):
+    add_text_to_previous(current, text)
+    current.getparent().remove(current)
+
+
 def fix_doi(reference_element: etree.Element) -> etree.Element:
     for doi_element in reference_element.xpath(DOI_XPATH):
         doi_text = doi_element.text
         m = re.search(DOI_PATTERN, doi_text)
         if not m:
             LOGGER.debug('not matching doi: %r', doi_text)
+            replace_element_with_text(doi_element, doi_text)
             continue
         matching_doi = m.group(1).rstrip()
         LOGGER.debug('m: %s (%r)', m, matching_doi)
