@@ -87,8 +87,8 @@ def add_debug_argument(parser: argparse.ArgumentParser):
 
 def process_debug_argument(args: argparse.Namespace):
     if args.debug:
-        logging.getLogger('sciencebeam_trainer_grobid_tools').setLevel('DEBUG')
-        logging.getLogger('sciencebeam_gym').setLevel('DEBUG')
+        for name in {'sciencebeam_trainer_grobid_tools', 'sciencebeam_gym', '__main__'}:
+            logging.getLogger(name).setLevel('DEBUG')
 
 
 def get_default_config_path(filename: str):
