@@ -196,6 +196,17 @@ class TestFixReference:
         assert fixed_pmid == PMID_1
         assert get_text_content(fixed_ref) == original_ref_text
 
+    def test_should_remove_pmid_non_digit_text(self):
+        original_ref = get_jats_mixed_ref(
+            get_jats_pmid('PMID: ' + PMID_1)
+        )
+        original_ref_text = get_text_content(original_ref)
+        fixed_ref = fix_reference(clone_node(original_ref))
+        LOGGER.debug('ref: %s', etree.tostring(fixed_ref))
+        fixed_pmid = '|'.join(get_text_content_list(fixed_ref.xpath(PMID_XPATH)))
+        assert fixed_pmid == PMID_1
+        assert get_text_content(fixed_ref) == original_ref_text
+
     def test_should_separately_annotate_pmid_without_preceding_element(self):
         original_ref = get_jats_mixed_ref(
             'PMID:' + PMID_1

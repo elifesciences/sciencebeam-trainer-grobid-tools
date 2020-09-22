@@ -43,6 +43,7 @@ PMCID_XPATH = './/pub-id[@pub-id-type="pmcid"]'
 
 DOI_PATTERN = r'\b(10.\d{4,}/[^\[]+)'
 PII_PATTERN = r'\b(?:doi\:)?(\S{5,})\s*\[pii\]'
+PMID_FIX_PATTERN = r'(?:PMID\s*\:\s*)?(\d{1,})'
 PMID_PATTERN = r'(?:PMID\s*\:\s*)(\d{1,})'
 PMCID_PATTERN = r'(PMC\d{7,})'
 
@@ -99,6 +100,22 @@ def fix_doi(reference_element: etree.Element) -> etree.Element:
         doi_element.text = matching_doi
         add_text_to_previous(doi_element, doi_text[:m.start(1)])
         add_text_to_tail_prefix(doi_element, doi_text[m.start(1) + len(matching_doi):])
+    return reference_element
+
+
+def fix_pmid(reference_element: etree.Element) -> etree.Element:
+    for pmid_element in reference_element.xpath(PMID_XPATH):
+        pmid_text = pmid_element.text
+        m = re.search(PMID_FIX_PATTERN, pmid_text)
+        if not m:
+            LOGGER.debug('not matching pmid: %r', pmid_text)
+            replace_element_with_text(pmid_element, pmid_text)
+            continue
+        matching_pmid = m.group(1).rstrip()
+        LOGGER.debug('m: %s (%r)', m, matching_pmid)
+        pmid_element.text = matching_pmid
+        add_text_to_previous(pmid_element, pmid_text[:m.start(1)])
+        add_text_to_tail_prefix(pmid_element, pmid_text[m.start(1) + len(matching_pmid):])
     return reference_element
 
 
@@ -237,6 +254,7 @@ def add_pmcid_annotation_if_not_present(reference_element: etree.Element) -> etr
 
 def fix_reference(reference_element: etree.Element) -> etree.Element:
     fix_doi(reference_element)
+    fix_pmid(reference_element)
     fix_pmcid(reference_element)
     add_pmid_annotation_if_not_present(reference_element)
     add_pmcid_annotation_if_not_present(reference_element)
