@@ -26,12 +26,14 @@ LOGGER = logging.getLogger(__name__)
 PII_1 = '12/34/4567'
 DOI_1 = '10.12345/abc/1'
 PMID_1 = '12345'
+PMCID_1 = 'PMC1234567'
 
 HTTPS_DOI_URL_PREFIX = 'https://doi.org/'
 
 DOI_XPATH = './/pub-id[@pub-id-type="doi"]'
 PII_XPATH = './/pub-id[@pub-id-type="pii"]'
 PMID_XPATH = './/pub-id[@pub-id-type="pmid"]'
+PMCID_XPATH = './/pub-id[@pub-id-type="pmcid"]'
 
 
 def get_jats_mixed_ref(*args) -> etree.Element:
@@ -44,6 +46,10 @@ def get_jats_doi(doi: str) -> etree.Element:
 
 def get_jats_pmid(pmid: str) -> etree.Element:
     return E('pub-id', {'pub-id-type': 'pmid'}, pmid)
+
+
+def get_jats_pmcid(pmcid: str) -> etree.Element:
+    return E('pub-id', {'pub-id-type': 'pmcid'}, pmcid)
 
 
 def clone_node(node: etree.Element) -> etree.Element:
@@ -222,6 +228,14 @@ class TestFixReference:
         LOGGER.debug('ref: %s', etree.tostring(fixed_ref))
         fixed_pmid = '|'.join(get_text_content_list(fixed_ref.xpath(PMID_XPATH)))
         assert fixed_pmid == PMID_1
+        assert get_text_content(fixed_ref) == original_ref_text
+
+    def test_should_remove_double_pmc_prefix_from_pmcid(self):
+        original_ref = get_jats_mixed_ref('PMCID: ', get_jats_pmcid('PMC' + PMCID_1))
+        original_ref_text = get_text_content(original_ref)
+        fixed_ref = fix_reference(clone_node(original_ref))
+        fixed_pmcid = '|'.join(get_text_content_list(fixed_ref.xpath(PMCID_XPATH)))
+        assert fixed_pmcid == PMCID_1
         assert get_text_content(fixed_ref) == original_ref_text
 
 

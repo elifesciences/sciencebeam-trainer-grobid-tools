@@ -39,10 +39,12 @@ MIXED_CITATION_XPATH = './/mixed-citation'
 DOI_XPATH = './/pub-id[@pub-id-type="doi"]'
 PII_XPATH = './/pub-id[@pub-id-type="pii"]'
 PMID_XPATH = './/pub-id[@pub-id-type="pmid"]'
+PMCID_XPATH = './/pub-id[@pub-id-type="pmcid"]'
 
 DOI_PATTERN = r'\b(10.\d{4,}/[^\[]+)'
 PII_PATTERN = r'\b(?:doi\:)?(\S{5,})\s*\[pii\]'
 PMID_PATTERN = r'(?:PMID\s*\:\s*)(\d{1,})'
+PMCID_PATTERN = r'(PMC\d{7,})'
 
 
 def get_jats_pii_element(pii: str, tail: str) -> etree.Element:
@@ -90,6 +92,22 @@ def fix_doi(reference_element: etree.Element) -> etree.Element:
         doi_element.text = matching_doi
         add_text_to_previous(doi_element, doi_text[:m.start(1)])
         add_text_to_tail_prefix(doi_element, doi_text[m.start(1) + len(matching_doi):])
+    return reference_element
+
+
+def fix_pmcid(reference_element: etree.Element) -> etree.Element:
+    for pmcid_element in reference_element.xpath(PMCID_XPATH):
+        pmcid_text = pmcid_element.text
+        m = re.search(PMCID_PATTERN, pmcid_text)
+        if not m:
+            LOGGER.debug('not matching pmcid: %r', pmcid_text)
+            replace_element_with_text(pmcid_element, pmcid_text)
+            continue
+        matching_pmcid = m.group(1).rstrip()
+        LOGGER.debug('m: %s (%r)', m, matching_pmcid)
+        pmcid_element.text = matching_pmcid
+        add_text_to_previous(pmcid_element, pmcid_text[:m.start(1)])
+        add_text_to_tail_prefix(pmcid_element, pmcid_text[m.start(1) + len(matching_pmcid):])
     return reference_element
 
 
@@ -173,6 +191,7 @@ def add_pmid_annotation_if_not_present(reference_element: etree.Element) -> etre
 
 def fix_reference(reference_element: etree.Element) -> etree.Element:
     fix_doi(reference_element)
+    fix_pmcid(reference_element)
     add_pmid_annotation_if_not_present(reference_element)
     add_pii_annotation_if_not_present(reference_element)
     return reference_element
