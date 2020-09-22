@@ -25,11 +25,13 @@ LOGGER = logging.getLogger(__name__)
 
 PII_1 = '12/34/4567'
 DOI_1 = '10.12345/abc/1'
+PMID_1 = '12345'
 
 HTTPS_DOI_URL_PREFIX = 'https://doi.org/'
 
 DOI_XPATH = './/pub-id[@pub-id-type="doi"]'
 PII_XPATH = './/pub-id[@pub-id-type="pii"]'
+PMID_XPATH = './/pub-id[@pub-id-type="pmid"]'
 
 
 def get_jats_mixed_ref(*args) -> etree.Element:
@@ -38,6 +40,10 @@ def get_jats_mixed_ref(*args) -> etree.Element:
 
 def get_jats_doi(doi: str) -> etree.Element:
     return E('pub-id', {'pub-id-type': 'doi'}, doi)
+
+
+def get_jats_pmid(pmid: str) -> etree.Element:
+    return E('pub-id', {'pub-id-type': 'pmid'}, pmid)
 
 
 def clone_node(node: etree.Element) -> etree.Element:
@@ -170,6 +176,52 @@ class TestFixReference:
         fixed_pii = '|'.join(get_text_content_list(fixed_ref.xpath(PII_XPATH)))
         assert fixed_doi == DOI_1
         assert fixed_pii == PII_1
+        assert get_text_content(fixed_ref) == original_ref_text
+
+    def test_should_keep_original_pmid_if_already_present_and_valid(self):
+        original_ref = get_jats_mixed_ref(
+            get_jats_pmid(PMID_1),
+            ', alternative PMID: 123'
+        )
+        original_ref_text = get_text_content(original_ref)
+        fixed_ref = fix_reference(clone_node(original_ref))
+        LOGGER.debug('ref: %s', etree.tostring(fixed_ref))
+        fixed_pmid = '|'.join(get_text_content_list(fixed_ref.xpath(PMID_XPATH)))
+        assert fixed_pmid == PMID_1
+        assert get_text_content(fixed_ref) == original_ref_text
+
+    def test_should_separately_annotate_pmid_without_preceding_element(self):
+        original_ref = get_jats_mixed_ref(
+            'PMID:' + PMID_1
+        )
+        original_ref_text = get_text_content(original_ref)
+        fixed_ref = fix_reference(clone_node(original_ref))
+        LOGGER.debug('ref: %s', etree.tostring(fixed_ref))
+        fixed_pmid = '|'.join(get_text_content_list(fixed_ref.xpath(PMID_XPATH)))
+        assert fixed_pmid == PMID_1
+        assert get_text_content(fixed_ref) == original_ref_text
+
+    def test_should_separately_annotate_pmid_with_preceding_element(self):
+        original_ref = get_jats_mixed_ref(
+            E.other('other text'),
+            'PMID:' + PMID_1
+        )
+        original_ref_text = get_text_content(original_ref)
+        fixed_ref = fix_reference(clone_node(original_ref))
+        LOGGER.debug('ref: %s', etree.tostring(fixed_ref))
+        fixed_pmid = '|'.join(get_text_content_list(fixed_ref.xpath(PMID_XPATH)))
+        assert fixed_pmid == PMID_1
+        assert get_text_content(fixed_ref) == original_ref_text
+
+    def test_should_separately_annotate_pmid_with_spaces(self):
+        original_ref = get_jats_mixed_ref(
+            ' PMID : ' + PMID_1 + ' '
+        )
+        original_ref_text = get_text_content(original_ref)
+        fixed_ref = fix_reference(clone_node(original_ref))
+        LOGGER.debug('ref: %s', etree.tostring(fixed_ref))
+        fixed_pmid = '|'.join(get_text_content_list(fixed_ref.xpath(PMID_XPATH)))
+        assert fixed_pmid == PMID_1
         assert get_text_content(fixed_ref) == original_ref_text
 
 

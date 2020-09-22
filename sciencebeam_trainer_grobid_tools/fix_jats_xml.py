@@ -21,13 +21,22 @@ REF_XPATH = './/back/ref-list/ref'
 MIXED_CITATION_XPATH = './/mixed-citation'
 DOI_XPATH = './/pub-id[@pub-id-type="doi"]'
 PII_XPATH = './/pub-id[@pub-id-type="pii"]'
+PMID_XPATH = './/pub-id[@pub-id-type="pmid"]'
 
 DOI_PATTERN = r'\b(10.\d{4,}/[^\[]+)'
 PII_PATTERN = r'\b(?:doi\:)?(\S{5,})\s*\[pii\]'
+PMID_PATTERN = r'(?:PMID\s*\:\s*)(\d{1,})'
 
 
 def get_jats_pii_element(pii: str, tail: str) -> etree.Element:
     node = E('pub-id', {'pub-id-type': 'pii'}, pii)
+    if tail:
+        node.tail = tail
+    return node
+
+
+def get_jats_pmid_element(pmid: str, tail: str) -> etree.Element:
+    node = E('pub-id', {'pub-id-type': 'pmid'}, pmid)
     if tail:
         node.tail = tail
     return node
@@ -106,8 +115,48 @@ def add_pii_annotation_if_not_present(reference_element: etree.Element) -> etree
     return reference_element
 
 
+def add_pmid_annotation_if_not_present(reference_element: etree.Element) -> etree.Element:
+    if reference_element.xpath(PMID_XPATH):
+        return reference_element
+    for mixed_citation_element in reference_element.xpath(MIXED_CITATION_XPATH):
+        mixed_citation_text = mixed_citation_element.text
+        if not mixed_citation_text:
+            continue
+        m = re.search(PMID_PATTERN, mixed_citation_text)
+        if not m:
+            LOGGER.debug('pmid not found in: %r', mixed_citation_text)
+            continue
+        matching_pii = m.group(1)
+        LOGGER.debug('m: %s (%r)', m, matching_pii)
+        mixed_citation_element.text = mixed_citation_text[:m.start(1)]
+        mixed_citation_element.insert(0, get_jats_pmid_element(
+            matching_pii,
+            tail=mixed_citation_text[m.end(1):]
+        ))
+    for child_element in reference_element.xpath(MIXED_CITATION_XPATH + '/*'):
+        child_tail_text = child_element.tail
+        if not child_tail_text:
+            continue
+        m = re.search(PMID_PATTERN, child_tail_text)
+        if not m:
+            LOGGER.debug('pmid not found in: %r', child_tail_text)
+            continue
+        matching_pii = m.group(1)
+        LOGGER.debug('m: %s (%r)', m, matching_pii)
+        child_element.getparent().insert(
+            child_element.getparent().index(child_element) + 1,
+            get_jats_pmid_element(
+                matching_pii,
+                tail=child_tail_text[m.end(1):]
+            )
+        )
+        child_element.tail = child_tail_text[:m.start(1)]
+    return reference_element
+
+
 def fix_reference(reference_element: etree.Element) -> etree.Element:
     fix_doi(reference_element)
+    add_pmid_annotation_if_not_present(reference_element)
     add_pii_annotation_if_not_present(reference_element)
     return reference_element
 
