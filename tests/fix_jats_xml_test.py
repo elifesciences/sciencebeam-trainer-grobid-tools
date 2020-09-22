@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from typing import List
 
@@ -14,16 +15,21 @@ from sciencebeam_trainer_grobid_tools.utils.xml import (
 )
 
 from sciencebeam_trainer_grobid_tools.fix_jats_xml import (
-    fix_doi,
+    fix_reference,
     main
 )
 
 
+LOGGER = logging.getLogger(__name__)
+
+
+PII_1 = '12/34/4567'
 DOI_1 = '10.12345/abc/1'
 
 HTTPS_DOI_URL_PREFIX = 'https://doi.org/'
 
 DOI_XPATH = './/pub-id[@pub-id-type="doi"]'
+PII_XPATH = './/pub-id[@pub-id-type="pii"]'
 
 
 def get_jats_mixed_ref(*args) -> etree.Element:
@@ -44,11 +50,11 @@ def get_jats(references: List[etree.Element]) -> etree.Element:
     ))
 
 
-class TestFixDoi:
+class TestFixReference:
     def test_should_not_change_valid_doi(self):
         original_ref = get_jats_mixed_ref('doi: ', get_jats_doi(DOI_1))
         original_ref_text = get_text_content(original_ref)
-        fixed_ref = fix_doi(clone_node(original_ref))
+        fixed_ref = fix_reference(clone_node(original_ref))
         fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(DOI_XPATH)))
         assert fixed_doi == DOI_1
         assert get_text_content(fixed_ref) == original_ref_text
@@ -56,7 +62,7 @@ class TestFixDoi:
     def test_should_remove_doi_url_prefix_from_doi(self):
         original_ref = get_jats_mixed_ref('doi: ', get_jats_doi(HTTPS_DOI_URL_PREFIX + DOI_1))
         original_ref_text = get_text_content(original_ref)
-        fixed_ref = fix_doi(clone_node(original_ref))
+        fixed_ref = fix_reference(clone_node(original_ref))
         fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(DOI_XPATH)))
         assert fixed_doi == DOI_1
         assert get_text_content(fixed_ref) == original_ref_text
@@ -64,7 +70,7 @@ class TestFixDoi:
     def test_should_remove_doi_url_prefix_without_preceeding_text(self):
         original_ref = get_jats_mixed_ref(get_jats_doi(HTTPS_DOI_URL_PREFIX + DOI_1))
         original_ref_text = get_text_content(original_ref)
-        fixed_ref = fix_doi(clone_node(original_ref))
+        fixed_ref = fix_reference(clone_node(original_ref))
         fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(DOI_XPATH)))
         assert fixed_doi == DOI_1
         assert get_text_content(fixed_ref) == original_ref_text
@@ -75,7 +81,7 @@ class TestFixDoi:
             get_jats_doi(HTTPS_DOI_URL_PREFIX + DOI_1)
         )
         original_ref_text = get_text_content(original_ref)
-        fixed_ref = fix_doi(clone_node(original_ref))
+        fixed_ref = fix_reference(clone_node(original_ref))
         fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(DOI_XPATH)))
         assert fixed_doi == DOI_1
         assert get_text_content(fixed_ref) == original_ref_text
@@ -87,7 +93,7 @@ class TestFixDoi:
             get_jats_doi(HTTPS_DOI_URL_PREFIX + DOI_1)
         )
         original_ref_text = get_text_content(original_ref)
-        fixed_ref = fix_doi(clone_node(original_ref))
+        fixed_ref = fix_reference(clone_node(original_ref))
         fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(DOI_XPATH)))
         assert fixed_doi == DOI_1
         assert get_text_content(fixed_ref) == original_ref_text
@@ -98,7 +104,7 @@ class TestFixDoi:
             get_jats_doi(DOI_1 + ' [doi]')
         )
         original_ref_text = get_text_content(original_ref)
-        fixed_ref = fix_doi(clone_node(original_ref))
+        fixed_ref = fix_reference(clone_node(original_ref))
         fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(DOI_XPATH)))
         assert fixed_doi == DOI_1
         assert get_text_content(fixed_ref) == original_ref_text
@@ -110,9 +116,52 @@ class TestFixDoi:
             'tail text'
         )
         original_ref_text = get_text_content(original_ref)
-        fixed_ref = fix_doi(clone_node(original_ref))
+        fixed_ref = fix_reference(clone_node(original_ref))
         fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(DOI_XPATH)))
         assert fixed_doi == DOI_1
+        assert get_text_content(fixed_ref) == original_ref_text
+
+    def test_should_separately_annotate_pii_without_preceding_element(self):
+        original_ref = get_jats_mixed_ref(
+            'doi: ',
+            get_jats_doi(PII_1 + ' [pii]; ' + DOI_1 + ' [doi]')
+        )
+        original_ref_text = get_text_content(original_ref)
+        fixed_ref = fix_reference(clone_node(original_ref))
+        LOGGER.debug('ref: %s', etree.tostring(fixed_ref))
+        fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(DOI_XPATH)))
+        fixed_pii = '|'.join(get_text_content_list(fixed_ref.xpath(PII_XPATH)))
+        assert fixed_doi == DOI_1
+        assert fixed_pii == PII_1
+        assert get_text_content(fixed_ref) == original_ref_text
+
+    def test_should_separately_annotate_pii_with_preceding_element(self):
+        original_ref = get_jats_mixed_ref(
+            E.other('other text'),
+            'doi: ',
+            get_jats_doi(PII_1 + ' [pii]; ' + DOI_1 + ' [doi]')
+        )
+        original_ref_text = get_text_content(original_ref)
+        fixed_ref = fix_reference(clone_node(original_ref))
+        LOGGER.debug('ref: %s', etree.tostring(fixed_ref))
+        fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(DOI_XPATH)))
+        fixed_pii = '|'.join(get_text_content_list(fixed_ref.xpath(PII_XPATH)))
+        assert fixed_doi == DOI_1
+        assert fixed_pii == PII_1
+        assert get_text_content(fixed_ref) == original_ref_text
+
+    def test_should_not_include_doi_colon_in_pii(self):
+        original_ref = get_jats_mixed_ref(
+            'doi:',
+            get_jats_doi(PII_1 + ' [pii]; ' + DOI_1 + ' [doi]')
+        )
+        original_ref_text = get_text_content(original_ref)
+        fixed_ref = fix_reference(clone_node(original_ref))
+        LOGGER.debug('ref: %s', etree.tostring(fixed_ref))
+        fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(DOI_XPATH)))
+        fixed_pii = '|'.join(get_text_content_list(fixed_ref.xpath(PII_XPATH)))
+        assert fixed_doi == DOI_1
+        assert fixed_pii == PII_1
         assert get_text_content(fixed_ref) == original_ref_text
 
 
