@@ -478,7 +478,11 @@ def fix_jats_xml_file(input_file: str, output_file: str):
     root = parse_xml(input_file)
     fix_jats_xml_node(root)
     Path(output_file).parent.mkdir(parents=True, exist_ok=True)
-    Path(output_file).write_bytes(etree.tostring(root))
+    Path(output_file).write_bytes(etree.tostring(
+        root,
+        xml_declaration=True,
+        encoding=root.docinfo.encoding
+    ))
 
 
 class FixJatsProcessor:
