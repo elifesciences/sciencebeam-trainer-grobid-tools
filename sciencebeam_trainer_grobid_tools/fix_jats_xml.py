@@ -4,7 +4,7 @@ import logging
 import os
 import re
 from pathlib import Path
-from typing import List
+from typing import Callable, List, Tuple, Optional
 
 from lxml import etree
 from lxml.builder import E
@@ -58,21 +58,21 @@ def with_element_tail(element: etree.Element, tail: str) -> etree.Element:
     return element
 
 
-def get_jats_pii_element(pii: str, tail: str) -> etree.Element:
+def get_jats_pii_element(pii: str, tail: str = None) -> etree.Element:
     node = E('pub-id', {'pub-id-type': 'pii'}, pii)
     if tail:
         node.tail = tail
     return node
 
 
-def get_jats_pmid_element(pmid: str, tail: str) -> etree.Element:
+def get_jats_pmid_element(pmid: str, tail: str = None) -> etree.Element:
     node = E('pub-id', {'pub-id-type': 'pmid'}, pmid)
     if tail:
         node.tail = tail
     return node
 
 
-def get_jats_pmcid_element(pmcid: str, tail: str) -> etree.Element:
+def get_jats_pmcid_element(pmcid: str, tail: str = None) -> etree.Element:
     node = E('pub-id', {'pub-id-type': 'pmcid'}, pmcid)
     if tail:
         node.tail = tail
@@ -139,6 +139,127 @@ def add_text_to_tail_prefix(current: etree.Element, text: str):
 def replace_element_with_text(current: etree.Element, text: str):
     add_text_to_previous(current, text)
     current.getparent().remove(current)
+
+
+def find_re_pattern_start_end(
+        text: str,
+        pattern: str,
+        group_index: int = 1) -> Optional[Tuple[int, int]]:
+    m = re.search(pattern, text)
+    if not m:
+        LOGGER.debug('pattern (%r) not found in: %r', pattern, text)
+        return None
+    return m.start(group_index), m.end(group_index)
+
+
+def find_pii_start_end(text: str) -> Optional[Tuple[int, int]]:
+    return find_re_pattern_start_end(text, PII_PATTERN)
+
+
+def find_pmid_start_end(text: str) -> Optional[Tuple[int, int]]:
+    return find_re_pattern_start_end(text, PMID_PATTERN)
+
+
+def find_pmcid_start_end(text: str) -> Optional[Tuple[int, int]]:
+    return find_re_pattern_start_end(text, PMCID_PATTERN)
+
+
+def add_annotation_to_element_text_if_matching(
+        element: etree.Element,
+        find_start_end_fn: Callable[[str], Optional[Tuple[int, int]]],
+        create_element_fn: Callable[[str], etree.Element],
+        as_next_sibling: bool = False) -> bool:
+    text = element.text
+    if not text:
+        return False
+    start_end = find_start_end_fn(text)
+    if not start_end:
+        LOGGER.debug('%s not found in: %r', find_start_end_fn, text)
+        return False
+    start, end = start_end
+    matching_text = text[start:end]
+    LOGGER.debug('matching: %s (%r)', start_end, matching_text)
+    element.text = text[:start]
+    new_element = with_element_tail(
+        create_element_fn(matching_text),
+        tail=text[end:]
+    )
+    if as_next_sibling:
+        element.getparent().insert(
+            element.getparent().index(element) + 1,
+            new_element
+        )
+    else:
+        element.insert(0, new_element)
+    return True
+
+
+def add_annotation_to_element_tail_if_matching(
+        element: etree.Element,
+        find_start_end_fn: Callable[[str], Optional[Tuple[int, int]]],
+        create_element_fn: Callable[[str], etree.Element]) -> bool:
+    text = element.tail
+    if not text:
+        return False
+    start_end = find_start_end_fn(text)
+    if not start_end:
+        LOGGER.debug('%s not found in: %r', find_start_end_fn, text)
+        return False
+    start, end = start_end
+    matching_text = text[start:end]
+    LOGGER.debug('matching: %s (%r)', start_end, matching_text)
+    element.getparent().insert(
+        element.getparent().index(element) + 1,
+        with_element_tail(
+            create_element_fn(matching_text),
+            tail=text[end:]
+        )
+    )
+    element.tail = text[:start]
+    return True
+
+
+def add_annotation_to_element_if_matching(
+        element: etree.Element,
+        find_start_end_fn: Callable[[str], Optional[Tuple[int, int]]],
+        create_element_fn: Callable[[str], etree.Element],
+        parse_comment: bool) -> bool:
+    if add_annotation_to_element_text_if_matching(
+        element,
+        find_start_end_fn=find_start_end_fn,
+        create_element_fn=create_element_fn
+    ):
+        return True
+    for child_element in element.xpath('./*'):
+        if add_annotation_to_element_tail_if_matching(
+            child_element,
+            find_start_end_fn=find_start_end_fn,
+            create_element_fn=create_element_fn
+        ):
+            return True
+    if parse_comment:
+        for child_element in element.xpath('./comment'):
+            if add_annotation_to_element_text_if_matching(
+                child_element,
+                find_start_end_fn=find_start_end_fn,
+                create_element_fn=create_element_fn,
+                as_next_sibling=True
+            ):
+                break
+    return False
+
+
+def add_annotation_to_reference_element_if_matching(
+        reference_element: etree.Element,
+        *args, **kwargs) -> bool:
+    for mixed_citation_element in reference_element.xpath(MIXED_CITATION_XPATH):
+        if add_annotation_to_element_if_matching(
+            mixed_citation_element,
+            *args,
+            **kwargs
+        ):
+            return True
+    return False
 
 
 def fix_doi(reference_element: etree.Element) -> etree.Element:
@@ -209,153 +330,36 @@ def fix_pmcid(reference_element: etree.Element) -> etree.Element:
 def add_pii_annotation_if_not_present(reference_element: etree.Element) -> etree.Element:
     if reference_element.xpath(PII_XPATH):
         return reference_element
-    for mixed_citation_element in reference_element.xpath(MIXED_CITATION_XPATH):
-        mixed_citation_text = mixed_citation_element.text
-        if not mixed_citation_text:
-            continue
-        m = re.search(PII_PATTERN, mixed_citation_text)
-        if not m:
-            LOGGER.debug('pii not found in: %r', mixed_citation_text)
-            continue
-        matching_pii = m.group(1)
-        LOGGER.debug('m: %s (%r)', m, matching_pii)
-        mixed_citation_element.text = mixed_citation_text[:m.start(1)]
-        mixed_citation_element.insert(0, get_jats_pii_element(
-            matching_pii,
-            tail=mixed_citation_text[m.end(1):]
-        ))
-    for child_element in reference_element.xpath(MIXED_CITATION_XPATH + '/*'):
-        child_tail_text = child_element.tail
-        if not child_tail_text:
-            continue
-        m = re.search(PII_PATTERN, child_tail_text)
-        if not m:
-            LOGGER.debug('pii not found in: %r', child_tail_text)
-            continue
-        matching_pii = m.group(1)
-        LOGGER.debug('m: %s (%r)', m, matching_pii)
-        child_element.getparent().insert(
-            child_element.getparent().index(child_element) + 1,
-            get_jats_pii_element(
-                matching_pii,
-                tail=child_tail_text[m.end(1):]
-            )
-        )
-        child_element.tail = child_tail_text[:m.start(1)]
+    add_annotation_to_reference_element_if_matching(
+        reference_element,
+        find_start_end_fn=find_pii_start_end,
+        create_element_fn=get_jats_pii_element,
+        parse_comment=False
+    )
     return reference_element
 
 
 def add_pmid_annotation_if_not_present(reference_element: etree.Element) -> etree.Element:
     if reference_element.xpath(PMID_XPATH):
         return reference_element
-    for mixed_citation_element in reference_element.xpath(MIXED_CITATION_XPATH):
-        mixed_citation_text = mixed_citation_element.text
-        if not mixed_citation_text:
-            continue
-        m = re.search(PMID_PATTERN, mixed_citation_text)
-        if not m:
-            LOGGER.debug('pmid not found in: %r', mixed_citation_text)
-            continue
-        matching_pmid = m.group(1)
-        LOGGER.debug('m: %s (%r)', m, matching_pmid)
-        mixed_citation_element.text = mixed_citation_text[:m.start(1)]
-        mixed_citation_element.insert(0, get_jats_pmid_element(
-            matching_pmid,
-            tail=mixed_citation_text[m.end(1):]
-        ))
-    for child_element in reference_element.xpath(MIXED_CITATION_XPATH + '/*'):
-        child_tail_text = child_element.tail
-        if not child_tail_text:
-            continue
-        m = re.search(PMID_PATTERN, child_tail_text)
-        if not m:
-            LOGGER.debug('pmid not found in: %r', child_tail_text)
-            continue
-        matching_pmid = m.group(1)
-        LOGGER.debug('m: %s (%r)', m, matching_pmid)
-        child_element.getparent().insert(
-            child_element.getparent().index(child_element) + 1,
-            get_jats_pmid_element(
-                matching_pmid,
-                tail=child_tail_text[m.end(1):]
-            )
-        )
-        child_element.tail = child_tail_text[:m.start(1)]
-    for child_element in reference_element.xpath(MIXED_CITATION_XPATH + '/comment'):
-        child_text = child_element.text
-        if not child_text:
-            continue
-        m = re.search(PMID_PATTERN, child_text)
-        if not m:
-            LOGGER.debug('pmid not found in: %r', child_text)
-            continue
-        matching_pmid = m.group(1)
-        LOGGER.debug('m: %s (%r)', m, matching_pmid)
-        child_element.getparent().insert(
-            child_element.getparent().index(child_element) + 1,
-            get_jats_pmid_element(
-                matching_pmid,
-                tail=child_text[m.end(1):]
-            )
-        )
-        child_element.text = child_text[:m.start(1)]
+    add_annotation_to_reference_element_if_matching(
+        reference_element,
+        find_start_end_fn=find_pmid_start_end,
+        create_element_fn=get_jats_pmid_element,
+        parse_comment=True
+    )
     return reference_element
 
 
 def add_pmcid_annotation_if_not_present(reference_element: etree.Element) -> etree.Element:
     if reference_element.xpath(PMCID_XPATH):
         return reference_element
-    for mixed_citation_element in reference_element.xpath(MIXED_CITATION_XPATH):
-        mixed_citation_text = mixed_citation_element.text
-        if not mixed_citation_text:
-            continue
-        m = re.search(PMCID_PATTERN, mixed_citation_text)
-        if not m:
-            LOGGER.debug('pmcid not found in: %r', mixed_citation_text)
-            continue
-        matching_pmcid = m.group(1)
-        LOGGER.debug('m: %s (%r)', m, matching_pmcid)
-        mixed_citation_element.text = mixed_citation_text[:m.start(1)]
-        mixed_citation_element.insert(0, get_jats_pmcid_element(
-            matching_pmcid,
-            tail=mixed_citation_text[m.end(1):]
-        ))
-    for child_element in reference_element.xpath(MIXED_CITATION_XPATH + '/*'):
-        child_tail_text = child_element.tail
-        if not child_tail_text:
-            continue
-        m = re.search(PMCID_PATTERN, child_tail_text)
-        if not m:
-            LOGGER.debug('pmcid not found in: %r', child_tail_text)
-            continue
-        matching_pmcid = m.group(1)
-        LOGGER.debug('m: %s (%r)', m, matching_pmcid)
-        child_element.getparent().insert(
-            child_element.getparent().index(child_element) + 1,
-            get_jats_pmcid_element(
-                matching_pmcid,
-                tail=child_tail_text[m.end(1):]
-            )
-        )
-        child_element.tail = child_tail_text[:m.start(1)]
-    for child_element in reference_element.xpath(MIXED_CITATION_XPATH + '/comment'):
-        child_text = child_element.text
-        if not child_text:
-            continue
-        m = re.search(PMCID_PATTERN, child_text)
-        if not m:
-            LOGGER.debug('pmcid not found in: %r', child_text)
-            continue
-        matching_pmcid = m.group(1)
-        LOGGER.debug('m: %s (%r)', m, matching_pmcid)
-        child_element.getparent().insert(
-            child_element.getparent().index(child_element) + 1,
-            get_jats_pmcid_element(
-                matching_pmcid,
-                tail=child_text[m.end(1):]
-            )
-        )
-        child_element.text = child_text[:m.start(1)]
+    add_annotation_to_reference_element_if_matching(
+        reference_element,
+        find_start_end_fn=find_pmcid_start_end,
+        create_element_fn=get_jats_pmcid_element,
+        parse_comment=True
+    )
     return reference_element
 
 
