@@ -173,8 +173,37 @@ def find_pmid_start_end(text: str) -> Optional[Tuple[int, int]]:
     return find_re_pattern_start_end(text, PMID_PATTERN)
 
 
+def find_pmid_fix_start_end(text: str) -> Optional[Tuple[int, int]]:
+    return find_re_pattern_start_end(text, PMID_FIX_PATTERN)
+
+
 def find_pmcid_start_end(text: str) -> Optional[Tuple[int, int]]:
     return find_re_pattern_start_end(text, PMCID_PATTERN)
+
+
+def change_annotation_to_matching_text(
+        element: etree.Element,
+        find_start_end_fn: Callable[[str], Optional[Tuple[int, int]]]):
+    text = element.text
+    start_end = find_start_end_fn(text)
+    if not start_end:
+        LOGGER.debug('%s not found in: %r', find_start_end_fn.__name__, text)
+        replace_element_with_text(element, text)
+        return
+    start, end = start_end
+    matching_text = text[start:end]
+    LOGGER.debug('matching: %s (%r)', start_end, matching_text)
+    element.text = matching_text
+    add_text_to_previous(element, text[:start])
+    add_text_to_tail_prefix(element, text[end:])
+
+
+def change_annotations_to_matching_text(
+        elements: List[etree.Element],
+        *args,
+        **kwargs):
+    for element in elements:
+        change_annotation_to_matching_text(element, *args, **kwargs)
 
 
 def add_annotation_to_element_text_if_matching(
@@ -275,19 +304,14 @@ def add_annotation_to_reference_element_if_matching(
     return False
 
 
-def fix_doi(reference_element: etree.Element) -> etree.Element:
-    for doi_element in reference_element.xpath(DOI_XPATH):
-        doi_text = doi_element.text
-        m = re.search(DOI_PATTERN, doi_text)
-        if not m:
-            LOGGER.debug('not matching doi: %r', doi_text)
-            replace_element_with_text(doi_element, doi_text)
-            continue
-        matching_doi = m.group(1).rstrip()
-        LOGGER.debug('m: %s (%r)', m, matching_doi)
-        doi_element.text = matching_doi
-        add_text_to_previous(doi_element, doi_text[:m.start(1)])
-        add_text_to_tail_prefix(doi_element, doi_text[m.start(1) + len(matching_doi):])
+def fix_doi(reference_element: etree.Element):
+    change_annotations_to_matching_text(
+        reference_element.xpath(DOI_XPATH),
+        find_start_end_fn=find_doi_start_end
+    )
+
+
+def replace_doi_annotation_with_ext_link_if_url(reference_element: etree.Element):
     for doi_element in reference_element.xpath(DOI_XPATH):
         previous_text = get_previous_text(doi_element)
         m = re.search(DOI_URL_PREFIX_PATTERN, previous_text)
@@ -305,39 +329,20 @@ def fix_doi(reference_element: etree.Element) -> etree.Element:
                 tail=doi_element.tail
             )
         )
-    return reference_element
 
 
-def fix_pmid(reference_element: etree.Element) -> etree.Element:
-    for pmid_element in reference_element.xpath(PMID_XPATH):
-        pmid_text = pmid_element.text
-        m = re.search(PMID_FIX_PATTERN, pmid_text)
-        if not m:
-            LOGGER.debug('not matching pmid: %r', pmid_text)
-            replace_element_with_text(pmid_element, pmid_text)
-            continue
-        matching_pmid = m.group(1).rstrip()
-        LOGGER.debug('m: %s (%r)', m, matching_pmid)
-        pmid_element.text = matching_pmid
-        add_text_to_previous(pmid_element, pmid_text[:m.start(1)])
-        add_text_to_tail_prefix(pmid_element, pmid_text[m.start(1) + len(matching_pmid):])
-    return reference_element
+def fix_pmid(reference_element: etree.Element):
+    change_annotations_to_matching_text(
+        reference_element.xpath(PMID_XPATH),
+        find_start_end_fn=find_pmid_fix_start_end
+    )
 
 
-def fix_pmcid(reference_element: etree.Element) -> etree.Element:
-    for pmcid_element in reference_element.xpath(PMCID_XPATH):
-        pmcid_text = pmcid_element.text
-        m = re.search(PMCID_PATTERN, pmcid_text)
-        if not m:
-            LOGGER.debug('not matching pmcid: %r', pmcid_text)
-            replace_element_with_text(pmcid_element, pmcid_text)
-            continue
-        matching_pmcid = m.group(1).rstrip()
-        LOGGER.debug('m: %s (%r)', m, matching_pmcid)
-        pmcid_element.text = matching_pmcid
-        add_text_to_previous(pmcid_element, pmcid_text[:m.start(1)])
-        add_text_to_tail_prefix(pmcid_element, pmcid_text[m.start(1) + len(matching_pmcid):])
-    return reference_element
+def fix_pmcid(reference_element: etree.Element):
+    change_annotations_to_matching_text(
+        reference_element.xpath(PMCID_XPATH),
+        find_start_end_fn=find_pmcid_start_end
+    )
 
 
 def add_doi_annotation_if_not_present(reference_element: etree.Element) -> etree.Element:
@@ -390,6 +395,7 @@ def add_pmcid_annotation_if_not_present(reference_element: etree.Element) -> etr
 
 def fix_reference(reference_element: etree.Element) -> etree.Element:
     fix_doi(reference_element)
+    replace_doi_annotation_with_ext_link_if_url(reference_element)
     fix_pmid(reference_element)
     fix_pmcid(reference_element)
     add_pmid_annotation_if_not_present(reference_element)
