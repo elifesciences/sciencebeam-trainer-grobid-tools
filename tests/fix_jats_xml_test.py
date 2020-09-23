@@ -16,7 +16,8 @@ from sciencebeam_trainer_grobid_tools.utils.xml import (
 
 from sciencebeam_trainer_grobid_tools.fix_jats_xml import (
     XLINK_HREF,
-    fix_reference,
+    get_jats_ext_link_element,
+    fix_reference as _fix_reference,
     main
 )
 
@@ -65,9 +66,9 @@ def get_jats(references: List[etree.Element]) -> etree.Element:
     ))
 
 
-def fix_reference_and_log(ref: etree.Element) -> etree.Element:
+def fix_reference(ref: etree.Element) -> etree.Element:
     LOGGER.debug('ref xml (before): %s', etree.tostring(ref))
-    fixed_ref = fix_reference(ref)
+    fixed_ref = _fix_reference(ref)
     LOGGER.debug('ref xml (after): %s', etree.tostring(fixed_ref))
     return fixed_ref
 
@@ -96,7 +97,7 @@ class TestFixReference:
             'tail text'
         )
         original_ref_text = get_text_content(original_ref)
-        fixed_ref = fix_reference_and_log(clone_node(original_ref))
+        fixed_ref = fix_reference(clone_node(original_ref))
         ext_link_text = '|'.join(get_text_content_list(fixed_ref.xpath(EXT_LINK_XPATH)))
         assert ext_link_text == HTTPS_DOI_URL_PREFIX + DOI_1
         assert get_text_content(fixed_ref) == original_ref_text
@@ -108,7 +109,7 @@ class TestFixReference:
             'tail text'
         )
         original_ref_text = get_text_content(original_ref)
-        fixed_ref = fix_reference_and_log(clone_node(original_ref))
+        fixed_ref = fix_reference(clone_node(original_ref))
         ext_link_text = '|'.join(get_text_content_list(fixed_ref.xpath(EXT_LINK_XPATH)))
         assert ext_link_text == HTTPS_DOI_URL_PREFIX + DOI_1
         assert get_text_content(fixed_ref) == original_ref_text
@@ -120,7 +121,7 @@ class TestFixReference:
             'tail text'
         )
         original_ref_text = get_text_content(original_ref)
-        fixed_ref = fix_reference_and_log(clone_node(original_ref))
+        fixed_ref = fix_reference(clone_node(original_ref))
         ext_links = fixed_ref.xpath(EXT_LINK_XPATH)
         ext_link_text = '|'.join(get_text_content_list(ext_links))
         assert ext_link_text == HTTPS_SPACED_DOI_URL_PREFIX + DOI_1
@@ -192,6 +193,31 @@ class TestFixReference:
         assert fixed_doi == DOI_1
         assert get_text_content(fixed_ref) == original_ref_text
 
+    def test_should_remove_double_doi_in_ext_link_square_brackets(self):
+        original_ref = get_jats_mixed_ref(
+            get_jats_ext_link_element(HTTPS_DOI_URL_PREFIX + DOI_1 + '[' + DOI_1 + ']')
+        )
+        original_ref_text = get_text_content(original_ref)
+        fixed_ref = fix_reference(clone_node(original_ref))
+        fixed_ext_links = fixed_ref.xpath(EXT_LINK_XPATH)
+        fixed_ext_link = '|'.join(get_text_content_list(fixed_ext_links))
+        assert fixed_ext_link == HTTPS_DOI_URL_PREFIX + DOI_1
+        assert fixed_ext_links[0].attrib[XLINK_HREF] == HTTPS_DOI_URL_PREFIX + DOI_1
+        assert get_text_content(fixed_ref) == original_ref_text
+
+    def test_should_not_remove_other_square_brackets_from_ext_link(self):
+        url = HTTPS_DOI_URL_PREFIX + DOI_1 + '[other]'
+        original_ref = get_jats_mixed_ref(
+            get_jats_ext_link_element(url)
+        )
+        original_ref_text = get_text_content(original_ref)
+        fixed_ref = fix_reference(clone_node(original_ref))
+        fixed_ext_links = fixed_ref.xpath(EXT_LINK_XPATH)
+        fixed_ext_link = '|'.join(get_text_content_list(fixed_ext_links))
+        assert fixed_ext_link == url
+        assert fixed_ext_links[0].attrib[XLINK_HREF] == url
+        assert get_text_content(fixed_ref) == original_ref_text
+
     def test_should_separately_annotate_pii_without_preceding_element(self):
         original_ref = get_jats_mixed_ref(
             'doi: ',
@@ -199,7 +225,6 @@ class TestFixReference:
         )
         original_ref_text = get_text_content(original_ref)
         fixed_ref = fix_reference(clone_node(original_ref))
-        LOGGER.debug('ref: %s', etree.tostring(fixed_ref))
         fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(DOI_XPATH)))
         fixed_pii = '|'.join(get_text_content_list(fixed_ref.xpath(PII_XPATH)))
         assert fixed_doi == DOI_1
@@ -214,7 +239,6 @@ class TestFixReference:
         )
         original_ref_text = get_text_content(original_ref)
         fixed_ref = fix_reference(clone_node(original_ref))
-        LOGGER.debug('ref: %s', etree.tostring(fixed_ref))
         fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(DOI_XPATH)))
         fixed_pii = '|'.join(get_text_content_list(fixed_ref.xpath(PII_XPATH)))
         assert fixed_doi == DOI_1
@@ -228,7 +252,6 @@ class TestFixReference:
         )
         original_ref_text = get_text_content(original_ref)
         fixed_ref = fix_reference(clone_node(original_ref))
-        LOGGER.debug('ref: %s', etree.tostring(fixed_ref))
         fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(DOI_XPATH)))
         fixed_pii = '|'.join(get_text_content_list(fixed_ref.xpath(PII_XPATH)))
         assert fixed_doi == DOI_1
@@ -266,7 +289,6 @@ class TestFixReference:
         )
         original_ref_text = get_text_content(original_ref)
         fixed_ref = fix_reference(clone_node(original_ref))
-        LOGGER.debug('ref: %s', etree.tostring(fixed_ref))
         fixed_pmid = '|'.join(get_text_content_list(fixed_ref.xpath(PMID_XPATH)))
         assert fixed_pmid == PMID_1
         assert get_text_content(fixed_ref) == original_ref_text
@@ -277,7 +299,6 @@ class TestFixReference:
         )
         original_ref_text = get_text_content(original_ref)
         fixed_ref = fix_reference(clone_node(original_ref))
-        LOGGER.debug('ref: %s', etree.tostring(fixed_ref))
         fixed_pmid = '|'.join(get_text_content_list(fixed_ref.xpath(PMID_XPATH)))
         assert fixed_pmid == PMID_1
         assert get_text_content(fixed_ref) == original_ref_text
@@ -288,7 +309,6 @@ class TestFixReference:
         )
         original_ref_text = get_text_content(original_ref)
         fixed_ref = fix_reference(clone_node(original_ref))
-        LOGGER.debug('ref: %s', etree.tostring(fixed_ref))
         fixed_pmid = '|'.join(get_text_content_list(fixed_ref.xpath(PMID_XPATH)))
         assert fixed_pmid == PMID_1
         assert get_text_content(fixed_ref) == original_ref_text
@@ -300,7 +320,6 @@ class TestFixReference:
         )
         original_ref_text = get_text_content(original_ref)
         fixed_ref = fix_reference(clone_node(original_ref))
-        LOGGER.debug('ref: %s', etree.tostring(fixed_ref))
         fixed_pmid = '|'.join(get_text_content_list(fixed_ref.xpath(PMID_XPATH)))
         assert fixed_pmid == PMID_1
         assert get_text_content(fixed_ref) == original_ref_text
@@ -311,7 +330,6 @@ class TestFixReference:
         )
         original_ref_text = get_text_content(original_ref)
         fixed_ref = fix_reference(clone_node(original_ref))
-        LOGGER.debug('ref: %s', etree.tostring(fixed_ref))
         fixed_pmid = '|'.join(get_text_content_list(fixed_ref.xpath(PMID_XPATH)))
         assert fixed_pmid == PMID_1
         assert get_text_content(fixed_ref) == original_ref_text

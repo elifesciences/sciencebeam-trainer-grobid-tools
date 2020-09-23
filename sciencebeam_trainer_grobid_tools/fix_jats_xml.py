@@ -39,6 +39,7 @@ XLINK_HREF = '{%s}href' % XLINK_NS
 
 REF_XPATH = './/back/ref-list/ref'
 MIXED_CITATION_XPATH = './/mixed-citation'
+EXT_LINK_XPATH = './/ext-link'
 DOI_XPATH = './/pub-id[@pub-id-type="doi"]'
 PII_XPATH = './/pub-id[@pub-id-type="pii"]'
 PMID_XPATH = './/pub-id[@pub-id-type="pmid"]'
@@ -181,6 +182,21 @@ def find_pmcid_start_end(text: str) -> Optional[Tuple[int, int]]:
     return find_re_pattern_start_end(text, PMCID_PATTERN)
 
 
+def find_doi_ext_link_start_end(text: str) -> Optional[Tuple[int, int]]:
+    m = re.match(r'(.*)(\[' + DOI_PATTERN + r'\])', text)
+    if not m:
+        LOGGER.debug('not containing repeated doi: %r', text)
+        return 0, len(text)
+    return 0, m.start(2)
+
+
+def find_ext_link_start_end(text: str) -> Optional[Tuple[int, int]]:
+    if 'doi.org' in text:
+        return find_doi_ext_link_start_end(text)
+    LOGGER.debug('not doi ext link: %r', text)
+    return 0, len(text)
+
+
 def change_annotation_to_matching_text(
         element: etree.Element,
         find_start_end_fn: Callable[[str], Optional[Tuple[int, int]]]):
@@ -304,6 +320,22 @@ def add_annotation_to_reference_element_if_matching(
     return False
 
 
+def fix_ext_link(reference_element: etree.Element):
+    change_annotations_to_matching_text(
+        reference_element.xpath(EXT_LINK_XPATH),
+        find_start_end_fn=find_ext_link_start_end
+    )
+    for child_element in reference_element.xpath(EXT_LINK_XPATH):
+        href = child_element.attrib.get(XLINK_HREF)
+        if not href:
+            continue
+        start_end = find_ext_link_start_end(href)
+        if not start_end:
+            continue
+        start, end = start_end
+        child_element.attrib[XLINK_HREF] = href[start:end]
+
+
 def fix_doi(reference_element: etree.Element):
     change_annotations_to_matching_text(
         reference_element.xpath(DOI_XPATH),
@@ -392,6 +424,7 @@ def add_pmcid_annotation_if_not_present(reference_element: etree.Element):
 def fix_reference(reference_element: etree.Element) -> etree.Element:
     fix_doi(reference_element)
     replace_doi_annotation_with_ext_link_if_url(reference_element)
+    fix_ext_link(reference_element)
     fix_pmid(reference_element)
     fix_pmcid(reference_element)
     add_pmid_annotation_if_not_present(reference_element)
