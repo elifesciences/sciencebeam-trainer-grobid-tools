@@ -16,7 +16,9 @@ from sciencebeam_trainer_grobid_tools.utils.xml import (
 
 from sciencebeam_trainer_grobid_tools.fix_jats_xml import (
     XLINK_HREF,
+    find_pii_valid_start_end,
     get_jats_ext_link_element,
+    get_jats_pii_element,
     fix_reference as _fix_reference,
     main
 )
@@ -25,7 +27,8 @@ from sciencebeam_trainer_grobid_tools.fix_jats_xml import (
 LOGGER = logging.getLogger(__name__)
 
 
-PII_1 = '12/34/4567'
+INVALID_PII_1 = '12/34/4567'
+PII_1 = 'S0123-1234(11)01234-5'
 DOI_1 = '10.12345/abc/1'
 PMID_1 = '12345'
 PMCID_1 = 'PMC1234567'
@@ -38,6 +41,7 @@ PII_XPATH = './/pub-id[@pub-id-type="pii"]'
 PMID_XPATH = './/pub-id[@pub-id-type="pmid"]'
 PMCID_XPATH = './/pub-id[@pub-id-type="pmcid"]'
 EXT_LINK_XPATH = './/ext-link'
+OTHER_PUB_ID_XPATH = './/pub-id[@pub-id-type="other"]'
 
 
 def get_jats_mixed_ref(*args) -> etree.Element:
@@ -73,6 +77,20 @@ def fix_reference(ref: etree.Element) -> etree.Element:
     LOGGER.debug('ref xml (after): %s', etree.tostring(fixed_ref))
     assert get_text_content(fixed_ref) == original_ref_text
     return fixed_ref
+
+
+class TestFindPiiValidStartEnd:
+    def test_should_accept_valid_pii(self):
+        assert find_pii_valid_start_end(PII_1) is not None
+
+    def test_should_not_accept_valid_pii(self):
+        assert find_pii_valid_start_end(INVALID_PII_1) is None
+
+    def test_should_accept_valid_pii_with_capital_x_with_punct(self):
+        assert find_pii_valid_start_end('S0123-123X(11)01234-X') is not None
+
+    def test_should_accept_valid_pii_with_capital_x_without_punct(self):
+        assert find_pii_valid_start_end('S0123123X1101234X') is not None
 
 
 class TestFixReference:
@@ -216,6 +234,25 @@ class TestFixReference:
         fixed_pii = '|'.join(get_text_content_list(fixed_ref.xpath(PII_XPATH)))
         assert fixed_doi == DOI_1
         assert fixed_pii == PII_1
+
+    def test_should_separately_annotate_invalid_pii_as_other_pub_id(self):
+        original_ref = get_jats_mixed_ref(
+            'doi: ',
+            get_jats_doi(INVALID_PII_1 + ' [pii]; ' + DOI_1 + ' [doi]')
+        )
+        fixed_ref = fix_reference(clone_node(original_ref))
+        fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(DOI_XPATH)))
+        other_pub_id = '|'.join(get_text_content_list(fixed_ref.xpath(OTHER_PUB_ID_XPATH)))
+        assert fixed_doi == DOI_1
+        assert other_pub_id == INVALID_PII_1
+
+    def test_should_remove_invalid_pii_pub_id(self):
+        original_ref = get_jats_mixed_ref(
+            get_jats_pii_element(INVALID_PII_1)
+        )
+        fixed_ref = fix_reference(clone_node(original_ref))
+        fixed_pii = '|'.join(get_text_content_list(fixed_ref.xpath(PII_XPATH)))
+        assert fixed_pii == ''
 
     def test_should_not_include_doi_colon_in_pii(self):
         original_ref = get_jats_mixed_ref(

@@ -46,7 +46,8 @@ PMID_XPATH = './/pub-id[@pub-id-type="pmid"]'
 PMCID_XPATH = './/pub-id[@pub-id-type="pmcid"]'
 
 DOI_PATTERN = r'\b(10.\d{4,}/[^\[\]]+)'
-PII_PATTERN = r'\b(?:doi\:)?(\S{5,})\s*\[pii\]'
+PII_VALID_PATTERN = r'\b([S,B]\W*(?:[0-9xX]\W*){15,}[0-9xX])'
+PII_OTHER_PATTERN = r'\b(?:doi\:)?(\S{5,})\s*\[pii\]'
 PMID_FIX_PATTERN = r'(?:PMID\s*\:\s*)?(\d{1,})'
 PMID_PATTERN = r'(?:PMID\s*\:\s*)(\d{1,})'
 PMCID_PATTERN = r'(PMC\d{7,})'
@@ -80,6 +81,10 @@ def get_jats_pmid_element(pmid: str, **kwargs) -> etree.Element:
 
 def get_jats_pmcid_element(pmcid: str, **kwargs) -> etree.Element:
     return get_jats_pub_id_element(pmcid, 'pmcid', **kwargs)
+
+
+def get_jats_other_pub_id_element(other_pub_id: str, **kwargs) -> etree.Element:
+    return get_jats_pub_id_element(other_pub_id, 'other', **kwargs)
 
 
 def get_full_cleaned_url(text: str):
@@ -166,8 +171,12 @@ def find_doi_start_end(text: str) -> Optional[Tuple[int, int]]:
     return start_end
 
 
-def find_pii_start_end(text: str) -> Optional[Tuple[int, int]]:
-    return find_re_pattern_start_end(text, PII_PATTERN)
+def find_pii_valid_start_end(text: str) -> Optional[Tuple[int, int]]:
+    return find_re_pattern_start_end(text, PII_VALID_PATTERN)
+
+
+def find_pii_other_start_end(text: str) -> Optional[Tuple[int, int]]:
+    return find_re_pattern_start_end(text, PII_OTHER_PATTERN)
 
 
 def find_pmid_start_end(text: str) -> Optional[Tuple[int, int]]:
@@ -208,7 +217,7 @@ def change_annotation_to_matching_text(
         return
     start, end = start_end
     matching_text = text[start:end]
-    LOGGER.debug('matching: %s (%r)', start_end, matching_text)
+    LOGGER.debug('matching: %s (%r, %s)', start_end, matching_text, find_start_end_fn.__name__)
     element.text = matching_text
     add_text_to_previous(element, text[:start])
     add_text_to_tail_prefix(element, text[end:])
@@ -236,7 +245,7 @@ def add_annotation_to_element_text_if_matching(
         return False
     start, end = start_end
     matching_text = text[start:end]
-    LOGGER.debug('matching: %s (%r)', start_end, matching_text)
+    LOGGER.debug('matching: %s (%r, %s)', start_end, matching_text, find_start_end_fn.__name__)
     element.text = text[:start]
     new_element = with_element_tail(
         create_element_fn(matching_text),
@@ -265,7 +274,7 @@ def add_annotation_to_element_tail_if_matching(
         return False
     start, end = start_end
     matching_text = text[start:end]
-    LOGGER.debug('matching: %s (%r)', start_end, matching_text)
+    LOGGER.debug('matching: %s (%r, %s)', start_end, matching_text, find_start_end_fn.__name__)
     element.getparent().insert(
         element.getparent().index(element) + 1,
         with_element_tail(
@@ -363,6 +372,13 @@ def replace_doi_annotation_with_ext_link_if_url(reference_element: etree.Element
         )
 
 
+def fix_pii(reference_element: etree.Element):
+    change_annotations_to_matching_text(
+        reference_element.xpath(PII_XPATH),
+        find_start_end_fn=find_pii_valid_start_end
+    )
+
+
 def fix_pmid(reference_element: etree.Element):
     change_annotations_to_matching_text(
         reference_element.xpath(PMID_XPATH),
@@ -388,13 +404,24 @@ def add_doi_annotation_if_not_present(reference_element: etree.Element):
     )
 
 
-def add_pii_annotation_if_not_present(reference_element: etree.Element):
+def add_pii_valid_annotation_if_not_present(reference_element: etree.Element):
     if reference_element.xpath(PII_XPATH):
         return
     add_annotation_to_reference_element_if_matching(
         reference_element,
-        find_start_end_fn=find_pii_start_end,
+        find_start_end_fn=find_pii_valid_start_end,
         create_element_fn=get_jats_pii_element,
+        parse_comment=False
+    )
+
+
+def add_pii_other_pub_id_annotation_if_not_present(reference_element: etree.Element):
+    if reference_element.xpath(PII_XPATH):
+        return
+    add_annotation_to_reference_element_if_matching(
+        reference_element,
+        find_start_end_fn=find_pii_other_start_end,
+        create_element_fn=get_jats_other_pub_id_element,
         parse_comment=False
     )
 
@@ -425,11 +452,13 @@ def fix_reference(reference_element: etree.Element) -> etree.Element:
     fix_doi(reference_element)
     replace_doi_annotation_with_ext_link_if_url(reference_element)
     fix_ext_link(reference_element)
+    fix_pii(reference_element)
     fix_pmid(reference_element)
     fix_pmcid(reference_element)
     add_pmid_annotation_if_not_present(reference_element)
     add_pmcid_annotation_if_not_present(reference_element)
-    add_pii_annotation_if_not_present(reference_element)
+    add_pii_valid_annotation_if_not_present(reference_element)
+    add_pii_other_pub_id_annotation_if_not_present(reference_element)
     add_doi_annotation_if_not_present(reference_element)
     return reference_element
 
