@@ -34,6 +34,9 @@ from sciencebeam_trainer_grobid_tools.auto_annotate_utils import (
 LOGGER = logging.getLogger(__name__)
 
 
+XLINK_NS = 'http://www.w3.org/1999/xlink'
+XLINK_HREF = '{%s}href' % XLINK_NS
+
 REF_XPATH = './/back/ref-list/ref'
 MIXED_CITATION_XPATH = './/mixed-citation'
 DOI_XPATH = './/pub-id[@pub-id-type="doi"]'
@@ -46,6 +49,13 @@ PII_PATTERN = r'\b(?:doi\:)?(\S{5,})\s*\[pii\]'
 PMID_FIX_PATTERN = r'(?:PMID\s*\:\s*)?(\d{1,})'
 PMID_PATTERN = r'(?:PMID\s*\:\s*)(\d{1,})'
 PMCID_PATTERN = r'(PMC\d{7,})'
+
+DOI_URL_PREFIX_PATTERN = r'((?:https?\s*\:\s*/\s*/\s*)?doi\s*.\s*org\s*/\s*)'
+
+
+def with_element_tail(element: etree.Element, tail: str) -> etree.Element:
+    element.tail = tail
+    return element
 
 
 def get_jats_pii_element(pii: str, tail: str) -> etree.Element:
@@ -67,6 +77,50 @@ def get_jats_pmcid_element(pmcid: str, tail: str) -> etree.Element:
     if tail:
         node.tail = tail
     return node
+
+
+def get_full_cleaned_url(text: str):
+    url = re.sub(r'\s', '', text)
+    if '://' not in url:
+        url = 'https://' + url
+    return url
+
+
+def get_jats_ext_link_element(
+        text: str,
+        tail: str = None,
+        ext_link_type: str = 'uri',
+        url: str = None) -> etree.Element:
+    if url is None:
+        url = get_full_cleaned_url(text)
+    node = E(
+        'ext-link',
+        {
+            'ext-link-type': ext_link_type,
+            XLINK_HREF: url
+        },
+        text
+    )
+    if tail:
+        node.tail = tail
+    return node
+
+
+def get_previous_text(current: etree.Element) -> str:
+    previous = current.getprevious()
+    if previous is not None:
+        return previous.tail
+    else:
+        return current.getparent().text
+
+
+def set_previous_text(current: etree.Element, text: str):
+    previous = current.getprevious()
+    if previous is not None:
+        previous.tail = text
+    else:
+        parent = current.getparent()
+        parent.text = text
 
 
 def add_text_to_previous(current: etree.Element, text: str):
@@ -100,6 +154,23 @@ def fix_doi(reference_element: etree.Element) -> etree.Element:
         doi_element.text = matching_doi
         add_text_to_previous(doi_element, doi_text[:m.start(1)])
         add_text_to_tail_prefix(doi_element, doi_text[m.start(1) + len(matching_doi):])
+    for doi_element in reference_element.xpath(DOI_XPATH):
+        previous_text = get_previous_text(doi_element)
+        m = re.search(DOI_URL_PREFIX_PATTERN, previous_text)
+        if not m:
+            LOGGER.debug('not matching doi url prefix: %r', previous_text)
+            continue
+        matching_doi_url_prefix = m.group(1)
+        doi_url = matching_doi_url_prefix + doi_element.text
+        LOGGER.debug('m: %s (%r)', m, matching_doi_url_prefix)
+        set_previous_text(doi_element, previous_text[:m.start(1)])
+        doi_element.getparent().replace(
+            doi_element,
+            get_jats_ext_link_element(
+                doi_url,
+                tail=doi_element.tail
+            )
+        )
     return reference_element
 
 

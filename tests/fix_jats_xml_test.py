@@ -15,6 +15,7 @@ from sciencebeam_trainer_grobid_tools.utils.xml import (
 )
 
 from sciencebeam_trainer_grobid_tools.fix_jats_xml import (
+    XLINK_HREF,
     fix_reference,
     main
 )
@@ -29,11 +30,13 @@ PMID_1 = '12345'
 PMCID_1 = 'PMC1234567'
 
 HTTPS_DOI_URL_PREFIX = 'https://doi.org/'
+HTTPS_SPACED_DOI_URL_PREFIX = 'https : // doi . org / '
 
 DOI_XPATH = './/pub-id[@pub-id-type="doi"]'
 PII_XPATH = './/pub-id[@pub-id-type="pii"]'
 PMID_XPATH = './/pub-id[@pub-id-type="pmid"]'
 PMCID_XPATH = './/pub-id[@pub-id-type="pmcid"]'
+EXT_LINK_XPATH = './/ext-link'
 
 
 def get_jats_mixed_ref(*args) -> etree.Element:
@@ -62,6 +65,13 @@ def get_jats(references: List[etree.Element]) -> etree.Element:
     ))
 
 
+def fix_reference_and_log(ref: etree.Element) -> etree.Element:
+    LOGGER.debug('ref xml (before): %s', etree.tostring(ref))
+    fixed_ref = fix_reference(ref)
+    LOGGER.debug('ref xml (after): %s', etree.tostring(fixed_ref))
+    return fixed_ref
+
+
 class TestFixReference:
     def test_should_not_change_valid_doi(self):
         original_ref = get_jats_mixed_ref('doi: ', get_jats_doi(DOI_1))
@@ -79,26 +89,67 @@ class TestFixReference:
         assert fixed_doi == ''
         assert get_text_content(fixed_ref) == original_ref_text
 
-    def test_should_remove_doi_url_prefix_from_doi(self):
-        original_ref = get_jats_mixed_ref('doi: ', get_jats_doi(HTTPS_DOI_URL_PREFIX + DOI_1))
+    def test_should_convert_doi_with_inside_url_prefix_to_ext_link(self):
+        original_ref = get_jats_mixed_ref(
+            'some text',
+            get_jats_doi(HTTPS_DOI_URL_PREFIX + DOI_1),
+            'tail text'
+        )
+        original_ref_text = get_text_content(original_ref)
+        fixed_ref = fix_reference_and_log(clone_node(original_ref))
+        ext_link_text = '|'.join(get_text_content_list(fixed_ref.xpath(EXT_LINK_XPATH)))
+        assert ext_link_text == HTTPS_DOI_URL_PREFIX + DOI_1
+        assert get_text_content(fixed_ref) == original_ref_text
+
+    def test_should_convert_doi_with_outside_url_prefix_to_ext_link(self):
+        original_ref = get_jats_mixed_ref(
+            'some text ' + HTTPS_DOI_URL_PREFIX,
+            get_jats_doi(DOI_1),
+            'tail text'
+        )
+        original_ref_text = get_text_content(original_ref)
+        fixed_ref = fix_reference_and_log(clone_node(original_ref))
+        ext_link_text = '|'.join(get_text_content_list(fixed_ref.xpath(EXT_LINK_XPATH)))
+        assert ext_link_text == HTTPS_DOI_URL_PREFIX + DOI_1
+        assert get_text_content(fixed_ref) == original_ref_text
+
+    def test_should_convert_doi_with_outside_spaced_url_prefix_to_ext_link(self):
+        original_ref = get_jats_mixed_ref(
+            'some text ' + HTTPS_SPACED_DOI_URL_PREFIX,
+            get_jats_doi(DOI_1),
+            'tail text'
+        )
+        original_ref_text = get_text_content(original_ref)
+        fixed_ref = fix_reference_and_log(clone_node(original_ref))
+        ext_links = fixed_ref.xpath(EXT_LINK_XPATH)
+        ext_link_text = '|'.join(get_text_content_list(ext_links))
+        assert ext_link_text == HTTPS_SPACED_DOI_URL_PREFIX + DOI_1
+        assert ext_links[0].attrib == {
+            'ext-link-type': 'uri',
+            XLINK_HREF: HTTPS_DOI_URL_PREFIX + DOI_1
+        }
+        assert get_text_content(fixed_ref) == original_ref_text
+
+    def test_should_remove_doi_prefix_from_doi(self):
+        original_ref = get_jats_mixed_ref('some text', get_jats_doi('doi:' + DOI_1))
         original_ref_text = get_text_content(original_ref)
         fixed_ref = fix_reference(clone_node(original_ref))
         fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(DOI_XPATH)))
         assert fixed_doi == DOI_1
         assert get_text_content(fixed_ref) == original_ref_text
 
-    def test_should_remove_doi_url_prefix_without_preceeding_text(self):
-        original_ref = get_jats_mixed_ref(get_jats_doi(HTTPS_DOI_URL_PREFIX + DOI_1))
+    def test_should_remove_doi_prefix_without_preceeding_text(self):
+        original_ref = get_jats_mixed_ref(get_jats_doi('doi:' + DOI_1))
         original_ref_text = get_text_content(original_ref)
         fixed_ref = fix_reference(clone_node(original_ref))
         fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(DOI_XPATH)))
         assert fixed_doi == DOI_1
         assert get_text_content(fixed_ref) == original_ref_text
 
-    def test_should_remove_doi_url_prefix_after_preceeding_element_without_tail_text(self):
+    def test_should_remove_doi_prefix_after_preceeding_element_without_tail_text(self):
         original_ref = get_jats_mixed_ref(
             E.other('other text'),
-            get_jats_doi(HTTPS_DOI_URL_PREFIX + DOI_1)
+            get_jats_doi('doi:' + DOI_1)
         )
         original_ref_text = get_text_content(original_ref)
         fixed_ref = fix_reference(clone_node(original_ref))
@@ -106,11 +157,11 @@ class TestFixReference:
         assert fixed_doi == DOI_1
         assert get_text_content(fixed_ref) == original_ref_text
 
-    def test_should_remove_doi_url_prefix_after_preceeding_element_with_tail_text(self):
+    def test_should_remove_doi_prefix_after_preceeding_element_with_tail_text(self):
         original_ref = get_jats_mixed_ref(
             E.other('other text'),
             'tail text',
-            get_jats_doi(HTTPS_DOI_URL_PREFIX + DOI_1)
+            get_jats_doi('doi:' + DOI_1)
         )
         original_ref_text = get_text_content(original_ref)
         fixed_ref = fix_reference(clone_node(original_ref))
@@ -276,7 +327,7 @@ class TestFixReference:
 
 class TestMain:
     def test_should_fix_jats_xml_using_source_path(self, temp_dir: Path):
-        original_ref = get_jats_mixed_ref('doi: ', get_jats_doi(HTTPS_DOI_URL_PREFIX + DOI_1))
+        original_ref = get_jats_mixed_ref('doi: ', get_jats_doi('doi:' + DOI_1))
         input_file = temp_dir / 'input' / 'file1.xml'
         input_file.parent.mkdir()
         input_file.write_bytes(etree.tostring(get_jats(references=[
@@ -293,7 +344,7 @@ class TestMain:
         assert fixed_doi == DOI_1
 
     def test_should_fix_jats_xml_using_source_base_path(self, temp_dir: Path):
-        original_ref = get_jats_mixed_ref('doi: ', get_jats_doi(HTTPS_DOI_URL_PREFIX + DOI_1))
+        original_ref = get_jats_mixed_ref('doi: ', get_jats_doi('doi:' + DOI_1))
         input_file = temp_dir / 'input' / 'file1.xml'
         input_file.parent.mkdir()
         input_file.write_bytes(etree.tostring(get_jats(references=[
@@ -310,7 +361,7 @@ class TestMain:
         assert fixed_doi == DOI_1
 
     def test_should_fix_jats_xml_using_source_base_path_in_sub_directory(self, temp_dir: Path):
-        original_ref = get_jats_mixed_ref('doi: ', get_jats_doi(HTTPS_DOI_URL_PREFIX + DOI_1))
+        original_ref = get_jats_mixed_ref('doi: ', get_jats_doi('doi:' + DOI_1))
         input_file = temp_dir / 'input' / 'sub' / 'file1.xml'
         input_file.parent.mkdir(parents=True)
         input_file.write_bytes(etree.tostring(get_jats(references=[
