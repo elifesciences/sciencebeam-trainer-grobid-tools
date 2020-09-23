@@ -256,11 +256,11 @@ def add_pmid_annotation_if_not_present(reference_element: etree.Element) -> etre
         if not m:
             LOGGER.debug('pmid not found in: %r', mixed_citation_text)
             continue
-        matching_pii = m.group(1)
-        LOGGER.debug('m: %s (%r)', m, matching_pii)
+        matching_pmid = m.group(1)
+        LOGGER.debug('m: %s (%r)', m, matching_pmid)
         mixed_citation_element.text = mixed_citation_text[:m.start(1)]
         mixed_citation_element.insert(0, get_jats_pmid_element(
-            matching_pii,
+            matching_pmid,
             tail=mixed_citation_text[m.end(1):]
         ))
     for child_element in reference_element.xpath(MIXED_CITATION_XPATH + '/*'):
@@ -271,12 +271,12 @@ def add_pmid_annotation_if_not_present(reference_element: etree.Element) -> etre
         if not m:
             LOGGER.debug('pmid not found in: %r', child_tail_text)
             continue
-        matching_pii = m.group(1)
-        LOGGER.debug('m: %s (%r)', m, matching_pii)
+        matching_pmid = m.group(1)
+        LOGGER.debug('m: %s (%r)', m, matching_pmid)
         child_element.getparent().insert(
             child_element.getparent().index(child_element) + 1,
             get_jats_pmid_element(
-                matching_pii,
+                matching_pmid,
                 tail=child_tail_text[m.end(1):]
             )
         )
