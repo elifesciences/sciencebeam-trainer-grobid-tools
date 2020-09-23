@@ -84,6 +84,24 @@ class TestFindDoiValidStartEnd:
         start, end = find_doi_start_end(text)
         assert text[start:end] == doi
 
+    def test_should_preserve_square_brackets(self):
+        doi = DOI_1 + '[test]'
+        text = 'before:  %s' % doi
+        start, end = find_doi_start_end(text)
+        assert text[start:end] == doi
+
+    def test_should_ignore_square_brackets_around_doi(self):
+        doi = DOI_1
+        text = 'before:  [%s]' % doi
+        start, end = find_doi_start_end(text)
+        assert text[start:end] == doi
+
+    def test_should_ignore_doi_square_brackets_label(self):
+        doi = DOI_1
+        text = 'before:  %s [doi]' % doi
+        start, end = find_doi_start_end(text)
+        assert text[start:end] == doi
+
 
 class TestFindDoiUrlPrefixValidStartEnd:
     def test_should_find_https_doi_prefix(self):

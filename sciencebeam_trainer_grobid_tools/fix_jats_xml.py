@@ -3,6 +3,7 @@ import concurrent
 import logging
 import os
 import re
+from collections import Counter
 from pathlib import Path
 from typing import Callable, List, Tuple, Optional
 
@@ -50,7 +51,7 @@ class JatsXpaths:
 
 
 # https://en.wikipedia.org/wiki/Digital_Object_Identifier
-DOI_PATTERN = r'\b(10\.\d{4,}(?:\.\d{1,})*/[^\[\]]+)'
+DOI_PATTERN = r'\b(10\.\d{4,}(?:\.\d{1,})*/.+)'
 
 # https://en.wikipedia.org/wiki/Publisher_Item_Identifier
 PII_VALID_PATTERN = r'\b([S,B]\W*(?:[0-9xX]\W*){15,}[0-9xX])'
@@ -172,10 +173,13 @@ def find_doi_start_end(text: str) -> Optional[Tuple[int, int]]:
     start_end = find_re_pattern_start_end(text, DOI_PATTERN)
     if start_end:
         start, end = start_end
-        start_end = (
-            start,
-            start + len(text[start:end].rstrip().rstrip('.'))
-        )
+        doi = text[start:end].rstrip().rstrip('.').rstrip()
+        char_counts = Counter(doi)
+        if doi.endswith('[doi]'):
+            doi = doi[0:-5].rstrip()
+        if char_counts[']'] > char_counts['[']:
+            doi = doi.rstrip(']').rstrip()
+        start_end = (start, start + len(doi))
     return start_end
 
 
