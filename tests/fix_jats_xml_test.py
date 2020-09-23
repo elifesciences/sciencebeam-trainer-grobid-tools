@@ -17,6 +17,7 @@ from sciencebeam_trainer_grobid_tools.utils.xml import (
 from sciencebeam_trainer_grobid_tools.fix_jats_xml import (
     XLINK_HREF,
     JatsXpaths,
+    find_doi_url_prefix_valid_start_end,
     find_pii_valid_start_end,
     get_jats_ext_link_element,
     get_jats_doi_element,
@@ -76,6 +77,23 @@ class TestFindPiiValidStartEnd:
 
     def test_should_accept_valid_pii_with_capital_x_without_punct(self):
         assert find_pii_valid_start_end('S0123123X1101234X') is not None
+
+
+class TestFindDoiUrlPrefixValidStartEnd:
+    def test_should_find_https_doi_prefix(self):
+        text = 'other:  https://doi.org/'
+        start, end = find_doi_url_prefix_valid_start_end(text)
+        assert text[start:end] == 'https://doi.org/'
+
+    def test_should_find_http_doi_prefix(self):
+        text = 'other:  http://doi.org/'
+        start, end = find_doi_url_prefix_valid_start_end(text)
+        assert text[start:end] == 'http://doi.org/'
+
+    def test_should_find_https_dx_doi_prefix(self):
+        text = 'other:  https://dx.doi.org/'
+        start, end = find_doi_url_prefix_valid_start_end(text)
+        assert text[start:end] == 'https://dx.doi.org/'
 
 
 class TestFixReference:

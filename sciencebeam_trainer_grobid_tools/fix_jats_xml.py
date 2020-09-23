@@ -56,7 +56,7 @@ PMID_FIX_PATTERN = r'(?:PMID\s*\:\s*)?(\d{1,})'
 PMID_PATTERN = r'(?:PMID\s*\:\s*)(\d{1,})'
 PMCID_PATTERN = r'(PMC\d{7,})'
 
-DOI_URL_PREFIX_PATTERN = r'((?:https?\s*\:\s*/\s*/\s*)?doi\s*.\s*org\s*/\s*)'
+DOI_URL_PREFIX_PATTERN = r'((?:https?\s*\:\s*/\s*/\s*)?(?:[a-z]+\s*\.\s*)?doi\s*.\s*org\s*/\s*)'
 
 
 def with_element_tail(element: etree.Element, tail: str) -> etree.Element:
@@ -173,6 +173,10 @@ def find_doi_start_end(text: str) -> Optional[Tuple[int, int]]:
             start + len(text[start:end].rstrip().rstrip('.'))
         )
     return start_end
+
+
+def find_doi_url_prefix_valid_start_end(text: str) -> Optional[Tuple[int, int]]:
+    return find_re_pattern_start_end(text, DOI_URL_PREFIX_PATTERN)
 
 
 def find_pii_valid_start_end(text: str) -> Optional[Tuple[int, int]]:
@@ -359,14 +363,15 @@ def fix_doi(reference_element: etree.Element):
 def replace_doi_annotation_with_ext_link_if_url(reference_element: etree.Element):
     for doi_element in reference_element.xpath(JatsXpaths.DOI):
         previous_text = get_previous_text(doi_element)
-        m = re.search(DOI_URL_PREFIX_PATTERN, previous_text)
-        if not m:
+        start_end = find_doi_url_prefix_valid_start_end(previous_text)
+        if not start_end:
             LOGGER.debug('not matching doi url prefix: %r', previous_text)
             continue
-        matching_doi_url_prefix = m.group(1)
+        start, _ = start_end
+        matching_doi_url_prefix = previous_text[start:]
         doi_url = matching_doi_url_prefix + doi_element.text
-        LOGGER.debug('m: %s (%r)', m, matching_doi_url_prefix)
-        set_previous_text(doi_element, previous_text[:m.start(1)])
+        LOGGER.debug('matching doi url prefix: %s (%r)', start_end, matching_doi_url_prefix)
+        set_previous_text(doi_element, previous_text[:start])
         doi_element.getparent().replace(
             doi_element,
             get_jats_ext_link_element(
