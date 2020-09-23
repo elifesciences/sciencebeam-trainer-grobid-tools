@@ -19,7 +19,10 @@ from sciencebeam_trainer_grobid_tools.fix_jats_xml import (
     JatsXpaths,
     find_pii_valid_start_end,
     get_jats_ext_link_element,
+    get_jats_doi_element,
     get_jats_pii_element,
+    get_jats_pmid_element,
+    get_jats_pmcid_element,
     fix_reference as _fix_reference,
     main
 )
@@ -41,18 +44,6 @@ HTTPS_SPACED_DOI_URL_PREFIX = 'https : // doi . org / '
 
 def get_jats_mixed_ref(*args) -> etree.Element:
     return E.ref(E('mixed-citation', *args))
-
-
-def get_jats_doi(doi: str) -> etree.Element:
-    return E('pub-id', {'pub-id-type': 'doi'}, doi)
-
-
-def get_jats_pmid(pmid: str) -> etree.Element:
-    return E('pub-id', {'pub-id-type': 'pmid'}, pmid)
-
-
-def get_jats_pmcid(pmcid: str) -> etree.Element:
-    return E('pub-id', {'pub-id-type': 'pmcid'}, pmcid)
 
 
 def clone_node(node: etree.Element) -> etree.Element:
@@ -90,13 +81,13 @@ class TestFindPiiValidStartEnd:
 
 class TestFixReference:
     def test_should_not_change_valid_doi(self):
-        original_ref = get_jats_mixed_ref('doi: ', get_jats_doi(DOI_1))
+        original_ref = get_jats_mixed_ref('doi: ', get_jats_doi_element(DOI_1))
         fixed_ref = fix_reference(clone_node(original_ref))
         fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(JatsXpaths.DOI)))
         assert fixed_doi == DOI_1
 
     def test_should_remove_doi_pub_id_element_if_not_containing_valid_doi(self):
-        original_ref = get_jats_mixed_ref('doi: ', get_jats_doi('not a doi'))
+        original_ref = get_jats_mixed_ref('doi: ', get_jats_doi_element('not a doi'))
         fixed_ref = fix_reference(clone_node(original_ref))
         fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(JatsXpaths.DOI)))
         assert fixed_doi == ''
@@ -104,7 +95,7 @@ class TestFixReference:
     def test_should_convert_doi_with_inside_url_prefix_to_ext_link(self):
         original_ref = get_jats_mixed_ref(
             'some text',
-            get_jats_doi(HTTPS_DOI_URL_PREFIX + DOI_1),
+            get_jats_doi_element(HTTPS_DOI_URL_PREFIX + DOI_1),
             'tail text'
         )
         fixed_ref = fix_reference(clone_node(original_ref))
@@ -114,7 +105,7 @@ class TestFixReference:
     def test_should_convert_doi_with_outside_url_prefix_to_ext_link(self):
         original_ref = get_jats_mixed_ref(
             'some text ' + HTTPS_DOI_URL_PREFIX,
-            get_jats_doi(DOI_1),
+            get_jats_doi_element(DOI_1),
             'tail text'
         )
         fixed_ref = fix_reference(clone_node(original_ref))
@@ -124,7 +115,7 @@ class TestFixReference:
     def test_should_convert_doi_with_outside_spaced_url_prefix_to_ext_link(self):
         original_ref = get_jats_mixed_ref(
             'some text ' + HTTPS_SPACED_DOI_URL_PREFIX,
-            get_jats_doi(DOI_1),
+            get_jats_doi_element(DOI_1),
             'tail text'
         )
         fixed_ref = fix_reference(clone_node(original_ref))
@@ -137,13 +128,13 @@ class TestFixReference:
         }
 
     def test_should_remove_doi_prefix_from_doi(self):
-        original_ref = get_jats_mixed_ref('some text', get_jats_doi('doi:' + DOI_1))
+        original_ref = get_jats_mixed_ref('some text', get_jats_doi_element('doi:' + DOI_1))
         fixed_ref = fix_reference(clone_node(original_ref))
         fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(JatsXpaths.DOI)))
         assert fixed_doi == DOI_1
 
     def test_should_remove_doi_prefix_without_preceeding_text(self):
-        original_ref = get_jats_mixed_ref(get_jats_doi('doi:' + DOI_1))
+        original_ref = get_jats_mixed_ref(get_jats_doi_element('doi:' + DOI_1))
         fixed_ref = fix_reference(clone_node(original_ref))
         fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(JatsXpaths.DOI)))
         assert fixed_doi == DOI_1
@@ -151,7 +142,7 @@ class TestFixReference:
     def test_should_remove_doi_prefix_after_preceeding_element_without_tail_text(self):
         original_ref = get_jats_mixed_ref(
             E.other('other text'),
-            get_jats_doi('doi:' + DOI_1)
+            get_jats_doi_element('doi:' + DOI_1)
         )
         fixed_ref = fix_reference(clone_node(original_ref))
         fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(JatsXpaths.DOI)))
@@ -161,7 +152,7 @@ class TestFixReference:
         original_ref = get_jats_mixed_ref(
             E.other('other text'),
             'tail text',
-            get_jats_doi('doi:' + DOI_1)
+            get_jats_doi_element('doi:' + DOI_1)
         )
         fixed_ref = fix_reference(clone_node(original_ref))
         fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(JatsXpaths.DOI)))
@@ -170,7 +161,7 @@ class TestFixReference:
     def test_should_remove_doi_suffix_from_doi_without_tail(self):
         original_ref = get_jats_mixed_ref(
             'doi: ',
-            get_jats_doi(DOI_1 + ' [doi]')
+            get_jats_doi_element(DOI_1 + ' [doi]')
         )
         fixed_ref = fix_reference(clone_node(original_ref))
         fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(JatsXpaths.DOI)))
@@ -179,7 +170,7 @@ class TestFixReference:
     def test_should_remove_doi_suffix_from_doi_with_tail(self):
         original_ref = get_jats_mixed_ref(
             'doi: ',
-            get_jats_doi(DOI_1 + ' [doi]'),
+            get_jats_doi_element(DOI_1 + ' [doi]'),
             'tail text'
         )
         fixed_ref = fix_reference(clone_node(original_ref))
@@ -210,7 +201,7 @@ class TestFixReference:
     def test_should_separately_annotate_pii_without_preceding_element(self):
         original_ref = get_jats_mixed_ref(
             'doi: ',
-            get_jats_doi(PII_1 + ' [pii]; ' + DOI_1 + ' [doi]')
+            get_jats_doi_element(PII_1 + ' [pii]; ' + DOI_1 + ' [doi]')
         )
         fixed_ref = fix_reference(clone_node(original_ref))
         fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(JatsXpaths.DOI)))
@@ -222,7 +213,7 @@ class TestFixReference:
         original_ref = get_jats_mixed_ref(
             E.other('other text'),
             'doi: ',
-            get_jats_doi(PII_1 + ' [pii]; ' + DOI_1 + ' [doi]')
+            get_jats_doi_element(PII_1 + ' [pii]; ' + DOI_1 + ' [doi]')
         )
         fixed_ref = fix_reference(clone_node(original_ref))
         fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(JatsXpaths.DOI)))
@@ -233,7 +224,7 @@ class TestFixReference:
     def test_should_separately_annotate_invalid_pii_as_other_pub_id(self):
         original_ref = get_jats_mixed_ref(
             'doi: ',
-            get_jats_doi(INVALID_PII_1 + ' [pii]; ' + DOI_1 + ' [doi]')
+            get_jats_doi_element(INVALID_PII_1 + ' [pii]; ' + DOI_1 + ' [doi]')
         )
         fixed_ref = fix_reference(clone_node(original_ref))
         fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(JatsXpaths.DOI)))
@@ -252,7 +243,7 @@ class TestFixReference:
     def test_should_not_include_doi_colon_in_pii(self):
         original_ref = get_jats_mixed_ref(
             'doi:',
-            get_jats_doi(PII_1 + ' [pii]; ' + DOI_1 + ' [doi]')
+            get_jats_doi_element(PII_1 + ' [pii]; ' + DOI_1 + ' [doi]')
         )
         fixed_ref = fix_reference(clone_node(original_ref))
         fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(JatsXpaths.DOI)))
@@ -280,7 +271,7 @@ class TestFixReference:
 
     def test_should_keep_original_pmid_if_already_present_and_valid(self):
         original_ref = get_jats_mixed_ref(
-            get_jats_pmid(PMID_1),
+            get_jats_pmid_element(PMID_1),
             ', alternative PMID: 123'
         )
         fixed_ref = fix_reference(clone_node(original_ref))
@@ -289,7 +280,7 @@ class TestFixReference:
 
     def test_should_remove_pmid_non_digit_text(self):
         original_ref = get_jats_mixed_ref(
-            get_jats_pmid('PMID: ' + PMID_1)
+            get_jats_pmid_element('PMID: ' + PMID_1)
         )
         fixed_ref = fix_reference(clone_node(original_ref))
         fixed_pmid = '|'.join(get_text_content_list(fixed_ref.xpath(JatsXpaths.PMID)))
@@ -327,7 +318,7 @@ class TestFixReference:
         assert fixed_pmid == PMID_1
 
     def test_should_remove_double_pmc_prefix_from_pmcid(self):
-        original_ref = get_jats_mixed_ref('PMCID: ', get_jats_pmcid('PMC' + PMCID_1))
+        original_ref = get_jats_mixed_ref('PMCID: ', get_jats_pmcid_element('PMC' + PMCID_1))
         fixed_ref = fix_reference(clone_node(original_ref))
         fixed_pmcid = '|'.join(get_text_content_list(fixed_ref.xpath(JatsXpaths.PMCID)))
         assert fixed_pmcid == PMCID_1
@@ -347,7 +338,7 @@ class TestFixReference:
 
 class TestMain:
     def test_should_fix_jats_xml_using_source_path(self, temp_dir: Path):
-        original_ref = get_jats_mixed_ref('doi: ', get_jats_doi('doi:' + DOI_1))
+        original_ref = get_jats_mixed_ref('doi: ', get_jats_doi_element('doi:' + DOI_1))
         input_file = temp_dir / 'input' / 'file1.xml'
         input_file.parent.mkdir()
         input_file.write_bytes(etree.tostring(get_jats(references=[
@@ -364,7 +355,7 @@ class TestMain:
         assert fixed_doi == DOI_1
 
     def test_should_fix_jats_xml_using_source_base_path(self, temp_dir: Path):
-        original_ref = get_jats_mixed_ref('doi: ', get_jats_doi('doi:' + DOI_1))
+        original_ref = get_jats_mixed_ref('doi: ', get_jats_doi_element('doi:' + DOI_1))
         input_file = temp_dir / 'input' / 'file1.xml'
         input_file.parent.mkdir()
         input_file.write_bytes(etree.tostring(get_jats(references=[
@@ -381,7 +372,7 @@ class TestMain:
         assert fixed_doi == DOI_1
 
     def test_should_fix_jats_xml_using_source_base_path_in_sub_directory(self, temp_dir: Path):
-        original_ref = get_jats_mixed_ref('doi: ', get_jats_doi('doi:' + DOI_1))
+        original_ref = get_jats_mixed_ref('doi: ', get_jats_doi_element('doi:' + DOI_1))
         input_file = temp_dir / 'input' / 'sub' / 'file1.xml'
         input_file.parent.mkdir(parents=True)
         input_file.write_bytes(etree.tostring(get_jats(references=[
