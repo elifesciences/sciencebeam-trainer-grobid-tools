@@ -102,6 +102,12 @@ class TestFindDoiValidStartEnd:
         start, end = find_doi_start_end(text)
         assert text[start:end] == doi
 
+    def test_should_ignore_trailing_dot(self):
+        doi = DOI_1
+        text = 'before:  %s.' % doi
+        start, end = find_doi_start_end(text)
+        assert text[start:end] == doi
+
 
 class TestFindDoiUrlPrefixValidStartEnd:
     def test_should_find_https_doi_prefix(self):
