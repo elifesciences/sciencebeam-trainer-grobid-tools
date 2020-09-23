@@ -37,13 +37,15 @@ LOGGER = logging.getLogger(__name__)
 XLINK_NS = 'http://www.w3.org/1999/xlink'
 XLINK_HREF = '{%s}href' % XLINK_NS
 
-REF_XPATH = './/back/ref-list/ref'
-MIXED_CITATION_XPATH = './/mixed-citation'
-EXT_LINK_XPATH = './/ext-link'
-DOI_XPATH = './/pub-id[@pub-id-type="doi"]'
-PII_XPATH = './/pub-id[@pub-id-type="pii"]'
-PMID_XPATH = './/pub-id[@pub-id-type="pmid"]'
-PMCID_XPATH = './/pub-id[@pub-id-type="pmcid"]'
+class JatsXpaths:
+    REF = './/back/ref-list/ref'
+    MIXED_CITATION = './/mixed-citation'
+    EXT_LINK = './/ext-link'
+    DOI = './/pub-id[@pub-id-type="doi"]'
+    PII = './/pub-id[@pub-id-type="pii"]'
+    PMID = './/pub-id[@pub-id-type="pmid"]'
+    PMCID = './/pub-id[@pub-id-type="pmcid"]'
+    OTHER_PUB_ID = './/pub-id[@pub-id-type="other"]'
 
 DOI_PATTERN = r'\b(10.\d{4,}/[^\[\]]+)'
 PII_VALID_PATTERN = r'\b([S,B]\W*(?:[0-9xX]\W*){15,}[0-9xX])'
@@ -319,7 +321,7 @@ def add_annotation_to_element_if_matching(
 def add_annotation_to_reference_element_if_matching(
         reference_element: etree.Element,
         *args, **kwargs) -> bool:
-    for mixed_citation_element in reference_element.xpath(MIXED_CITATION_XPATH):
+    for mixed_citation_element in reference_element.xpath(JatsXpaths.MIXED_CITATION):
         if add_annotation_to_element_if_matching(
             mixed_citation_element,
             *args,
@@ -331,10 +333,10 @@ def add_annotation_to_reference_element_if_matching(
 
 def fix_ext_link(reference_element: etree.Element):
     change_annotations_to_matching_text(
-        reference_element.xpath(EXT_LINK_XPATH),
+        reference_element.xpath(JatsXpaths.EXT_LINK),
         find_start_end_fn=find_ext_link_start_end
     )
-    for child_element in reference_element.xpath(EXT_LINK_XPATH):
+    for child_element in reference_element.xpath(JatsXpaths.EXT_LINK):
         href = child_element.attrib.get(XLINK_HREF)
         if not href:
             continue
@@ -347,13 +349,13 @@ def fix_ext_link(reference_element: etree.Element):
 
 def fix_doi(reference_element: etree.Element):
     change_annotations_to_matching_text(
-        reference_element.xpath(DOI_XPATH),
+        reference_element.xpath(JatsXpaths.DOI),
         find_start_end_fn=find_doi_start_end
     )
 
 
 def replace_doi_annotation_with_ext_link_if_url(reference_element: etree.Element):
-    for doi_element in reference_element.xpath(DOI_XPATH):
+    for doi_element in reference_element.xpath(JatsXpaths.DOI):
         previous_text = get_previous_text(doi_element)
         m = re.search(DOI_URL_PREFIX_PATTERN, previous_text)
         if not m:
@@ -374,27 +376,27 @@ def replace_doi_annotation_with_ext_link_if_url(reference_element: etree.Element
 
 def fix_pii(reference_element: etree.Element):
     change_annotations_to_matching_text(
-        reference_element.xpath(PII_XPATH),
+        reference_element.xpath(JatsXpaths.PII),
         find_start_end_fn=find_pii_valid_start_end
     )
 
 
 def fix_pmid(reference_element: etree.Element):
     change_annotations_to_matching_text(
-        reference_element.xpath(PMID_XPATH),
+        reference_element.xpath(JatsXpaths.PMID),
         find_start_end_fn=find_pmid_fix_start_end
     )
 
 
 def fix_pmcid(reference_element: etree.Element):
     change_annotations_to_matching_text(
-        reference_element.xpath(PMCID_XPATH),
+        reference_element.xpath(JatsXpaths.PMCID),
         find_start_end_fn=find_pmcid_start_end
     )
 
 
 def add_doi_annotation_if_not_present(reference_element: etree.Element):
-    if reference_element.xpath(DOI_XPATH):
+    if reference_element.xpath(JatsXpaths.DOI):
         return
     add_annotation_to_reference_element_if_matching(
         reference_element,
@@ -405,7 +407,7 @@ def add_doi_annotation_if_not_present(reference_element: etree.Element):
 
 
 def add_pii_valid_annotation_if_not_present(reference_element: etree.Element):
-    if reference_element.xpath(PII_XPATH):
+    if reference_element.xpath(JatsXpaths.PII):
         return
     add_annotation_to_reference_element_if_matching(
         reference_element,
@@ -416,7 +418,7 @@ def add_pii_valid_annotation_if_not_present(reference_element: etree.Element):
 
 
 def add_pii_other_pub_id_annotation_if_not_present(reference_element: etree.Element):
-    if reference_element.xpath(PII_XPATH):
+    if reference_element.xpath(JatsXpaths.PII):
         return
     add_annotation_to_reference_element_if_matching(
         reference_element,
@@ -427,7 +429,7 @@ def add_pii_other_pub_id_annotation_if_not_present(reference_element: etree.Elem
 
 
 def add_pmid_annotation_if_not_present(reference_element: etree.Element):
-    if reference_element.xpath(PMID_XPATH):
+    if reference_element.xpath(JatsXpaths.PMID):
         return
     add_annotation_to_reference_element_if_matching(
         reference_element,
@@ -438,7 +440,7 @@ def add_pmid_annotation_if_not_present(reference_element: etree.Element):
 
 
 def add_pmcid_annotation_if_not_present(reference_element: etree.Element):
-    if reference_element.xpath(PMCID_XPATH):
+    if reference_element.xpath(JatsXpaths.PMCID):
         return
     add_annotation_to_reference_element_if_matching(
         reference_element,
@@ -464,7 +466,7 @@ def fix_reference(reference_element: etree.Element) -> etree.Element:
 
 
 def fix_jats_xml_node(root: etree.Element):
-    for ref in root.xpath(REF_XPATH):
+    for ref in root.xpath(JatsXpaths.REF):
         fix_reference(ref)
     return root
 
