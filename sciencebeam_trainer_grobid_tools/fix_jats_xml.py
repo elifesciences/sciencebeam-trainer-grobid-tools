@@ -49,9 +49,13 @@ class JatsXpaths:
     OTHER_PUB_ID = './/pub-id[@pub-id-type="other"]'
 
 
+# https://en.wikipedia.org/wiki/Digital_Object_Identifier
 DOI_PATTERN = r'\b(10.\d{4,}/[^\[\]]+)'
+
+# https://en.wikipedia.org/wiki/Publisher_Item_Identifier
 PII_VALID_PATTERN = r'\b([S,B]\W*(?:[0-9xX]\W*){15,}[0-9xX])'
 PII_OTHER_PATTERN = r'\b(?:doi\:)?(\S{5,})\s*\[pii\]'
+
 PMID_FIX_PATTERN = r'(?:PMID\s*\:\s*)?(\d{1,})'
 PMID_PATTERN = r'(?:PMID\s*\:\s*)(\d{1,})'
 PMCID_PATTERN = r'(PMC\d{7,})'
