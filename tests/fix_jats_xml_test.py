@@ -17,6 +17,7 @@ from sciencebeam_trainer_grobid_tools.utils.xml import (
 from sciencebeam_trainer_grobid_tools.fix_jats_xml import (
     XLINK_HREF,
     JatsXpaths,
+    find_doi_start_end,
     find_doi_url_prefix_valid_start_end,
     find_pii_valid_start_end,
     get_jats_ext_link_element,
@@ -65,18 +66,23 @@ def fix_reference(ref: etree.Element) -> etree.Element:
     return fixed_ref
 
 
-class TestFindPiiValidStartEnd:
-    def test_should_accept_valid_pii(self):
-        assert find_pii_valid_start_end(PII_1) is not None
+class TestFindDoiValidStartEnd:
+    def test_should_find_valid_doi(self):
+        text = 'before:  %s' % DOI_1
+        start, end = find_doi_start_end(text)
+        assert text[start:end] == DOI_1
 
-    def test_should_not_accept_valid_pii(self):
-        assert find_pii_valid_start_end(INVALID_PII_1) is None
+    def test_should_allow_single_subdivision(self):
+        doi = '10.1234.1/test'
+        text = 'before:  %s' % doi
+        start, end = find_doi_start_end(text)
+        assert text[start:end] == doi
 
-    def test_should_accept_valid_pii_with_capital_x_with_punct(self):
-        assert find_pii_valid_start_end('S0123-123X(11)01234-X') is not None
-
-    def test_should_accept_valid_pii_with_capital_x_without_punct(self):
-        assert find_pii_valid_start_end('S0123123X1101234X') is not None
+    def test_should_allow_multiple_subdivisions(self):
+        doi = '10.1234.1.2.3/test'
+        text = 'before:  %s' % doi
+        start, end = find_doi_start_end(text)
+        assert text[start:end] == doi
 
 
 class TestFindDoiUrlPrefixValidStartEnd:
@@ -94,6 +100,20 @@ class TestFindDoiUrlPrefixValidStartEnd:
         text = 'other:  https://dx.doi.org/'
         start, end = find_doi_url_prefix_valid_start_end(text)
         assert text[start:end] == 'https://dx.doi.org/'
+
+
+class TestFindPiiValidStartEnd:
+    def test_should_accept_valid_pii(self):
+        assert find_pii_valid_start_end(PII_1) is not None
+
+    def test_should_not_accept_valid_pii(self):
+        assert find_pii_valid_start_end(INVALID_PII_1) is None
+
+    def test_should_accept_valid_pii_with_capital_x_with_punct(self):
+        assert find_pii_valid_start_end('S0123-123X(11)01234-X') is not None
+
+    def test_should_accept_valid_pii_with_capital_x_without_punct(self):
+        assert find_pii_valid_start_end('S0123123X1101234X') is not None
 
 
 class TestFixReference:

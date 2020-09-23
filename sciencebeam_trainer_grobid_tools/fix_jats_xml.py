@@ -50,7 +50,7 @@ class JatsXpaths:
 
 
 # https://en.wikipedia.org/wiki/Digital_Object_Identifier
-DOI_PATTERN = r'\b(10.\d{4,}/[^\[\]]+)'
+DOI_PATTERN = r'\b(10\.\d{4,}(?:\.\d{1,})*/[^\[\]]+)'
 
 # https://en.wikipedia.org/wiki/Publisher_Item_Identifier
 PII_VALID_PATTERN = r'\b([S,B]\W*(?:[0-9xX]\W*){15,}[0-9xX])'
