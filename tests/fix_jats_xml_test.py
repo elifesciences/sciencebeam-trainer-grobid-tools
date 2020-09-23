@@ -235,6 +235,30 @@ class TestFixReference:
         assert fixed_pii == PII_1
         assert get_text_content(fixed_ref) == original_ref_text
 
+    def test_should_annotate_missing_doi_with_label(self):
+        original_ref = get_jats_mixed_ref('doi:' + DOI_1)
+        original_ref_text = get_text_content(original_ref)
+        fixed_ref = fix_reference(clone_node(original_ref))
+        fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(DOI_XPATH)))
+        assert fixed_doi == DOI_1
+        assert get_text_content(fixed_ref) == original_ref_text
+
+    def test_should_annotate_missing_doi_excluding_dot(self):
+        original_ref = get_jats_mixed_ref(DOI_1 + '.')
+        original_ref_text = get_text_content(original_ref)
+        fixed_ref = fix_reference(clone_node(original_ref))
+        fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(DOI_XPATH)))
+        assert fixed_doi == DOI_1
+        assert get_text_content(fixed_ref) == original_ref_text
+
+    def test_should_annotate_missing_doi_in_square_brackets(self):
+        original_ref = get_jats_mixed_ref('[' + DOI_1 + ']')
+        original_ref_text = get_text_content(original_ref)
+        fixed_ref = fix_reference(clone_node(original_ref))
+        fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(DOI_XPATH)))
+        assert fixed_doi == DOI_1
+        assert get_text_content(fixed_ref) == original_ref_text
+
     def test_should_keep_original_pmid_if_already_present_and_valid(self):
         original_ref = get_jats_mixed_ref(
             get_jats_pmid(PMID_1),

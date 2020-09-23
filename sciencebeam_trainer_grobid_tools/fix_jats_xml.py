@@ -44,7 +44,7 @@ PII_XPATH = './/pub-id[@pub-id-type="pii"]'
 PMID_XPATH = './/pub-id[@pub-id-type="pmid"]'
 PMCID_XPATH = './/pub-id[@pub-id-type="pmcid"]'
 
-DOI_PATTERN = r'\b(10.\d{4,}/[^\[]+)'
+DOI_PATTERN = r'\b(10.\d{4,}/[^\[\]]+)'
 PII_PATTERN = r'\b(?:doi\:)?(\S{5,})\s*\[pii\]'
 PMID_FIX_PATTERN = r'(?:PMID\s*\:\s*)?(\d{1,})'
 PMID_PATTERN = r'(?:PMID\s*\:\s*)(\d{1,})'
@@ -58,25 +58,27 @@ def with_element_tail(element: etree.Element, tail: str) -> etree.Element:
     return element
 
 
-def get_jats_pii_element(pii: str, tail: str = None) -> etree.Element:
-    node = E('pub-id', {'pub-id-type': 'pii'}, pii)
+def get_jats_pub_id_element(text: str, pub_id_type: str, tail: str = None) -> etree.Element:
+    node = E('pub-id', {'pub-id-type': pub_id_type}, text)
     if tail:
         node.tail = tail
     return node
 
 
-def get_jats_pmid_element(pmid: str, tail: str = None) -> etree.Element:
-    node = E('pub-id', {'pub-id-type': 'pmid'}, pmid)
-    if tail:
-        node.tail = tail
-    return node
+def get_jats_doi_element(doi: str, **kwargs) -> etree.Element:
+    return get_jats_pub_id_element(doi, 'doi', **kwargs)
 
 
-def get_jats_pmcid_element(pmcid: str, tail: str = None) -> etree.Element:
-    node = E('pub-id', {'pub-id-type': 'pmcid'}, pmcid)
-    if tail:
-        node.tail = tail
-    return node
+def get_jats_pii_element(pii: str, **kwargs) -> etree.Element:
+    return get_jats_pub_id_element(pii, 'pii', **kwargs)
+
+
+def get_jats_pmid_element(pmid: str, **kwargs) -> etree.Element:
+    return get_jats_pub_id_element(pmid, 'pmid', **kwargs)
+
+
+def get_jats_pmcid_element(pmcid: str, **kwargs) -> etree.Element:
+    return get_jats_pub_id_element(pmcid, 'pmcid', **kwargs)
 
 
 def get_full_cleaned_url(text: str):
@@ -152,6 +154,17 @@ def find_re_pattern_start_end(
     return m.start(group_index), m.end(group_index)
 
 
+def find_doi_start_end(text: str) -> Optional[Tuple[int, int]]:
+    start_end = find_re_pattern_start_end(text, DOI_PATTERN)
+    if start_end:
+        start, end = start_end
+        start_end = (
+            start,
+            start + len(text[start:end].rstrip().rstrip('.'))
+        )
+    return start_end
+
+
 def find_pii_start_end(text: str) -> Optional[Tuple[int, int]]:
     return find_re_pattern_start_end(text, PII_PATTERN)
 
@@ -174,7 +187,7 @@ def add_annotation_to_element_text_if_matching(
         return False
     start_end = find_start_end_fn(text)
     if not start_end:
-        LOGGER.debug('%s not found in: %r', find_start_end_fn, text)
+        LOGGER.debug('%s not found in: %r', find_start_end_fn.__name__, text)
         return False
     start, end = start_end
     matching_text = text[start:end]
@@ -203,7 +216,7 @@ def add_annotation_to_element_tail_if_matching(
         return False
     start_end = find_start_end_fn(text)
     if not start_end:
-        LOGGER.debug('%s not found in: %r', find_start_end_fn, text)
+        LOGGER.debug('%s not found in: %r', find_start_end_fn.__name__, text)
         return False
     start, end = start_end
     matching_text = text[start:end]
@@ -327,6 +340,18 @@ def fix_pmcid(reference_element: etree.Element) -> etree.Element:
     return reference_element
 
 
+def add_doi_annotation_if_not_present(reference_element: etree.Element) -> etree.Element:
+    if reference_element.xpath(DOI_XPATH):
+        return reference_element
+    add_annotation_to_reference_element_if_matching(
+        reference_element,
+        find_start_end_fn=find_doi_start_end,
+        create_element_fn=get_jats_doi_element,
+        parse_comment=False
+    )
+    return reference_element
+
+
 def add_pii_annotation_if_not_present(reference_element: etree.Element) -> etree.Element:
     if reference_element.xpath(PII_XPATH):
         return reference_element
@@ -370,6 +395,7 @@ def fix_reference(reference_element: etree.Element) -> etree.Element:
     add_pmid_annotation_if_not_present(reference_element)
     add_pmcid_annotation_if_not_present(reference_element)
     add_pii_annotation_if_not_present(reference_element)
+    add_doi_annotation_if_not_present(reference_element)
     return reference_element
 
 
