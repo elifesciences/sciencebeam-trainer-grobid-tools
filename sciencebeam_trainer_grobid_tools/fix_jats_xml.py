@@ -345,52 +345,48 @@ def fix_pmcid(reference_element: etree.Element):
     )
 
 
-def add_doi_annotation_if_not_present(reference_element: etree.Element) -> etree.Element:
+def add_doi_annotation_if_not_present(reference_element: etree.Element):
     if reference_element.xpath(DOI_XPATH):
-        return reference_element
+        return
     add_annotation_to_reference_element_if_matching(
         reference_element,
         find_start_end_fn=find_doi_start_end,
         create_element_fn=get_jats_doi_element,
         parse_comment=False
     )
-    return reference_element
 
 
-def add_pii_annotation_if_not_present(reference_element: etree.Element) -> etree.Element:
+def add_pii_annotation_if_not_present(reference_element: etree.Element):
     if reference_element.xpath(PII_XPATH):
-        return reference_element
+        return
     add_annotation_to_reference_element_if_matching(
         reference_element,
         find_start_end_fn=find_pii_start_end,
         create_element_fn=get_jats_pii_element,
         parse_comment=False
     )
-    return reference_element
 
 
-def add_pmid_annotation_if_not_present(reference_element: etree.Element) -> etree.Element:
+def add_pmid_annotation_if_not_present(reference_element: etree.Element):
     if reference_element.xpath(PMID_XPATH):
-        return reference_element
+        return
     add_annotation_to_reference_element_if_matching(
         reference_element,
         find_start_end_fn=find_pmid_start_end,
         create_element_fn=get_jats_pmid_element,
         parse_comment=True
     )
-    return reference_element
 
 
-def add_pmcid_annotation_if_not_present(reference_element: etree.Element) -> etree.Element:
+def add_pmcid_annotation_if_not_present(reference_element: etree.Element):
     if reference_element.xpath(PMCID_XPATH):
-        return reference_element
+        return
     add_annotation_to_reference_element_if_matching(
         reference_element,
         find_start_end_fn=find_pmcid_start_end,
         create_element_fn=get_jats_pmcid_element,
         parse_comment=True
     )
-    return reference_element
 
 
 def fix_reference(reference_element: etree.Element) -> etree.Element:
