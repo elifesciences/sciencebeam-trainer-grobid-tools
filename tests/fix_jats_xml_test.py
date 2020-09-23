@@ -41,7 +41,6 @@ HTTPS_DOI_URL_PREFIX = 'https://doi.org/'
 HTTPS_SPACED_DOI_URL_PREFIX = 'https : // doi . org / '
 
 
-
 def get_jats_mixed_ref(*args) -> etree.Element:
     return E.ref(E('mixed-citation', *args))
 

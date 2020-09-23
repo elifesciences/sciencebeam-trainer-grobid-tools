@@ -37,6 +37,7 @@ LOGGER = logging.getLogger(__name__)
 XLINK_NS = 'http://www.w3.org/1999/xlink'
 XLINK_HREF = '{%s}href' % XLINK_NS
 
+
 class JatsXpaths:
     REF = './/back/ref-list/ref'
     MIXED_CITATION = './/mixed-citation'
@@ -46,6 +47,7 @@ class JatsXpaths:
     PMID = './/pub-id[@pub-id-type="pmid"]'
     PMCID = './/pub-id[@pub-id-type="pmcid"]'
     OTHER_PUB_ID = './/pub-id[@pub-id-type="other"]'
+
 
 DOI_PATTERN = r'\b(10.\d{4,}/[^\[\]]+)'
 PII_VALID_PATTERN = r'\b([S,B]\W*(?:[0-9xX]\W*){15,}[0-9xX])'
