@@ -632,8 +632,11 @@ def add_meta_data(root: etree.Element, original_root: etree.Element):
     ), tail='\n'))
 
 
-def fix_jats_xml_file(input_file: str, output_file: str):
-    LOGGER.info('processing: %r -> %r', input_file, output_file)
+def fix_jats_xml_file(input_file: str, output_file: str, log_file_enabled: bool = True):
+    if log_file_enabled:
+        LOGGER.info('processing: %r -> %r', input_file, output_file)
+    else:
+        LOGGER.debug('processing: %r -> %r', input_file, output_file)
     tree = parse_xml(input_file)
     root = tree.getroot()
     original_root = clone_node(root)
@@ -663,6 +666,7 @@ class FixJatsProcessor:
         self.output_path = opt.output_path
         self.source_filename_pattern = opt.source_filename_pattern
         self.limit = opt.limit
+        self.log_file_enabled = not opt.no_log_file
 
     def get_output_file_for_source_file(self, source_url: str):
         return os.path.join(
@@ -673,7 +677,7 @@ class FixJatsProcessor:
     def process_source_file(self, source_file: str):
         output_file = self.get_output_file_for_source_file(source_file)
         assert output_file != source_file
-        fix_jats_xml_file(source_file, output_file)
+        fix_jats_xml_file(source_file, output_file, log_file_enabled=self.log_file_enabled)
 
     def run_local_pipeline(self, xml_file_list: List[str]):
         num_workers = min(self.num_workers, len(xml_file_list))
@@ -754,6 +758,11 @@ def add_args(parser: argparse.ArgumentParser):
     parser.add_argument(
         '--multi-processing', action='store_true', default=False,
         help='enable multi processing rather than multi threading'
+    )
+
+    parser.add_argument(
+        '--no-log-file', action='store_true', default=False,
+        help='disable logging of file being processed'
     )
 
     add_cloud_args(parser)
