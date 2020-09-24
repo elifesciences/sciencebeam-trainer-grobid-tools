@@ -790,6 +790,8 @@ def run(args: argparse.Namespace):
 def main(argv=None):
     args = parse_args(argv)
     process_debug_argument(args)
+    if args.no_log_file:
+        logging.getLogger('sciencebeam_utils.beam_utils.io').setLevel('WARNING')
     run(args)
 
 
