@@ -2,6 +2,8 @@ import logging
 from pathlib import Path
 from typing import List
 
+import pytest
+
 from lxml import etree
 from lxml.builder import E
 
@@ -45,6 +47,16 @@ PMCID_1 = 'PMC1234567'
 
 HTTPS_DOI_URL_PREFIX = 'https://doi.org/'
 HTTPS_SPACED_DOI_URL_PREFIX = 'https : // doi . org / '
+
+
+@pytest.fixture(name='input_dir')
+def _input_dir(temp_dir: Path) -> Path:
+    return temp_dir / 'input'
+
+
+@pytest.fixture(name='output_dir')
+def _output_dir(temp_dir: Path) -> Path:
+    return temp_dir / 'output'
 
 
 def get_jats_mixed_ref(*args) -> etree.Element:
@@ -543,6 +555,29 @@ class TestMain:
         main([
             '--source-base-path=%s' % input_file.parent,
             '--output-path=%s' % output_file.parent
+        ])
+        assert output_file.exists()
+        fixed_root = parse_xml(str(output_file))
+        fixed_doi = '|'.join(get_text_content_list(fixed_root.xpath(JatsXpaths.DOI)))
+        assert fixed_doi == DOI_1
+
+    def test_should_fix_jats_xml_using_source_file_list_in_sub_directory(
+            self, input_dir: Path, output_dir: Path):
+        original_ref = get_jats_mixed_ref('doi: ', get_jats_doi_element('doi:' + DOI_1))
+        input_file = input_dir / 'sub' / 'file1.xml'
+        input_file.parent.mkdir(parents=True)
+        input_file.write_bytes(etree.tostring(get_jats(references=[
+            original_ref
+        ])))
+        output_file = output_dir / 'sub' / 'file1.xml'
+        source_file_list_path = input_dir / 'file-list.tsv'
+        source_file_list_path.write_text('\n'.join([
+            'xml_url',
+            'sub/file1.xml'
+        ]))
+        main([
+            '--source-file-list=%s' % source_file_list_path,
+            '--output-path=%s' % output_dir
         ])
         assert output_file.exists()
         fixed_root = parse_xml(str(output_file))
