@@ -42,6 +42,7 @@ XLINK_HREF = '{%s}href' % XLINK_NS
 class JatsXpaths:
     REF = './/back/ref-list/ref'
     MIXED_CITATION = './/mixed-citation'
+    ARTICLE_TITLE = './/article-title'
     EXT_LINK = './/ext-link'
     DOI = './/pub-id[@pub-id-type="doi"]'
     PII = './/pub-id[@pub-id-type="pii"]'
@@ -62,6 +63,8 @@ PMID_PATTERN = r'(?:PMID\s*\:\s*)(\d{1,})'
 PMCID_PATTERN = r'(PMC\d{7,})'
 
 DOI_URL_PREFIX_PATTERN = r'((?:https?\s*\:\s*/\s*/\s*)?(?:[a-z]+\s*\.\s*)?doi\s*.\s*org\s*/\s*)'
+
+ARTICLE_TITLE_PATTERN = r'^(.*?)(\;\s*PMC\d+)?$'
 
 
 def with_element_tail(element: etree.Element, tail: str) -> etree.Element:
@@ -162,6 +165,8 @@ def find_re_pattern_start_end(
         text: str,
         pattern: str,
         group_index: int = 1) -> Optional[Tuple[int, int]]:
+    if text is None:
+        raise RuntimeError('text requires, was none')
     m = re.search(pattern, text)
     if not m:
         LOGGER.debug('pattern (%r) not found in: %r', pattern, text)
@@ -222,10 +227,17 @@ def find_ext_link_start_end(text: str) -> Optional[Tuple[int, int]]:
     return 0, len(text)
 
 
+def find_article_title_start_end(text: str) -> Optional[Tuple[int, int]]:
+    # return 0, len(text)
+    return find_re_pattern_start_end(text, ARTICLE_TITLE_PATTERN)
+
+
 def change_annotation_to_matching_text(
         element: etree.Element,
         find_start_end_fn: Callable[[str], Optional[Tuple[int, int]]]):
     text = element.text
+    if text is None:
+        return
     start_end = find_start_end_fn(text)
     if not start_end:
         LOGGER.debug('%s not found in: %r', find_start_end_fn.__name__, text)
@@ -361,6 +373,13 @@ def fix_ext_link(reference_element: etree.Element):
         child_element.attrib[XLINK_HREF] = href[start:end]
 
 
+def fix_article_title(reference_element: etree.Element):
+    change_annotations_to_matching_text(
+        reference_element.xpath(JatsXpaths.ARTICLE_TITLE),
+        find_start_end_fn=find_article_title_start_end
+    )
+
+
 def fix_doi(reference_element: etree.Element):
     change_annotations_to_matching_text(
         reference_element.xpath(JatsXpaths.DOI),
@@ -466,6 +485,7 @@ def add_pmcid_annotation_if_not_present(reference_element: etree.Element):
 
 
 def fix_reference(reference_element: etree.Element) -> etree.Element:
+    fix_article_title(reference_element)
     fix_doi(reference_element)
     replace_doi_annotation_with_ext_link_if_url(reference_element)
     fix_ext_link(reference_element)

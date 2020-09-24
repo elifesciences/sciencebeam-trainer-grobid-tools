@@ -20,6 +20,7 @@ from sciencebeam_trainer_grobid_tools.fix_jats_xml import (
     find_doi_start_end,
     find_doi_url_prefix_valid_start_end,
     find_pii_valid_start_end,
+    find_article_title_start_end,
     get_jats_ext_link_element,
     get_jats_doi_element,
     get_jats_pii_element,
@@ -33,6 +34,7 @@ from sciencebeam_trainer_grobid_tools.fix_jats_xml import (
 LOGGER = logging.getLogger(__name__)
 
 
+ARTICLE_TITLE_1 = 'This is the article title'
 INVALID_PII_1 = '12/34/4567'
 PII_1 = 'S0123-1234(11)01234-5'
 DOI_1 = '10.12345/abc/1'
@@ -138,6 +140,19 @@ class TestFindPiiValidStartEnd:
 
     def test_should_accept_valid_pii_with_capital_x_without_punct(self):
         assert find_pii_valid_start_end('S0123123X1101234X') is not None
+
+
+class TestFindArticleTitleStartEnd:
+    def test_should_not_change_valid_title_with_semicolon(self):
+        text = 'Very interesting; indeed'
+        start, end = find_article_title_start_end(text)
+        assert text[start:end] == text
+
+    def test_should_strip_of_semicolon_pmcid(self):
+        article_title = 'Very interesting'
+        text = '%s; %s' % (article_title, PMCID_1)
+        start, end = find_article_title_start_end(text)
+        assert text[start:end] == article_title
 
 
 class TestFixReference:
@@ -395,6 +410,16 @@ class TestFixReference:
         fixed_ref = fix_reference(clone_node(original_ref))
         fixed_pmcid = '|'.join(get_text_content_list(fixed_ref.xpath(JatsXpaths.PMCID)))
         assert fixed_pmcid == PMCID_1
+
+    def test_should_remove_pmcid_from_article_title(self):
+        original_ref = get_jats_mixed_ref(
+            'title: ', E('article-title', ARTICLE_TITLE_1 + '; ' + PMCID_1)
+        )
+        fixed_ref = fix_reference(clone_node(original_ref))
+        fixed_article_title = '|'.join(get_text_content_list(
+            fixed_ref.xpath(JatsXpaths.ARTICLE_TITLE)
+        ))
+        assert fixed_article_title == ARTICLE_TITLE_1
 
 
 class TestMain:
