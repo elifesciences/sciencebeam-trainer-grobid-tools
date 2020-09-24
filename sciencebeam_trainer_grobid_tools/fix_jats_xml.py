@@ -62,6 +62,15 @@ class SpecialChars:
     RDQUO = '\u201D'
 
 
+LEFT_QUOTE_CHARS = {'"', SpecialChars.LSQUO, SpecialChars.LDQUO}
+
+RIGHT_BY_LEFT_QUOTE_CHAR = {
+    '"': '"',
+    SpecialChars.LSQUO: SpecialChars.RSQUO,
+    SpecialChars.LDQUO: SpecialChars.RSQUO
+}
+
+
 # https://en.wikipedia.org/wiki/Digital_Object_Identifier
 DOI_PATTERN = r'\b(10\.\d{4,}(?:\.\d{1,})*/.+)'
 
@@ -253,6 +262,8 @@ def has_surrounding_quotes(text: str, start: int = 0, end: int = None) -> bool:
 
 def find_article_title_start_end(text: str) -> Optional[Tuple[int, int]]:
     start_end = find_re_pattern_start_end(text, ARTICLE_TITLE_PATTERN)
+    if not start_end:
+        start_end = (0, len(text))
     start, end = start_end
     if has_surrounding_quotes(text, start, end):
         start += 1
@@ -403,6 +414,8 @@ def fix_ext_link(reference_element: etree.Element):
 
 def remove_surrounding_quotes_from_element(element: etree.Element):
     text = get_text_content(element)
+    if len(text) < 2:
+        return
     children = list(element)
     if has_surrounding_quotes(text):
         if element.text:
@@ -411,6 +424,11 @@ def remove_surrounding_quotes_from_element(element: etree.Element):
         if children and children[-1].tail:
             add_text_to_tail_prefix(element, children[-1].tail[-1:])
             children[-1].tail = children[-1].tail[:-1]
+    elif text[0] in LEFT_QUOTE_CHARS:
+        right_quote_char = RIGHT_BY_LEFT_QUOTE_CHAR[text[0]]
+        if not right_quote_char in text[1:] and element.text:
+            add_text_to_previous(element, element.text[:1])
+            element.text = element.text[1:]
 
 
 def fix_article_title(reference_element: etree.Element):
