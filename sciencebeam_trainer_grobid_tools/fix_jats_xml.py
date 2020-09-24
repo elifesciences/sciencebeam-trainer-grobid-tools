@@ -611,6 +611,11 @@ def add_meta_data(root: etree.Element, original_root: etree.Element):
         root.insert(0, custom_meta_group)
     custom_meta_group.append(with_element_tail(E(
         'custom-meta',
+        E('meta-name', 'fix-jats-note'),
+        E('meta-value', 'This XML file had been modified to fix some of the potential errors.')
+    ), tail='\n'))
+    custom_meta_group.append(with_element_tail(E(
+        'custom-meta',
         E('meta-name', 'fix-jats-run-timestamp'),
         E('meta-value', datetime.utcnow().isoformat())
     ), tail='\n'))
