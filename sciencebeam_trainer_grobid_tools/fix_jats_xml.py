@@ -19,6 +19,10 @@ from sciencebeam_utils.utils.file_path import (
     relative_path
 )
 
+from sciencebeam_utils.utils.xml import (
+    get_text_content
+)
+
 from sciencebeam_utils.beam_utils.files import find_matching_filenames_with_limit
 
 from sciencebeam_trainer_grobid_tools.utils.progress_logger import (
@@ -49,6 +53,13 @@ class JatsXpaths:
     PMID = './/pub-id[@pub-id-type="pmid"]'
     PMCID = './/pub-id[@pub-id-type="pmcid"]'
     OTHER_PUB_ID = './/pub-id[@pub-id-type="other"]'
+
+
+class SpecialChars:
+    LSQUO = '\u2018'
+    RSQUO = '\u2019'
+    LDQUO = '\u201C'
+    RDQUO = '\u201D'
 
 
 # https://en.wikipedia.org/wiki/Digital_Object_Identifier
@@ -227,9 +238,26 @@ def find_ext_link_start_end(text: str) -> Optional[Tuple[int, int]]:
     return 0, len(text)
 
 
+def has_surrounding_quotes(text: str, start: int = 0, end: int = None) -> bool:
+    if end is None:
+        end = len(text)
+    return (
+        (end > start + 2)
+        and (
+            (text[start] == '"' and text[end - 1] == '"')
+            or (text[start] == SpecialChars.LSQUO and text[end - 1] == SpecialChars.RSQUO)
+            or (text[start] == SpecialChars.LDQUO and text[end - 1] == SpecialChars.RDQUO)
+        )
+    )
+
+
 def find_article_title_start_end(text: str) -> Optional[Tuple[int, int]]:
-    # return 0, len(text)
-    return find_re_pattern_start_end(text, ARTICLE_TITLE_PATTERN)
+    start_end = find_re_pattern_start_end(text, ARTICLE_TITLE_PATTERN)
+    start, end = start_end
+    if has_surrounding_quotes(text, start, end):
+        start += 1
+        end -= 1
+    return start, end
 
 
 def change_annotation_to_matching_text(
@@ -373,11 +401,25 @@ def fix_ext_link(reference_element: etree.Element):
         child_element.attrib[XLINK_HREF] = href[start:end]
 
 
+def remove_surrounding_quotes_from_element(element: etree.Element):
+    text = get_text_content(element)
+    children = list(element)
+    if has_surrounding_quotes(text):
+        if element.text:
+            add_text_to_previous(element, element.text[:1])
+            element.text = element.text[1:]
+        if children and children[-1].tail:
+            add_text_to_tail_prefix(element, children[-1].tail[-1:])
+            children[-1].tail = children[-1].tail[:-1]
+
+
 def fix_article_title(reference_element: etree.Element):
     change_annotations_to_matching_text(
         reference_element.xpath(JatsXpaths.ARTICLE_TITLE),
         find_start_end_fn=find_article_title_start_end
     )
+    for element in reference_element.xpath(JatsXpaths.ARTICLE_TITLE):
+        remove_surrounding_quotes_from_element(element)
 
 
 def fix_doi(reference_element: etree.Element):

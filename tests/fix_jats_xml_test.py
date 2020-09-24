@@ -17,6 +17,7 @@ from sciencebeam_trainer_grobid_tools.utils.xml import (
 from sciencebeam_trainer_grobid_tools.fix_jats_xml import (
     XLINK_HREF,
     JatsXpaths,
+    SpecialChars,
     find_doi_start_end,
     find_doi_url_prefix_valid_start_end,
     find_pii_valid_start_end,
@@ -144,15 +145,29 @@ class TestFindPiiValidStartEnd:
 
 class TestFindArticleTitleStartEnd:
     def test_should_not_change_valid_title_with_semicolon(self):
-        text = 'Very interesting; indeed'
+        text = '%s; indeed' % ARTICLE_TITLE_1
         start, end = find_article_title_start_end(text)
         assert text[start:end] == text
 
     def test_should_strip_of_semicolon_pmcid(self):
-        article_title = 'Very interesting'
-        text = '%s; %s' % (article_title, PMCID_1)
+        text = '%s; %s' % (ARTICLE_TITLE_1, PMCID_1)
         start, end = find_article_title_start_end(text)
-        assert text[start:end] == article_title
+        assert text[start:end] == ARTICLE_TITLE_1
+
+    def test_should_strip_surrounding_double_quotes(self):
+        text = '"%s"' % ARTICLE_TITLE_1
+        start, end = find_article_title_start_end(text)
+        assert text[start:end] == ARTICLE_TITLE_1
+
+    def test_should_strip_surrounding_left_right_single_quotes(self):
+        text = '%s%s%s' % (SpecialChars.LSQUO, ARTICLE_TITLE_1, SpecialChars.RSQUO)
+        start, end = find_article_title_start_end(text)
+        assert text[start:end] == ARTICLE_TITLE_1
+
+    def test_should_strip_surrounding_left_right_double_quotes(self):
+        text = '%s%s%s' % (SpecialChars.LDQUO, ARTICLE_TITLE_1, SpecialChars.RDQUO)
+        start, end = find_article_title_start_end(text)
+        assert text[start:end] == ARTICLE_TITLE_1
 
 
 class TestFixReference:
@@ -414,6 +429,33 @@ class TestFixReference:
     def test_should_remove_pmcid_from_article_title(self):
         original_ref = get_jats_mixed_ref(
             'title: ', E('article-title', ARTICLE_TITLE_1 + '; ' + PMCID_1)
+        )
+        fixed_ref = fix_reference(clone_node(original_ref))
+        fixed_article_title = '|'.join(get_text_content_list(
+            fixed_ref.xpath(JatsXpaths.ARTICLE_TITLE)
+        ))
+        assert fixed_article_title == ARTICLE_TITLE_1
+
+    def test_should_remove_left_right_single_quotes_from_article_title(self):
+        original_ref = get_jats_mixed_ref(
+            'title: ',
+            E('article-title', SpecialChars.LSQUO + ARTICLE_TITLE_1 + SpecialChars.RSQUO)
+        )
+        fixed_ref = fix_reference(clone_node(original_ref))
+        fixed_article_title = '|'.join(get_text_content_list(
+            fixed_ref.xpath(JatsXpaths.ARTICLE_TITLE)
+        ))
+        assert fixed_article_title == ARTICLE_TITLE_1
+
+    def test_should_remove_left_right_single_quotes_from_article_title_with_child_elements(self):
+        original_ref = get_jats_mixed_ref(
+            'title: ',
+            E(
+                'article-title',
+                SpecialChars.LSQUO,
+                E.italic(ARTICLE_TITLE_1),
+                SpecialChars.RSQUO
+            )
         )
         fixed_ref = fix_reference(clone_node(original_ref))
         fixed_article_title = '|'.join(get_text_content_list(
