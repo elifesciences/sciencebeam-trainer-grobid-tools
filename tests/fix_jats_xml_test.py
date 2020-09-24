@@ -510,51 +510,54 @@ class TestFixReference:
 
 
 class TestMain:
-    def test_should_fix_jats_xml_using_source_path(self, temp_dir: Path):
+    def test_should_fix_jats_xml_using_source_path(
+            self, input_dir: Path, output_dir: Path):
         original_ref = get_jats_mixed_ref('doi: ', get_jats_doi_element('doi:' + DOI_1))
-        input_file = temp_dir / 'input' / 'file1.xml'
+        input_file = input_dir / 'file1.xml'
         input_file.parent.mkdir()
         input_file.write_bytes(etree.tostring(get_jats(references=[
             original_ref
         ])))
-        output_file = temp_dir / 'output' / 'file1.xml'
+        output_file = output_dir / 'file1.xml'
         main([
             '--source-path=%s' % input_file,
-            '--output-path=%s' % output_file.parent
+            '--output-path=%s' % output_dir
         ])
         assert output_file.exists()
         fixed_root = parse_xml(str(output_file))
         fixed_doi = '|'.join(get_text_content_list(fixed_root.xpath(JatsXpaths.DOI)))
         assert fixed_doi == DOI_1
 
-    def test_should_fix_jats_xml_using_source_base_path(self, temp_dir: Path):
+    def test_should_fix_jats_xml_using_source_base_path(
+            self, input_dir: Path, output_dir: Path):
         original_ref = get_jats_mixed_ref('doi: ', get_jats_doi_element('doi:' + DOI_1))
-        input_file = temp_dir / 'input' / 'file1.xml'
+        input_file = input_dir / 'file1.xml'
         input_file.parent.mkdir()
         input_file.write_bytes(etree.tostring(get_jats(references=[
             original_ref
         ])))
-        output_file = temp_dir / 'output' / 'file1.xml'
+        output_file = output_dir / 'file1.xml'
         main([
-            '--source-base-path=%s' % input_file.parent,
-            '--output-path=%s' % output_file.parent
+            '--source-base-path=%s' % input_dir,
+            '--output-path=%s' % output_dir
         ])
         assert output_file.exists()
         fixed_root = parse_xml(str(output_file))
         fixed_doi = '|'.join(get_text_content_list(fixed_root.xpath(JatsXpaths.DOI)))
         assert fixed_doi == DOI_1
 
-    def test_should_fix_jats_xml_using_source_base_path_in_sub_directory(self, temp_dir: Path):
+    def test_should_fix_jats_xml_using_source_base_path_in_sub_directory(
+            self, input_dir: Path, output_dir: Path):
         original_ref = get_jats_mixed_ref('doi: ', get_jats_doi_element('doi:' + DOI_1))
-        input_file = temp_dir / 'input' / 'sub' / 'file1.xml'
+        input_file = input_dir / 'sub' / 'file1.xml'
         input_file.parent.mkdir(parents=True)
         input_file.write_bytes(etree.tostring(get_jats(references=[
             original_ref
         ])))
-        output_file = temp_dir / 'output' / 'sub' / 'file1.xml'
+        output_file = output_dir / 'sub' / 'file1.xml'
         main([
-            '--source-base-path=%s' % input_file.parent,
-            '--output-path=%s' % output_file.parent
+            '--source-base-path=%s' % input_dir,
+            '--output-path=%s' % output_dir
         ])
         assert output_file.exists()
         fixed_root = parse_xml(str(output_file))
