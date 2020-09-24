@@ -84,7 +84,7 @@ PMCID_PATTERN = r'(PMC\d{7,})'
 
 DOI_URL_PREFIX_PATTERN = r'((?:https?\s*\:\s*/\s*/\s*)?(?:[a-z]+\s*\.\s*)?doi\s*.\s*org\s*/\s*)'
 
-ARTICLE_TITLE_PATTERN = r'^(.*?)(\;\s*PMC\d+)?$'
+ARTICLE_TITLE_PATTERN = r'^(.*?)(\;\s*PMC\d+|\s*,\s*)?$'
 
 
 def with_element_tail(element: etree.Element, tail: str) -> etree.Element:
@@ -426,9 +426,22 @@ def remove_surrounding_quotes_from_element(element: etree.Element):
             children[-1].tail = children[-1].tail[:-1]
     elif text[0] in LEFT_QUOTE_CHARS:
         right_quote_char = RIGHT_BY_LEFT_QUOTE_CHAR[text[0]]
-        if not right_quote_char in text[1:] and element.text:
+        if right_quote_char not in text[1:] and element.text:
             add_text_to_previous(element, element.text[:1])
             element.text = element.text[1:]
+
+
+def remove_training_comma_from_element(element: etree.Element):
+    text = get_text_content(element)
+    rstripped_text = text.rstrip(', ')
+    if len(rstripped_text) == len(text):
+        return
+    children = list(element)
+    if children and children[-1].tail:
+        tail = children[-1].tail
+        tail_end = max(0, len(tail) + len(rstripped_text) - len(text))
+        add_text_to_tail_prefix(element, tail[tail_end:])
+        children[-1].tail = tail[:tail_end]
 
 
 def fix_article_title(reference_element: etree.Element):
@@ -438,6 +451,7 @@ def fix_article_title(reference_element: etree.Element):
     )
     for element in reference_element.xpath(JatsXpaths.ARTICLE_TITLE):
         remove_surrounding_quotes_from_element(element)
+        remove_training_comma_from_element(element)
 
 
 def fix_doi(reference_element: etree.Element):

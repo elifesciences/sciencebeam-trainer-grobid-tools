@@ -481,6 +481,24 @@ class TestFixReference:
         ))
         assert fixed_article_title == ARTICLE_TITLE_1
 
+    def test_should_remove_quotes_and_trailing_comma_from_article_title(
+            self):
+        original_ref = get_jats_mixed_ref(
+            'title: ',
+            E(
+                'article-title',
+                SpecialChars.LDQUO,
+                E.italic(ARTICLE_TITLE_1),
+                ', '
+            ),
+            SpecialChars.RDQUO
+        )
+        fixed_ref = fix_reference(clone_node(original_ref))
+        fixed_article_title = '|'.join(get_text_content_list(
+            fixed_ref.xpath(JatsXpaths.ARTICLE_TITLE)
+        ))
+        assert fixed_article_title == ARTICLE_TITLE_1
+
 
 class TestMain:
     def test_should_fix_jats_xml_using_source_path(self, temp_dir: Path):
