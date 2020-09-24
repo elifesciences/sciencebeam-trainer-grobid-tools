@@ -25,6 +25,7 @@ from sciencebeam_utils.utils.xml import (
 )
 
 from sciencebeam_utils.beam_utils.files import find_matching_filenames_with_limit
+from sciencebeam_utils.utils.file_list import load_file_list
 
 from sciencebeam_trainer_grobid_tools.utils.progress_logger import (
     logging_tqdm
@@ -651,7 +652,14 @@ class FixJatsProcessor:
         self.num_workers = opt.num_workers
         self.multi_processing = opt.multi_processing
         self.source_path = opt.source_path
-        self.source_base_path = opt.source_base_path or os.path.dirname(self.source_path)
+        self.source_file_list_path = opt.source_file_list
+        self.source_file_list_column = opt.source_file_list_column
+        self.source_base_path = (
+            opt.source_base_path
+            or (self.source_file_list_path and os.path.dirname(self.source_file_list_path))
+            or os.path.dirname(self.source_path)
+        )
+        LOGGER.debug('source_base_path: %s', self.source_base_path)
         self.output_path = opt.output_path
         self.source_filename_pattern = opt.source_filename_pattern
         self.limit = opt.limit
@@ -687,6 +695,12 @@ class FixJatsProcessor:
                     future.result()
 
     def get_source_file_list(self):
+        if self.source_file_list_path:
+            return load_file_list(
+                self.source_file_list_path,
+                column=self.source_file_list_column,
+                limit=self.limit
+            )
         if self.source_path:
             return [self.source_path]
         return list(find_matching_filenames_with_limit(os.path.join(
@@ -716,6 +730,15 @@ def add_args(parser: argparse.ArgumentParser):
         '--source-filename-pattern', type=str,
         default='**.xml*',
         help='file pattern within source base path to find files to process'
+    )
+    source_group.add_argument(
+        '--source-file-list', type=str,
+        help='path to source file list'
+    )
+    source_group.add_argument(
+        '--source-file-list-column', type=str,
+        default='xml_url',
+        help='the column to use when reading the source file list (if csv or tsv)'
     )
 
     parser.add_argument(
