@@ -5,7 +5,6 @@ import os
 import re
 from collections import Counter
 from datetime import datetime
-from pathlib import Path
 from typing import Callable, Iterable, List, Tuple, Optional
 
 from lxml import etree
@@ -15,6 +14,7 @@ from sciencebeam_utils.beam_utils.main import (
     add_cloud_args,
     process_cloud_args
 )
+from sciencebeam_utils.beam_utils.io import save_file_content
 
 from sciencebeam_utils.utils.file_path import (
     relative_path
@@ -642,12 +642,12 @@ def fix_jats_xml_file(input_file: str, output_file: str, log_file_enabled: bool 
     original_root = clone_node(root)
     fix_jats_xml_node(root)
     add_meta_data(root, original_root)
-    Path(output_file).parent.mkdir(parents=True, exist_ok=True)
-    Path(output_file).write_bytes(etree.tostring(
+    output_bytes = etree.tostring(
         tree,
         xml_declaration=True,
         encoding=tree.docinfo.encoding
-    ))
+    )
+    save_file_content(output_file, output_bytes)
 
 
 class FixJatsProcessor:
