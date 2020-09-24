@@ -18,6 +18,7 @@ from sciencebeam_trainer_grobid_tools.fix_jats_xml import (
     XLINK_HREF,
     JatsXpaths,
     SpecialChars,
+    clone_node,
     find_doi_start_end,
     find_doi_url_prefix_valid_start_end,
     find_pii_valid_start_end,
@@ -48,10 +49,6 @@ HTTPS_SPACED_DOI_URL_PREFIX = 'https : // doi . org / '
 
 def get_jats_mixed_ref(*args) -> etree.Element:
     return E.ref(E('mixed-citation', *args))
-
-
-def clone_node(node: etree.Element) -> etree.Element:
-    return etree.fromstring(etree.tostring(node))
 
 
 def get_jats(references: List[etree.Element]) -> etree.Element:

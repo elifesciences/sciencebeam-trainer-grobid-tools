@@ -4,8 +4,9 @@ import logging
 import os
 import re
 from collections import Counter
+from datetime import datetime
 from pathlib import Path
-from typing import Callable, List, Tuple, Optional
+from typing import Callable, Iterable, List, Tuple, Optional
 
 from lxml import etree
 from lxml.builder import E
@@ -85,6 +86,10 @@ PMCID_PATTERN = r'(PMC\d{7,})'
 DOI_URL_PREFIX_PATTERN = r'((?:https?\s*\:\s*/\s*/\s*)?(?:[a-z]+\s*\.\s*)?doi\s*.\s*org\s*/\s*)'
 
 ARTICLE_TITLE_PATTERN = r'^(.*?)(\;\s*PMC\d+|\s*,\s*)?$'
+
+
+def clone_node(node: etree.Element) -> etree.Element:
+    return etree.fromstring(etree.tostring(node))
 
 
 def with_element_tail(element: etree.Element, tail: str) -> etree.Element:
@@ -580,15 +585,59 @@ def fix_jats_xml_node(root: etree.Element):
     return root
 
 
+def iter_get_changed_original_references(
+        root: etree.Element,
+        original_root: etree.Element) -> Iterable[etree.Element]:
+    original_ref_list = original_root.xpath(JatsXpaths.REF)
+    ref_list = root.xpath(JatsXpaths.REF)
+    assert len(ref_list) == len(original_ref_list)
+    for ref, original_ref in zip(ref_list, original_ref_list):
+        if etree.tostring(ref) == etree.tostring(original_ref):
+            continue
+        yield original_ref
+
+
+def add_meta_data(root: etree.Element, original_root: etree.Element):
+    changed_original_references = list(iter_get_changed_original_references(
+        root, original_root
+    ))
+    changed_original_reference_ids = [
+        changed_original_reference.attrib.get('id', '')
+        for changed_original_reference in changed_original_references
+    ]
+    custom_meta_group = root.find('custom-meta-group')
+    if custom_meta_group is None:
+        custom_meta_group = with_element_tail(E('custom-meta-group', '\n'), '\n')
+        root.insert(0, custom_meta_group)
+    custom_meta_group.append(with_element_tail(E(
+        'custom-meta',
+        E('meta-name', 'fix-jats-run-timestamp'),
+        E('meta-value', datetime.utcnow().isoformat())
+    ), tail='\n'))
+    custom_meta_group.append(with_element_tail(E(
+        'custom-meta',
+        E('meta-name', 'fix-jats-changed-reference-count'),
+        E('meta-value', str(len(changed_original_references)))
+    ), tail='\n'))
+    custom_meta_group.append(with_element_tail(E(
+        'custom-meta',
+        E('meta-name', 'fix-jats-changed-reference-ids'),
+        E('meta-value', ','.join(changed_original_reference_ids))
+    ), tail='\n'))
+
+
 def fix_jats_xml_file(input_file: str, output_file: str):
     LOGGER.info('processing: %r -> %r', input_file, output_file)
-    root = parse_xml(input_file)
+    tree = parse_xml(input_file)
+    root = tree.getroot()
+    original_root = clone_node(root)
     fix_jats_xml_node(root)
+    add_meta_data(root, original_root)
     Path(output_file).parent.mkdir(parents=True, exist_ok=True)
     Path(output_file).write_bytes(etree.tostring(
-        root,
+        tree,
         xml_declaration=True,
-        encoding=root.docinfo.encoding
+        encoding=tree.docinfo.encoding
     ))
 
 
