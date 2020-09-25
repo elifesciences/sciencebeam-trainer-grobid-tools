@@ -19,12 +19,12 @@ ENV PATH /root/.local/bin:$PATH
 
 WORKDIR /opt/sciencebeam-grobid-trainer-tools
 
-COPY requirements.txt ./
-RUN pip install --user -r requirements.txt
-
 COPY requirements.links.txt ./
 ENV SCIENCEBEAM_GYM_NO_APT=1
 RUN pip install --user -r requirements.links.txt
+
+COPY requirements.txt ./
+RUN pip install --user -r requirements.txt
 
 ARG install_dev
 COPY requirements.dev.txt ./

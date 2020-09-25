@@ -50,9 +50,9 @@ venv-create:
 
 dev-install:
 	$(PIP) install -r requirements.build.txt
+	SCIENCEBEAM_GYM_NO_APT=1 $(PIP) install -r requirements.links.txt
 	$(PIP) install -r requirements.txt
 	$(PIP) install -r requirements.dev.txt
-	SCIENCEBEAM_GYM_NO_APT=1 $(PIP) install -r requirements.links.txt
 	$(PIP) install -e . --no-deps
 
 
