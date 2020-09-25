@@ -31,6 +31,7 @@ from sciencebeam_trainer_grobid_tools.fix_jats_xml import (
     get_jats_pmid_element,
     get_jats_pmcid_element,
     fix_reference as _fix_reference,
+    fix_jats_xml_file,
     main
 )
 
@@ -507,6 +508,26 @@ class TestFixReference:
             fixed_ref.xpath(JatsXpaths.ARTICLE_TITLE)
         ))
         assert fixed_article_title == ARTICLE_TITLE_1
+
+
+class TestFixJatsXmlFile:
+    def test_should_replace_dagger_entity(self, temp_dir: Path):
+        url = 'http://test/path#param1&dagger;'
+        expected_url = 'http://test/path#param1\u2020'
+        input_file = temp_dir / 'input.xml'
+        output_file = temp_dir / 'output.xml'
+        input_file.write_text('\n'.join([
+            '<article><back><ref-list><ref id="r1">',
+            '<ext-link href="{url}">{url}</ext-link>'.format(url=url),
+            '</ref></ref-list></back></article>'
+        ]))
+        fix_jats_xml_file(str(input_file), str(output_file))
+        LOGGER.debug('output xml: %r', output_file.read_text())
+        tree = parse_xml(str(output_file))
+        ext_link = tree.xpath('.//ext-link')[0]
+        assert tree.getroot().tag == 'article'
+        assert ext_link.text == expected_url
+        assert ext_link.attrib.get('href') == expected_url
 
 
 class TestMain:

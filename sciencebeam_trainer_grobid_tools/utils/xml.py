@@ -1,14 +1,14 @@
 import logging
+import os
 from contextlib import contextmanager
-from functools import partial
 from io import BufferedReader
-from shutil import copyfileobj
-from tempfile import NamedTemporaryFile
-from typing import Iterable
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from typing import Iterable, Union
 
 from lxml import etree
 
-from apache_beam.io.filesystems import FileSystems
+from sciencebeam_trainer_grobid_tools.utils.io import auto_download_input_file
 
 
 LOGGER = logging.getLogger(__name__)
@@ -27,13 +27,22 @@ def _read_lines(source) -> Iterable[str]:
 
 
 @contextmanager
-def stream_to_local_file(open_fn: callable):
-    with open_fn() as source:
-        with NamedTemporaryFile() as temp_file:
-            copyfileobj(source, temp_file)
-            temp_file.flush()
-            temp_file.seek(0)
+def auto_download_and_fix_input_file(
+        file_url_or_open_fn: Union[str, callable],
+        fix_xml: bool = True) -> str:
+    with auto_download_input_file(file_url_or_open_fn) as temp_file:
+        if not fix_xml:
             yield temp_file
+            return
+        with TemporaryDirectory(suffix='-input-fixed') as fixed_temp_dir:
+            fixed_temp_file = os.path.join(
+                fixed_temp_dir, os.path.basename(temp_file)
+            )
+            data = Path(temp_file).read_bytes()
+            data = data.lstrip()
+            data = data.replace(b'&dagger;', b'&#x2020;')
+            Path(fixed_temp_file).write_bytes(data)
+            yield fixed_temp_file
 
 
 def skip_spaces(reader: BufferedReader):
@@ -45,33 +54,39 @@ def skip_spaces(reader: BufferedReader):
         reader.read(1)
 
 
-def parse_xml_or_get_error_line(open_fn, filename: str = None, **kwargs):
-    with stream_to_local_file(open_fn) as temp_file:
+def parse_xml_or_get_error_line(
+        source,
+        filename: str = None,
+        fix_xml: bool = False,
+        **kwargs):
+    with auto_download_and_fix_input_file(source, fix_xml=fix_xml) as temp_file:
         try:
-            with open(temp_file.name, mode='rb') as source:
-                with BufferedReader(source) as reader:
+            with open(temp_file, mode='rb') as temp_fp:
+                with BufferedReader(temp_fp) as reader:
                     skip_spaces(reader)
                     return etree.parse(reader, **kwargs)
         except etree.XMLSyntaxError as exception:
             error_lineno = exception.lineno
-            with open(temp_file.name, mode='rb') as source:
+            with open(temp_file, mode='rb') as temp_fp:
                 try:
-                    line_enumeration = enumerate(source, 1)
+                    line_enumeration = enumerate(temp_fp, 1)
                 except TypeError:
-                    line_enumeration = enumerate(_read_lines(source), 1)
+                    line_enumeration = enumerate(_read_lines(temp_fp), 1)
                 for current_lineno, line in line_enumeration:
                     if current_lineno == error_lineno:
                         raise XMLSyntaxErrorWithErrorLine(
-                            f'failed to parse xml file "%s", line=[{line}] due to {exception}' % (
-                                filename or exception.filename
+                            'failed to parse xml file "%s", line=%r due to %r' % (
+                                filename or exception.filename,
+                                line,
+                                exception
                             ),
                             error_line=line
                         ) from exception
             raise exception
 
 
-def parse_xml(file_url):
+def parse_xml(file_url: str, **kwargs) -> etree.ElementTree:
     return parse_xml_or_get_error_line(
-        partial(FileSystems.open, file_url),
-        filename=file_url
+        file_url,
+        **kwargs
     )

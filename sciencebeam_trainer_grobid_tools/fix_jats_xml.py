@@ -3,9 +3,9 @@ import concurrent
 import logging
 import os
 import re
-from collections import Counter
+from collections import Counter, OrderedDict
 from datetime import datetime
-from typing import Callable, Iterable, List, Tuple, Optional
+from typing import Callable, Dict, Iterable, List, Tuple, Optional
 
 from lxml import etree
 from lxml.builder import E
@@ -31,6 +31,7 @@ from sciencebeam_trainer_grobid_tools.utils.progress_logger import (
     logging_tqdm
 )
 from sciencebeam_trainer_grobid_tools.utils.xml import parse_xml
+from sciencebeam_trainer_grobid_tools.utils.io import auto_download_input_file
 
 from sciencebeam_trainer_grobid_tools.auto_annotate_utils import (
     add_debug_argument,
@@ -598,7 +599,25 @@ def iter_get_changed_original_references(
         yield original_ref
 
 
-def add_meta_data(root: etree.Element, original_root: etree.Element):
+def add_jats_meta_data(root: etree.Element, meta_data_dict: Dict[str, str]):
+    if not meta_data_dict:
+        return
+    custom_meta_group = root.find('custom-meta-group')
+    if custom_meta_group is None:
+        custom_meta_group = with_element_tail(E('custom-meta-group', '\n'), '\n')
+        root.insert(0, custom_meta_group)
+    for key, value in meta_data_dict.items():
+        custom_meta_group.append(with_element_tail(E(
+            'custom-meta',
+            E('meta-name', key),
+            E('meta-value', value)
+        ), tail='\n'))
+
+
+def get_fix_xml_meta_data_dict(
+        root: etree.Element,
+        original_root: etree.Element,
+        fixed_malformatted_xml: bool = False) -> Dict[str, str]:
     changed_original_references = list(iter_get_changed_original_references(
         root, original_root
     ))
@@ -606,30 +625,30 @@ def add_meta_data(root: etree.Element, original_root: etree.Element):
         changed_original_reference.attrib.get('id', '')
         for changed_original_reference in changed_original_references
     ]
-    custom_meta_group = root.find('custom-meta-group')
-    if custom_meta_group is None:
-        custom_meta_group = with_element_tail(E('custom-meta-group', '\n'), '\n')
-        root.insert(0, custom_meta_group)
-    custom_meta_group.append(with_element_tail(E(
-        'custom-meta',
-        E('meta-name', 'fix-jats-note'),
-        E('meta-value', 'This XML file had been modified to fix some of the potential errors.')
-    ), tail='\n'))
-    custom_meta_group.append(with_element_tail(E(
-        'custom-meta',
-        E('meta-name', 'fix-jats-run-timestamp'),
-        E('meta-value', datetime.utcnow().isoformat())
-    ), tail='\n'))
-    custom_meta_group.append(with_element_tail(E(
-        'custom-meta',
-        E('meta-name', 'fix-jats-changed-reference-count'),
-        E('meta-value', str(len(changed_original_references)))
-    ), tail='\n'))
-    custom_meta_group.append(with_element_tail(E(
-        'custom-meta',
-        E('meta-name', 'fix-jats-changed-reference-ids'),
-        E('meta-value', ','.join(changed_original_reference_ids))
-    ), tail='\n'))
+    return OrderedDict([
+        (
+            'fix-jats-note',
+            'This XML file had been modified to fix some of the potential errors.'
+        ), (
+            'fix-jats-run-timestamp',
+            datetime.utcnow().isoformat()
+        ), (
+            'fix-jats-malformatted-xml',
+            str(fixed_malformatted_xml).lower()
+        ), (
+            'fix-jats-changed-reference-count',
+            str(len(changed_original_references))
+        ), (
+            'fix-jats-changed-reference-ids',
+            ','.join(changed_original_reference_ids)
+        )
+    ])
+
+
+def add_fix_xml_meta_data(root: etree.Element, *args, **kwargs):
+    add_jats_meta_data(root, get_fix_xml_meta_data_dict(
+        root, *args, **kwargs
+    ))
 
 
 def fix_jats_xml_file(input_file: str, output_file: str, log_file_enabled: bool = True):
@@ -637,11 +656,17 @@ def fix_jats_xml_file(input_file: str, output_file: str, log_file_enabled: bool 
         LOGGER.info('processing: %r -> %r', input_file, output_file)
     else:
         LOGGER.debug('processing: %r -> %r', input_file, output_file)
-    tree = parse_xml(input_file)
+    fixed_malformatted_xml = False
+    with auto_download_input_file(input_file) as local_input_file:
+        try:
+            tree = parse_xml(local_input_file, filename=input_file, fix_xml=False)
+        except ValueError:
+            tree = parse_xml(local_input_file, filename=input_file, fix_xml=True)
+            fixed_malformatted_xml = True
     root = tree.getroot()
     original_root = clone_node(root)
     fix_jats_xml_node(root)
-    add_meta_data(root, original_root)
+    add_fix_xml_meta_data(root, original_root, fixed_malformatted_xml=fixed_malformatted_xml)
     output_bytes = etree.tostring(
         tree,
         xml_declaration=True,
