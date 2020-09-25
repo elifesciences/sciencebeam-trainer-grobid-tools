@@ -23,6 +23,7 @@ from sciencebeam_utils.utils.file_path import (
 from sciencebeam_utils.utils.xml import (
     get_text_content
 )
+from sciencebeam_utils.utils.exceptions import get_serializable_exception
 
 from sciencebeam_utils.beam_utils.files import find_matching_filenames_with_limit
 from sciencebeam_utils.utils.file_list import load_file_list
@@ -704,6 +705,12 @@ class FixJatsProcessor:
         assert output_file != source_file
         fix_jats_xml_file(source_file, output_file, log_file_enabled=self.log_file_enabled)
 
+    def process_source_file_serializable(self, source_file: str):
+        try:
+            return self.process_source_file(source_file)
+        except Exception as exc:
+            raise get_serializable_exception(exc)
+
     def run_local_pipeline(self, xml_file_list: List[str]):
         num_workers = min(self.num_workers, len(xml_file_list))
         multi_processing = self.multi_processing
@@ -712,10 +719,14 @@ class FixJatsProcessor:
             concurrent.futures.ProcessPoolExecutor if multi_processing
             else concurrent.futures.ThreadPoolExecutor
         )
+        process_source_file = (
+            self.process_source_file_serializable if multi_processing
+            else self.process_source_file
+        )
         with PoolExecutor(max_workers=num_workers) as executor:
             with logging_tqdm(total=len(xml_file_list)) as pbar:
                 future_to_url = {
-                    executor.submit(self.process_source_file, url): url
+                    executor.submit(process_source_file, url): url
                     for url in xml_file_list
                 }
                 LOGGER.debug('future_to_url: %s', future_to_url)

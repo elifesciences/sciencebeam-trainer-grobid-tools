@@ -607,3 +607,22 @@ class TestMain:
         fixed_root = parse_xml(str(output_file))
         fixed_doi = '|'.join(get_text_content_list(fixed_root.xpath(JatsXpaths.DOI)))
         assert fixed_doi == DOI_1
+
+    def test_should_fix_jats_xml_using_multiprocessing(
+            self, input_dir: Path, output_dir: Path):
+        original_ref = get_jats_mixed_ref('doi: ', get_jats_doi_element('doi:' + DOI_1))
+        input_file = input_dir / 'file1.xml'
+        input_file.parent.mkdir()
+        input_file.write_bytes(etree.tostring(get_jats(references=[
+            original_ref
+        ])))
+        output_file = output_dir / 'file1.xml'
+        main([
+            '--source-path=%s' % input_file,
+            '--output-path=%s' % output_dir,
+            '--multi-processing'
+        ])
+        assert output_file.exists()
+        fixed_root = parse_xml(str(output_file))
+        fixed_doi = '|'.join(get_text_content_list(fixed_root.xpath(JatsXpaths.DOI)))
+        assert fixed_doi == DOI_1
