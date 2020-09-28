@@ -305,6 +305,41 @@ class TestFixReference:
         fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(JatsXpaths.DOI)))
         assert fixed_doi == DOI_1
 
+    def test_should_remove_pii_suffix_from_doi_with_tail(self):
+        original_ref = get_jats_mixed_ref(
+            'doi: ',
+            get_jats_doi_element(DOI_1 + ' [pii]'),
+            'tail text'
+        )
+        fixed_ref = fix_reference(clone_node(original_ref))
+        fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(JatsXpaths.DOI)))
+        assert fixed_doi == DOI_1
+
+    def test_should_remove_doi_duplicate_pii_suffix_from_doi_with_tail(self):
+        doi_fragment_duplicate = 'doi-duplicate'
+        doi = DOI_1 + '.' + doi_fragment_duplicate
+        original_ref = get_jats_mixed_ref(
+            'doi: ',
+            get_jats_doi_element(doi + '  ' + doi_fragment_duplicate + ' [pii]'),
+            'tail text'
+        )
+        fixed_ref = fix_reference(clone_node(original_ref))
+        fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(JatsXpaths.DOI)))
+        assert fixed_doi == doi
+
+    def test_should_remove_doi_duplicate_pii_ignoring_punctuation_suffix_from_doi_with_tail(self):
+        doi_fragment_duplicate = 'doi-duplicate'
+        alternative_doi_fragment_duplicate = 'doi.duplicate'
+        doi = DOI_1 + '.' + alternative_doi_fragment_duplicate
+        original_ref = get_jats_mixed_ref(
+            'doi: ',
+            get_jats_doi_element(doi + '  ' + doi_fragment_duplicate + ' [pii]'),
+            'tail text'
+        )
+        fixed_ref = fix_reference(clone_node(original_ref))
+        fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(JatsXpaths.DOI)))
+        assert fixed_doi == doi
+
     def test_should_remove_double_doi_in_ext_link_square_brackets(self):
         original_ref = get_jats_mixed_ref(
             get_jats_ext_link_element(HTTPS_DOI_URL_PREFIX + DOI_1 + '[' + DOI_1 + ']')

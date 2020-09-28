@@ -7,6 +7,8 @@ from collections import Counter, OrderedDict
 from datetime import datetime
 from typing import Callable, Dict, Iterable, List, Tuple, Optional
 
+import regex
+
 from lxml import etree
 from lxml.builder import E
 
@@ -229,6 +231,36 @@ def find_re_pattern_start_end(
     return m.start(group_index), m.end(group_index)
 
 
+def remove_punct(text: str) -> str:
+    return regex.sub(r'\p{Punct}', '', text)
+
+
+def strip_pii_from_doi(doi: str) -> str:
+    if not doi.endswith('[pii]'):
+        return doi
+    doi = doi[0:-5].rstrip()
+    doi_dup_token_candidate = doi.rsplit(' ', maxsplit=1)
+    LOGGER.debug('doi_dup_token_candidate: %r', doi_dup_token_candidate)
+    if len(doi_dup_token_candidate) != 2:
+        return doi
+    doi_start, dup_token_candidate = doi_dup_token_candidate
+    if len(dup_token_candidate) < 3:
+        # too short to be certain
+        return doi
+    if dup_token_candidate in doi_start:
+        # obvious duplication of some part of the doi
+        return doi_start.rstrip()
+    doi_dup_token_candidate_no_punct = remove_punct(dup_token_candidate)
+    if len(doi_dup_token_candidate_no_punct) < 3:
+        # too short to be certain
+        return doi
+    doi_start_no_punct = remove_punct(doi_start)
+    if doi_dup_token_candidate_no_punct in doi_start_no_punct:
+        # repeat of part of the doi
+        return doi_start.rstrip()
+    return doi
+
+
 def find_doi_start_end(text: str) -> Optional[Tuple[int, int]]:
     start_end = find_re_pattern_start_end(text, DOI_PATTERN)
     if start_end:
@@ -237,6 +269,7 @@ def find_doi_start_end(text: str) -> Optional[Tuple[int, int]]:
         char_counts = Counter(doi)
         if doi.endswith('[doi]'):
             doi = doi[0:-5].rstrip()
+        doi = strip_pii_from_doi(doi)
         if char_counts[']'] > char_counts['[']:
             doi = doi.rstrip(']').rstrip()
         start_end = (start, start + len(doi))
