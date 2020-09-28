@@ -1,4 +1,5 @@
 from sciencebeam_trainer_grobid_tools.structured_document.reference_annotator import (
+    DEFAULT_IDNO_PREFIX_REGEX,
     get_prefix_extended_token_tags,
     get_suffix_extended_token_tags,
     get_etal_mapped_tags
@@ -10,14 +11,14 @@ class TestPrefixExtendedTokenTags:
         assert get_prefix_extended_token_tags(
             [None, None, 'b-reference-doi'],
             ['DOI', ':', '12345'],
-            enabled_tags={'reference-doi'}
+            prefix_regex_by_tag_map={'reference-doi': DEFAULT_IDNO_PREFIX_REGEX}
         ) == ['b-reference-doi', 'i-reference-doi', 'i-reference-doi']
 
     def test_not_should_extend_to_other_prefix_text(self):
         assert get_prefix_extended_token_tags(
             [None, None, None, None, None, None, 'b-reference-doi'],
             ['some', 'other', 'text', ',', 'DOI', ':', '12345'],
-            enabled_tags={'reference-doi'}
+            prefix_regex_by_tag_map={'reference-doi': DEFAULT_IDNO_PREFIX_REGEX}
         ) == [
             None, None, None, None,
             'b-reference-doi', 'i-reference-doi', 'i-reference-doi'
@@ -27,7 +28,7 @@ class TestPrefixExtendedTokenTags:
         assert get_prefix_extended_token_tags(
             [None, None, 'b-other'],
             ['DOI', ':', '12345'],
-            enabled_tags={'reference-doi'}
+            prefix_regex_by_tag_map={'reference-doi': DEFAULT_IDNO_PREFIX_REGEX}
         ) == [None, None, 'b-other']
 
 

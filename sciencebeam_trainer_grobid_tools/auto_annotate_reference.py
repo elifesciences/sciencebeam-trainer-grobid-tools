@@ -33,6 +33,7 @@ from .structured_document.simple_matching_annotator import (
 )
 
 from .structured_document.reference_annotator import (
+    DEFAULT_IDNO_PREFIX_REGEX,
     ReferenceAnnotatorConfig,
     ReferenceSubTagOnlyAnnotator,
     ReferencePostProcessingAnnotator
@@ -103,6 +104,16 @@ IDNO_SUB_TAGS = {
     'reference-arxiv'
 }
 
+IDNO_PREFIX_REGEX_MAP = {
+    'reference-issn': DEFAULT_IDNO_PREFIX_REGEX,
+    'reference-isbn': DEFAULT_IDNO_PREFIX_REGEX,
+    'reference-doi': r'\b(?i)DOI(\s?:)?$',
+    'reference-pii': r'\b(?i)PII(\s?:)?$',
+    'reference-pmid': DEFAULT_IDNO_PREFIX_REGEX,
+    'reference-pmcid': DEFAULT_IDNO_PREFIX_REGEX,
+    'reference-arxiv': DEFAULT_IDNO_PREFIX_REGEX
+}
+
 ETAL_SUB_TAG = 'reference-etal'
 
 ETAL_MERGE_ENABLED_SUB_TAGS = {
@@ -121,6 +132,7 @@ def _get_default_reference_annotator_config() -> ReferenceAnnotatorConfig:
         merge_enabled_sub_tags=DEFAULT_MERGE_ENABLED_SUB_TAGS,
         include_prefix_enabled_sub_tags={},
         include_suffix_enabled_sub_tags=NAME_SUFFIX_ENABLED_SUB_TAGS,
+        prefix_regex_by_sub_tag_map=IDNO_PREFIX_REGEX_MAP,
         etal_sub_tag=ETAL_SUB_TAG,
         etal_merge_enabled_sub_tags=ETAL_MERGE_ENABLED_SUB_TAGS,
         remove_untagged_enabled=False

@@ -696,6 +696,50 @@ class TestEndToEnd(object):
         )
 
     @log_on_exception
+    def test_should_not_add_unrelated_idno_prefix_if_enabled(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        target_reference_content_nodes = [
+            E('article-title', ARTICLE_TITLE_1),
+            ', doi: ',
+            E('pub-id', PII_1, {'pub-id-type': 'pii'}),
+            '[pii]',
+            E('pub-id', DOI_1, {'pub-id-type': 'doi'}),
+            '[doi]',
+            ', PMID: ',
+            E('pub-id', PMID_1, {'pub-id-type': 'pmid'})
+        ]
+        target_jats_xml = etree.tostring(
+            get_target_xml_node(reference_nodes=[
+                get_jats_reference_node(LABEL_1, *target_reference_content_nodes),
+            ])
+        )
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_reference_tei_node([
+                TEI_E.bibl(get_nodes_text(target_reference_content_nodes))
+            ])
+        ))
+        LOGGER.debug('target_jats_xml: %s', target_jats_xml)
+        test_helper.xml_file_path.write_bytes(target_jats_xml)
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'matcher': 'simple',
+            'fields': 'reference',
+            'include-idno-prefix': True
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        first_bibl = get_first_bibl(tei_auto_root)
+        assert get_tei_xpath_text(first_bibl, './tei:idno[@type="DOI"]', '|') == (
+            DOI_1
+        )
+        assert get_tei_xpath_text(first_bibl, './tei:idno[@type="PII"]', '|') == (
+            PII_1
+        )
+        assert get_tei_xpath_text(first_bibl, './tei:idno[@type="PMID"]', '|') == (
+            'PMID: ' + PMID_1
+        )
+
+    @log_on_exception
     def test_should_not_preserve_original_bibl_segmentation_when_segmenting_references(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         # we only create a single jats reference that we expect to be reflected
