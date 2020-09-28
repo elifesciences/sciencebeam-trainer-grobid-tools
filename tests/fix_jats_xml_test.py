@@ -27,6 +27,7 @@ from sciencebeam_trainer_grobid_tools.fix_jats_xml import (
     find_pmcid_start_end,
     find_article_title_start_end,
     get_jats_ext_link_element,
+    get_jats_pub_id_element,
     get_jats_doi_element,
     get_jats_pii_element,
     get_jats_pmid_element,
@@ -458,6 +459,12 @@ class TestFixReference:
 
     def test_should_annotate_missing_pmcid_in_comment(self):
         original_ref = get_jats_mixed_ref(E.comment(PMCID_1))
+        fixed_ref = fix_reference(clone_node(original_ref))
+        fixed_pmcid = '|'.join(get_text_content_list(fixed_ref.xpath(JatsXpaths.PMCID)))
+        assert fixed_pmcid == PMCID_1
+
+    def test_should_convert_pub_id_type_to_lower_case(self):
+        original_ref = get_jats_mixed_ref(get_jats_pub_id_element(PMCID_1, 'PMCID'))
         fixed_ref = fix_reference(clone_node(original_ref))
         fixed_pmcid = '|'.join(get_text_content_list(fixed_ref.xpath(JatsXpaths.PMCID)))
         assert fixed_pmcid == PMCID_1
