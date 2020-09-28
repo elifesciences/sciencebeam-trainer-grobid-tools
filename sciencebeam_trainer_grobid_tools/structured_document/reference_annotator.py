@@ -34,6 +34,9 @@ from sciencebeam_trainer_grobid_tools.structured_document.matching_utils import 
 LOGGER = logging.getLogger(__name__)
 
 
+DEFAULT_IDNO_PREFIX_REGEX = r'\b[a-zA-Z]{2,}(\s?:)?$'
+
+
 class ReferenceAnnotatorConfig:
     def __init__(
             self,
@@ -41,6 +44,7 @@ class ReferenceAnnotatorConfig:
             merge_enabled_sub_tags: Set[str],
             include_prefix_enabled_sub_tags: Set[str],
             include_suffix_enabled_sub_tags: Set[str],
+            prefix_regex_by_sub_tag_map: Dict[str, str],
             etal_sub_tag: str,
             etal_merge_enabled_sub_tags: Set[str],
             remove_untagged_enabled: bool):
@@ -48,6 +52,7 @@ class ReferenceAnnotatorConfig:
         self.merge_enabled_sub_tags = merge_enabled_sub_tags
         self.include_prefix_enabled_sub_tags = include_prefix_enabled_sub_tags
         self.include_suffix_enabled_sub_tags = include_suffix_enabled_sub_tags
+        self.prefix_regex_by_sub_tag_map = prefix_regex_by_sub_tag_map
         self.etal_sub_tag = etal_sub_tag
         self.etal_merge_enabled_sub_tags = etal_merge_enabled_sub_tags
         self.remove_untagged_enabled = remove_untagged_enabled
@@ -110,11 +115,14 @@ def _map_tags(tags: List[str], tag_map: Dict[str, str]) -> List[str]:
 def get_prefix_extended_token_tags(
         token_tags: List[str],
         token_texts: List[str],
+        prefix_regex_by_tag_map: Dict[str, str],
         token_whitespaces: List[str] = None,
         enabled_tags: Set[str] = None) -> List[str]:
     result = []
     if token_whitespaces is None:
         token_whitespaces = [' '] * len(token_texts)
+    if enabled_tags is None:
+        enabled_tags = prefix_regex_by_tag_map.keys()
     grouped_token_tags = [
         list(group)
         for _, group in groupby(
@@ -138,7 +146,8 @@ def get_prefix_extended_token_tags(
             result.extend(group_tags)
             continue
         joined_text = JoinedText(group_texts, sep=' ', whitespace_list=group_whitespaces)
-        m = re.search(r'\b[a-zA-Z]{2,}(\s?:)?$', str(joined_text))
+        prefix_regex = prefix_regex_by_tag_map[first_next_tag_value]
+        m = re.search(prefix_regex, str(joined_text))
         LOGGER.debug('m: %s', m)
         if not m:
             result.extend(group_tags)
@@ -175,7 +184,8 @@ def _add_idno_text_prefix(
     transformed_sub_tags = get_prefix_extended_token_tags(
         mapped_sub_tags,
         token_texts,
-        token_whitespaces,
+        prefix_regex_by_tag_map=config.prefix_regex_by_sub_tag_map,
+        token_whitespaces=token_whitespaces,
         enabled_tags=config.include_prefix_enabled_sub_tags
     )
     LOGGER.debug(
