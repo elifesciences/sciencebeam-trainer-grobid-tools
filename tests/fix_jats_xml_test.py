@@ -165,6 +165,11 @@ class TestFindPmcidValidStartEnd:
         start, end = find_pmcid_start_end(text)
         assert text[start:end] == text
 
+    def test_should_accept_mixed_case_pmcid(self):
+        text = 'Pmc1234567'
+        start, end = find_pmcid_start_end(text)
+        assert text[start:end] == text
+
 
 class TestFindArticleTitleStartEnd:
     def test_should_not_change_valid_title_with_semicolon(self):

@@ -192,10 +192,11 @@ def replace_element_with_text(current: etree.Element, text: str):
 def find_re_pattern_start_end(
         text: str,
         pattern: str,
+        flags: int = 0,
         group_index: int = 1) -> Optional[Tuple[int, int]]:
     if text is None:
         raise RuntimeError('text requires, was none')
-    m = re.search(pattern, text)
+    m = re.search(pattern, text, flags=flags)
     if not m:
         LOGGER.debug('pattern (%r) not found in: %r', pattern, text)
         return None
@@ -237,7 +238,7 @@ def find_pmid_fix_start_end(text: str) -> Optional[Tuple[int, int]]:
 
 
 def find_pmcid_start_end(text: str) -> Optional[Tuple[int, int]]:
-    return find_re_pattern_start_end(text, PMCID_PATTERN)
+    return find_re_pattern_start_end(text, PMCID_PATTERN, flags=re.IGNORECASE)
 
 
 def find_doi_ext_link_start_end(text: str) -> Optional[Tuple[int, int]]:
