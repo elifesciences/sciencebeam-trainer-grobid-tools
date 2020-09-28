@@ -4,4 +4,5 @@ google-api-python-client==1.12.2
 lxml==4.5.2
 numpy==1.19.2
 regex==2020.7.14
+sciencebeam-alignment==0.0.5
 sciencebeam-utils==0.1.1
