@@ -1,5 +1,6 @@
 import os
 from contextlib import contextmanager
+from functools import partial
 from pathlib import Path
 from shutil import copyfileobj
 from tempfile import TemporaryDirectory
@@ -23,10 +24,10 @@ def auto_download_input_file(file_url_or_open_fn: Union[str, callable]) -> str:
     with TemporaryDirectory(suffix='-input') as temp_dir:
         if file_url:
             temp_file = os.path.join(temp_dir, os.path.basename(file_url))
-            FileSystems.copy([file_url], [temp_file])
+            open_fn = partial(FileSystems.open, file_url)
         else:
             temp_file = os.path.join(temp_dir, 'temp.file')
-            with open_fn() as source:
-                with open(temp_file, mode='wb') as temp_fp:
-                    copyfileobj(source, temp_fp)
+        with open_fn() as source:
+            with open(temp_file, mode='wb') as temp_fp:
+                copyfileobj(source, temp_fp)
         yield temp_file
