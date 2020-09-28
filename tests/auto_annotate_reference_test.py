@@ -52,6 +52,7 @@ LAST_PAGE_1 = '191'
 ISSN_1 = '1012-4567'
 ISBN_1 = '978-1-234-05432-5'
 DOI_1 = '10.12345/test.2001.2.3'
+PII_1 = 'S0123-1234(11)01234-5'
 PMID_1 = '1234567'
 PMCID_1 = 'PMC1000001'
 ARXIV_1 = '1723.008484'
@@ -177,6 +178,8 @@ class TestEndToEnd(object):
             E('isbn', ISBN_1),
             ', doi: ',
             E('pub-id', DOI_1, {'pub-id-type': 'doi'}),
+            ', pii: ',
+            E('pub-id', PII_1, {'pub-id-type': 'pii'}),
             ', PMID: ',
             E('pub-id', PMID_1, {'pub-id-type': 'pmid'}),
             ', PMCID: ',
@@ -245,6 +248,9 @@ class TestEndToEnd(object):
         )
         assert get_tei_xpath_text(first_bibl, './tei:idno[@type="DOI"]', '|') == (
             DOI_1
+        )
+        assert get_tei_xpath_text(first_bibl, './tei:idno[@type="PII"]', '|') == (
+            PII_1
         )
         assert get_tei_xpath_text(first_bibl, './tei:idno[@type="PMID"]', '|') == (
             PMID_1
@@ -635,6 +641,8 @@ class TestEndToEnd(object):
             E('isbn', ISBN_1),
             ', doi: ',
             E('pub-id', DOI_1, {'pub-id-type': 'doi'}),
+            ', pii: ',
+            E('pub-id', PII_1, {'pub-id-type': 'pii'}),
             ', PMID: ',
             E('pub-id', PMID_1, {'pub-id-type': 'pmid'}),
             ', PMCID: ',
@@ -673,6 +681,9 @@ class TestEndToEnd(object):
         )
         assert get_tei_xpath_text(first_bibl, './tei:idno[@type="DOI"]', '|') == (
             'doi: ' + DOI_1
+        )
+        assert get_tei_xpath_text(first_bibl, './tei:idno[@type="PII"]', '|') == (
+            'pii: ' + PII_1
         )
         assert get_tei_xpath_text(first_bibl, './tei:idno[@type="PMID"]', '|') == (
             'PMID: ' + PMID_1

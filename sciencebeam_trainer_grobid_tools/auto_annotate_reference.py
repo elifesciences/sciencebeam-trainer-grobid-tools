@@ -69,6 +69,7 @@ REFERENCE_TAG_TO_TEI_PATH_MAPPING = {
     'reference-issn': 'tei:bibl/tei:idno[@type="ISSN"]',
     'reference-isbn': 'tei:bibl/tei:idno[@type="ISBN"]',
     'reference-doi': 'tei:bibl/tei:idno[@type="DOI"]',
+    'reference-pii': 'tei:bibl/tei:idno[@type="PII"]',
     'reference-pmid': 'tei:bibl/tei:idno[@type="PMID"]',
     'reference-pmcid': 'tei:bibl/tei:idno[@type="PMC"]',
     'reference-arxiv': 'tei:bibl/tei:idno[@type="arxiv"]',
@@ -96,6 +97,7 @@ IDNO_SUB_TAGS = {
     'reference-issn',
     'reference-isbn',
     'reference-doi',
+    'reference-pii',
     'reference-pmid',
     'reference-pmcid',
     'reference-arxiv'
