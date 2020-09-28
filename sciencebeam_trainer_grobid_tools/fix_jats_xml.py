@@ -235,6 +235,10 @@ def remove_punct(text: str) -> str:
     return regex.sub(r'\p{Punct}', '', text)
 
 
+def remove_punct_or_whitespace(text: str) -> str:
+    return regex.sub(r'\p{Punct}|\s', '', text)
+
+
 def strip_pii_from_doi(doi: str) -> str:
     if not doi.endswith('[pii]'):
         return doi
@@ -261,6 +265,23 @@ def strip_pii_from_doi(doi: str) -> str:
     return doi
 
 
+def remove_duplicate_doi(doi: str) -> str:
+    doi_prefix, path = doi.split('/', maxsplit=1)
+    other_doi_start_end = find_re_pattern_start_end(path, DOI_PATTERN)
+    if not other_doi_start_end:
+        return doi
+    other_doi_start, _ = other_doi_start_end
+    other_doi = path[other_doi_start:]
+    doi_start = doi_prefix + '/' + path[:other_doi_start]
+    if other_doi in doi_start:
+        return doi_start.rstrip()
+    other_doi_no_punct = remove_punct_or_whitespace(other_doi)
+    doi_start_no_punct = remove_punct_or_whitespace(doi_start)
+    if other_doi_no_punct in doi_start_no_punct:
+        return doi_start.rstrip()
+    return doi
+
+
 def find_doi_start_end(text: str) -> Optional[Tuple[int, int]]:
     start_end = find_re_pattern_start_end(text, DOI_PATTERN)
     if start_end:
@@ -270,6 +291,8 @@ def find_doi_start_end(text: str) -> Optional[Tuple[int, int]]:
         if doi.endswith('[doi]'):
             doi = doi[0:-5].rstrip()
         doi = strip_pii_from_doi(doi)
+        doi = remove_duplicate_doi(doi)
+        doi = doi.rstrip(';')
         if char_counts[']'] > char_counts['[']:
             doi = doi.rstrip(']').rstrip()
         start_end = (start, start + len(doi))
