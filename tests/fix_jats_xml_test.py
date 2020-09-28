@@ -24,6 +24,7 @@ from sciencebeam_trainer_grobid_tools.fix_jats_xml import (
     find_doi_start_end,
     find_doi_url_prefix_valid_start_end,
     find_pii_valid_start_end,
+    find_pmcid_start_end,
     find_article_title_start_end,
     get_jats_ext_link_element,
     get_jats_doi_element,
@@ -151,6 +152,18 @@ class TestFindPiiValidStartEnd:
 
     def test_should_accept_valid_pii_with_capital_x_without_punct(self):
         assert find_pii_valid_start_end('S0123123X1101234X') is not None
+
+
+class TestFindPmcidValidStartEnd:
+    def test_should_accept_valid_pmcid(self):
+        text = PMCID_1
+        start, end = find_pmcid_start_end(text)
+        assert text[start:end] == PMCID_1
+
+    def test_should_accept_short_pmcid(self):
+        text = 'PMC12345'
+        start, end = find_pmcid_start_end(text)
+        assert text[start:end] == text
 
 
 class TestFindArticleTitleStartEnd:

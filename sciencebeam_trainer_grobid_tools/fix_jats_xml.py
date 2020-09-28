@@ -84,7 +84,7 @@ PII_OTHER_PATTERN = r'\b(?:doi\:)?(\S{5,})\s*\[pii\]'
 
 PMID_FIX_PATTERN = r'(?:PMID\s*\:\s*)?(\d{1,})'
 PMID_PATTERN = r'(?:PMID\s*\:\s*)(\d{1,})'
-PMCID_PATTERN = r'(PMC\d{7,})'
+PMCID_PATTERN = r'(PMC\d{1,})'
 
 DOI_URL_PREFIX_PATTERN = r'((?:https?\s*\:\s*/\s*/\s*)?(?:[a-z]+\s*\.\s*)?doi\s*.\s*org\s*/\s*)'
 
