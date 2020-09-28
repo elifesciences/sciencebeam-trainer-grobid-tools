@@ -50,6 +50,7 @@ class JatsXpaths:
     MIXED_CITATION = './/mixed-citation'
     ARTICLE_TITLE = './/article-title'
     EXT_LINK = './/ext-link'
+    PUB_ID = './/pub-id'
     DOI = './/pub-id[@pub-id-type="doi"]'
     PII = './/pub-id[@pub-id-type="pii"]'
     PMID = './/pub-id[@pub-id-type="pmid"]'
@@ -87,6 +88,33 @@ PMCID_PATTERN = r'(PMC\d{1,})'
 DOI_URL_PREFIX_PATTERN = r'((?:https?\s*\:\s*/\s*/\s*)?(?:[a-z]+\s*\.\s*)?doi\s*.\s*org\s*/\s*)'
 
 ARTICLE_TITLE_PATTERN = r'^(.*?)(\;\s*PMC\d+|\s*,\s*)?$'
+
+
+# https://jats.nlm.nih.gov/articleauthoring/tag-library/1.2/attribute/pub-id-type.html
+KNOWN_PUB_ID_TYPES = {
+    'accession',
+    'archive',
+    'ark',
+    'art-access-id',
+    'arxiv',
+    'coden',
+    'doaj',
+    'doi',
+    'handle',
+    'index',
+    'isbn',
+    'manuscript',
+    'medline',
+    'mr',
+    'other',
+    'pii',
+    'pmcid',
+    'pmid',
+    'publisher-id',
+    'sici',
+    'std-designation',
+    'zbl'
+}
 
 
 def clone_node(node: etree.Element) -> etree.Element:
@@ -565,7 +593,18 @@ def add_pmcid_annotation_if_not_present(reference_element: etree.Element):
     )
 
 
+def convert_known_pub_id_type_to_lower_case(reference_element: etree.Element):
+    for pub_id_element in reference_element.xpath(JatsXpaths.PUB_ID):
+        pub_id_type = pub_id_element.attrib.get('pub-id-type')
+        if not pub_id_type:
+            continue
+        pub_id_type_lower = pub_id_type.lower()
+        if pub_id_type_lower in KNOWN_PUB_ID_TYPES:
+            pub_id_element.attrib['pub-id-type'] = pub_id_type_lower
+
+
 def fix_reference(reference_element: etree.Element) -> etree.Element:
+    convert_known_pub_id_type_to_lower_case(reference_element)
     fix_article_title(reference_element)
     fix_doi(reference_element)
     replace_doi_annotation_with_ext_link_if_url(reference_element)
