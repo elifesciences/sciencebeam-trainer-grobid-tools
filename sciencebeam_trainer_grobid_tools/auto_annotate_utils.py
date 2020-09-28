@@ -14,7 +14,7 @@ from sciencebeam_utils.beam_utils.main import (
 )
 
 from sciencebeam_utils.utils.csv import open_csv_output
-from sciencebeam_utils.utils.tqdm import tqdm_with_logging_redirect
+from sciencebeam_utils.utils.progress_logger import logging_tqdm
 from sciencebeam_utils.beam_utils.files import find_matching_filenames_with_limit
 from sciencebeam_utils.tools.check_file_list import map_file_list_to_file_exists
 
@@ -531,7 +531,7 @@ class AbstractAnnotatePipelineFactory(ABC):
             else concurrent.futures.ThreadPoolExecutor
         )
         with PoolExecutor(max_workers=num_workers) as executor:
-            with tqdm_with_logging_redirect(total=len(tei_xml_file_list)) as pbar:
+            with logging_tqdm(total=len(tei_xml_file_list), logger=LOGGER) as pbar:
                 future_to_url = {
                     executor.submit(self.auto_annotate, url): url
                     for url in tei_xml_file_list

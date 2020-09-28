@@ -27,10 +27,8 @@ from sciencebeam_utils.utils.exceptions import get_serializable_exception
 
 from sciencebeam_utils.beam_utils.files import find_matching_filenames_with_limit
 from sciencebeam_utils.utils.file_list import load_file_list
+from sciencebeam_utils.utils.progress_logger import logging_tqdm
 
-from sciencebeam_trainer_grobid_tools.utils.progress_logger import (
-    logging_tqdm
-)
 from sciencebeam_trainer_grobid_tools.utils.xml import parse_xml
 from sciencebeam_trainer_grobid_tools.utils.io import auto_download_input_file
 
@@ -728,7 +726,7 @@ class FixJatsProcessor:
             else self.process_source_file
         )
         with PoolExecutor(max_workers=num_workers) as executor:
-            with logging_tqdm(total=len(xml_file_list)) as pbar:
+            with logging_tqdm(total=len(xml_file_list), logger=LOGGER) as pbar:
                 future_to_url = {
                     executor.submit(process_source_file, url): url
                     for url in xml_file_list
