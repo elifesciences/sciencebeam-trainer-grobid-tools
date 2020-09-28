@@ -31,6 +31,7 @@ from sciencebeam_trainer_grobid_tools.fix_jats_xml import (
     get_jats_pmid_element,
     get_jats_pmcid_element,
     fix_reference as _fix_reference,
+    fix_jats_xml_file,
     main
 )
 
@@ -509,6 +510,26 @@ class TestFixReference:
         assert fixed_article_title == ARTICLE_TITLE_1
 
 
+class TestFixJatsXmlFile:
+    def test_should_replace_dagger_entity(self, temp_dir: Path):
+        url = 'http://test/path#param1&dagger;'
+        expected_url = 'http://test/path#param1\u2020'
+        input_file = temp_dir / 'input.xml'
+        output_file = temp_dir / 'output.xml'
+        input_file.write_text('\n'.join([
+            '<article><back><ref-list><ref id="r1">',
+            '<ext-link href="{url}">{url}</ext-link>'.format(url=url),
+            '</ref></ref-list></back></article>'
+        ]))
+        fix_jats_xml_file(str(input_file), str(output_file))
+        LOGGER.debug('output xml: %r', output_file.read_text())
+        tree = parse_xml(str(output_file))
+        ext_link = tree.xpath('.//ext-link')[0]
+        assert tree.getroot().tag == 'article'
+        assert ext_link.text == expected_url
+        assert ext_link.attrib.get('href') == expected_url
+
+
 class TestMain:
     def test_should_fix_jats_xml_using_source_path(
             self, input_dir: Path, output_dir: Path):
@@ -581,6 +602,25 @@ class TestMain:
         main([
             '--source-file-list=%s' % source_file_list_path,
             '--output-path=%s' % output_dir
+        ])
+        assert output_file.exists()
+        fixed_root = parse_xml(str(output_file))
+        fixed_doi = '|'.join(get_text_content_list(fixed_root.xpath(JatsXpaths.DOI)))
+        assert fixed_doi == DOI_1
+
+    def test_should_fix_jats_xml_using_multiprocessing(
+            self, input_dir: Path, output_dir: Path):
+        original_ref = get_jats_mixed_ref('doi: ', get_jats_doi_element('doi:' + DOI_1))
+        input_file = input_dir / 'file1.xml'
+        input_file.parent.mkdir()
+        input_file.write_bytes(etree.tostring(get_jats(references=[
+            original_ref
+        ])))
+        output_file = output_dir / 'file1.xml'
+        main([
+            '--source-path=%s' % input_file,
+            '--output-path=%s' % output_dir,
+            '--multi-processing'
         ])
         assert output_file.exists()
         fixed_root = parse_xml(str(output_file))
