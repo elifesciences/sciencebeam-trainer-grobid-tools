@@ -702,9 +702,12 @@ class FixJatsProcessor:
         )
 
     def process_source_file(self, source_file: str):
-        output_file = self.get_output_file_for_source_file(source_file)
-        assert output_file != source_file
-        fix_jats_xml_file(source_file, output_file, log_file_enabled=self.log_file_enabled)
+        try:
+            output_file = self.get_output_file_for_source_file(source_file)
+            assert output_file != source_file
+            fix_jats_xml_file(source_file, output_file, log_file_enabled=self.log_file_enabled)
+        except Exception as exc:
+            raise RuntimeError('failed to process %r due to %r' % (source_file, exc)) from exc
 
     def process_source_file_serializable(self, source_file: str):
         try:
