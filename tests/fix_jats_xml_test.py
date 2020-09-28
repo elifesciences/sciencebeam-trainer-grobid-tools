@@ -362,6 +362,17 @@ class TestFixReference:
         fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(JatsXpaths.DOI)))
         assert fixed_doi == doi_1_a
 
+    def test_should_not_include_pubmed_prefix_in_doi(self):
+        original_ref = get_jats_mixed_ref(
+            'doi: ',
+            DOI_1,
+            '. PubMed PMID: ',
+            PMID_1
+        )
+        fixed_ref = fix_reference(clone_node(original_ref))
+        fixed_doi = '|'.join(get_text_content_list(fixed_ref.xpath(JatsXpaths.DOI)))
+        assert fixed_doi == DOI_1
+
     def test_should_remove_double_doi_in_ext_link_square_brackets(self):
         original_ref = get_jats_mixed_ref(
             get_jats_ext_link_element(HTTPS_DOI_URL_PREFIX + DOI_1 + '[' + DOI_1 + ']')

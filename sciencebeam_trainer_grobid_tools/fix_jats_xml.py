@@ -92,6 +92,13 @@ DOI_URL_PREFIX_PATTERN = r'((?:https?\s*\:\s*/\s*/\s*)?(?:[a-z]+\s*\.\s*)?doi\s*
 ARTICLE_TITLE_PATTERN = r'^(.*?)(\;\s*PMC\d+|\s*,\s*)?$'
 
 
+DOI_STOP_WORDS = {'PubMed', 'PMID', 'PMCID', 'Error', 'Epub'}
+DOI_STOP_WORD_PATTERN = r'(%s)' % '|'.join([
+    r'\b' + re.escape(doi_stop_word) + r'\b'
+    for doi_stop_word in DOI_STOP_WORDS
+])
+
+
 # https://jats.nlm.nih.gov/articleauthoring/tag-library/1.2/attribute/pub-id-type.html
 KNOWN_PUB_ID_TYPES = {
     'accession',
@@ -282,20 +289,34 @@ def remove_duplicate_doi(doi: str) -> str:
     return doi
 
 
+def truncate_doi_at_known_stop_words(doi: str) -> str:
+    m = re.search(DOI_STOP_WORD_PATTERN, doi)
+    LOGGER.debug(
+        'truncate_doi_at_known_stop_words: doi=%r, p=%r, m=%s',
+        doi, DOI_STOP_WORD_PATTERN, m
+    )
+    if not m:
+        return doi
+    return doi[:m.start()].rstrip().rstrip('.')
+
+
 def find_doi_start_end(text: str) -> Optional[Tuple[int, int]]:
     start_end = find_re_pattern_start_end(text, DOI_PATTERN)
     if start_end:
         start, end = start_end
         doi = text[start:end].rstrip().rstrip('.').rstrip()
-        char_counts = Counter(doi)
+        doi = truncate_doi_at_known_stop_words(doi)
         if doi.endswith('[doi]'):
             doi = doi[0:-5].rstrip()
         doi = strip_pii_from_doi(doi)
         doi = remove_duplicate_doi(doi)
         doi = doi.rstrip(';')
+        char_counts = Counter(doi)
         if char_counts[']'] > char_counts['[']:
             doi = doi.rstrip(']').rstrip()
         start_end = (start, start + len(doi))
+        extracted_doi = text[start:start_end[1]]
+        assert extracted_doi == doi, 'expect %r to be %r' % (extracted_doi, doi)
     return start_end
 
 
