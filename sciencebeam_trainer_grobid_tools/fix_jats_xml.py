@@ -92,7 +92,7 @@ ARTICLE_TITLE_PATTERN = r'^(.*?)(\;\s*PMC\d+|\s*,\s*)?$'
 
 
 def clone_node(node: etree.Element) -> etree.Element:
-    return etree.fromstring(etree.tostring(node))
+    return etree.fromstring(etree.tostring(node, encoding='unicode'))
 
 
 def with_element_tail(element: etree.Element, tail: str) -> etree.Element:

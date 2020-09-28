@@ -80,6 +80,14 @@ def fix_reference(ref: etree.Element) -> etree.Element:
     return fixed_ref
 
 
+class TestCloneNode:
+    def test_should_be_able_to_clone_with_unicode(self):
+        text = '\u002A\u002B\u0026\u00E9\u2122'
+        root = E.root(text)
+        cloned_root = clone_node(root)
+        assert cloned_root.text == text
+
+
 class TestFindDoiValidStartEnd:
     def test_should_find_valid_doi(self):
         text = 'before:  %s' % DOI_1
