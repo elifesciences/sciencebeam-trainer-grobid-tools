@@ -48,6 +48,7 @@ DOI_1 = '10.12345/abc/1'
 DOI_2 = '10.12345/abc/2'
 PMID_1 = '12345'
 PMCID_1 = 'PMC1234567'
+WOS_1 = '000123456789001'
 
 HTTPS_DOI_URL_PREFIX = 'https://doi.org/'
 HTTP_DOI_URL_PREFIX = 'http://doi.org/'
@@ -516,6 +517,17 @@ class TestFixReference:
         fixed_ref = fix_reference(clone_node(original_ref))
         fixed_pmid = '|'.join(get_text_content_list(fixed_ref.xpath(JatsXpaths.PMID)))
         assert fixed_pmid == PMID_1
+
+    def test_should_replace_pmid_with_too_many_digits_text(self):
+        original_ref = get_jats_mixed_ref(
+            'PMID: ',
+            get_jats_pmid_element('WOS: ' + WOS_1)
+        )
+        fixed_ref = fix_reference(clone_node(original_ref))
+        fixed_pmid = '|'.join(get_text_content_list(fixed_ref.xpath(JatsXpaths.PMID)))
+        assert fixed_pmid == ''
+        fixed_other = '|'.join(get_text_content_list(fixed_ref.xpath(JatsXpaths.OTHER_PUB_ID)))
+        assert fixed_other == WOS_1
 
     def test_should_separately_annotate_pmid_without_preceding_element(self):
         original_ref = get_jats_mixed_ref(
