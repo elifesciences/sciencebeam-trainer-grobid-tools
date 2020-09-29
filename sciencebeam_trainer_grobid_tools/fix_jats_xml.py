@@ -93,7 +93,7 @@ ARTICLE_TITLE_PATTERN = r'^(.*?)(\;\s*PMC\d+|\s*,\s*)?$'
 
 
 DOI_TRUNCATE_AT_TOKENS = {'PubMed', 'PMID', 'PMCID', 'Error', 'Epub'}
-DOI_TRUNCATE_AT_PATTERN = r'(%s)' % '|'.join([
+DOI_TRUNCATE_AT_PATTERN = r'(?i)(%s)' % '|'.join([
     r'(?:\s)(' + re.escape(token) + r')\b'
     for token in DOI_TRUNCATE_AT_TOKENS
 ])
