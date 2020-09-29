@@ -94,7 +94,7 @@ ARTICLE_TITLE_PATTERN = r'^(.*?)(\;\s*PMC\d+|\s*,\s*)?$'
 
 DOI_STOP_WORDS = {'PubMed', 'PMID', 'PMCID', 'Error', 'Epub'}
 DOI_STOP_WORD_PATTERN = r'(%s)' % '|'.join([
-    r'\b' + re.escape(doi_stop_word) + r'\b'
+    r'(?:\s)(' + re.escape(doi_stop_word) + r')\b'
     for doi_stop_word in DOI_STOP_WORDS
 ])
 
@@ -297,7 +297,7 @@ def truncate_doi_at_known_stop_words(doi: str) -> str:
     )
     if not m:
         return doi
-    return doi[:m.start()].rstrip().rstrip('.')
+    return doi[:m.start(1)].rstrip().rstrip('.')
 
 
 def find_doi_start_end(text: str) -> Optional[Tuple[int, int]]:
