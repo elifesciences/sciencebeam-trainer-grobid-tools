@@ -92,10 +92,10 @@ DOI_URL_PREFIX_PATTERN = r'((?:https?\s*\:\s*/\s*/\s*)?(?:[a-z]+\s*\.\s*)?doi\s*
 ARTICLE_TITLE_PATTERN = r'^(.*?)(\;\s*PMC\d+|\s*,\s*)?$'
 
 
-DOI_STOP_WORDS = {'PubMed', 'PMID', 'PMCID', 'Error', 'Epub'}
-DOI_STOP_WORD_PATTERN = r'(%s)' % '|'.join([
-    r'(?:\s)(' + re.escape(doi_stop_word) + r')\b'
-    for doi_stop_word in DOI_STOP_WORDS
+DOI_TRUNCATE_AT_TOKENS = {'PubMed', 'PMID', 'PMCID', 'Error', 'Epub'}
+DOI_TRUNCATE_AT_PATTERN = r'(%s)' % '|'.join([
+    r'(?:\s)(' + re.escape(token) + r')\b'
+    for token in DOI_TRUNCATE_AT_TOKENS
 ])
 
 
@@ -289,11 +289,11 @@ def remove_duplicate_doi(doi: str) -> str:
     return doi
 
 
-def truncate_doi_at_known_stop_words(doi: str) -> str:
-    m = re.search(DOI_STOP_WORD_PATTERN, doi)
+def truncate_doi_at_known_tokens(doi: str) -> str:
+    m = re.search(DOI_TRUNCATE_AT_PATTERN, doi)
     LOGGER.debug(
         'truncate_doi_at_known_stop_words: doi=%r, p=%r, m=%s',
-        doi, DOI_STOP_WORD_PATTERN, m
+        doi, DOI_TRUNCATE_AT_PATTERN, m
     )
     if not m:
         return doi
@@ -305,7 +305,7 @@ def find_doi_start_end(text: str) -> Optional[Tuple[int, int]]:
     if start_end:
         start, end = start_end
         doi = text[start:end].rstrip().rstrip('.').rstrip()
-        doi = truncate_doi_at_known_stop_words(doi)
+        doi = truncate_doi_at_known_tokens(doi)
         if doi.endswith('[doi]'):
             doi = doi[0:-5].rstrip()
         doi = strip_pii_from_doi(doi)
