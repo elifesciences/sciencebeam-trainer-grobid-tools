@@ -11,6 +11,7 @@ disable=
     too-many-statements,
     too-many-branches,
     too-many-public-methods,
+    too-many-return-statements,
     no-else-return,
     unnecessary-lambda,
     len-as-condition,
