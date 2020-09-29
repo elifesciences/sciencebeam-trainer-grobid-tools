@@ -83,9 +83,10 @@ DOI_PATTERN = r'\b(10\.\d{4,}(?:\.\d{1,})*/.+)'
 PII_VALID_PATTERN = r'\b([S,B]\W*(?:[0-9xX]\W*){15,}[0-9xX])'
 PII_OTHER_PATTERN = r'\b(?:doi\:)?(\S{5,})\s*\[pii\]'
 
-PMID_FIX_PATTERN = r'(?:PMID\s*\:\s*)?(\d{1,})'
-PMID_PATTERN = r'(?:PMID\s*\:\s*)(\d{1,})'
+PMID_FIX_PATTERN = r'(?:PMID\s*\:\s*)?\b(\d{1,10})\b'
+PMID_PATTERN = r'(?:PMID\s*\:\s*)(\d{1,10})\b'
 PMCID_PATTERN = r'(PMC\d{1,})'
+WOS_PATTERN = r'(?:WOS\s*\:\s*)(\d{15,15})\b'
 
 DOI_URL_PREFIX_PATTERN = r'((?:https?\s*\:\s*/\s*/\s*)?(?:[a-z]+\s*\.\s*)?doi\s*.\s*org\s*/\s*)'
 
@@ -355,6 +356,10 @@ def find_pmid_fix_start_end(text: str) -> Optional[Tuple[int, int]]:
 
 def find_pmcid_start_end(text: str) -> Optional[Tuple[int, int]]:
     return find_re_pattern_start_end(text, PMCID_PATTERN, flags=re.IGNORECASE)
+
+
+def find_wos_start_end(text: str) -> Optional[Tuple[int, int]]:
+    return find_re_pattern_start_end(text, WOS_PATTERN, flags=re.IGNORECASE)
 
 
 def find_doi_ext_link_start_end(text: str) -> Optional[Tuple[int, int]]:
@@ -710,6 +715,15 @@ def add_pmcid_annotation_if_not_present(reference_element: etree.Element):
     )
 
 
+def add_wos_as_other_pub_id_annotation_if_not_present(reference_element: etree.Element):
+    add_annotation_to_reference_element_if_matching(
+        reference_element,
+        find_start_end_fn=find_wos_start_end,
+        create_element_fn=get_jats_other_pub_id_element,
+        parse_comment=True
+    )
+
+
 def convert_known_pub_id_type_to_lower_case(reference_element: etree.Element):
     for pub_id_element in reference_element.xpath(JatsXpaths.PUB_ID):
         pub_id_type = pub_id_element.attrib.get('pub-id-type')
@@ -733,6 +747,7 @@ def fix_reference(reference_element: etree.Element) -> etree.Element:
     add_pmcid_annotation_if_not_present(reference_element)
     add_pii_valid_annotation_if_not_present(reference_element)
     add_pii_other_pub_id_annotation_if_not_present(reference_element)
+    add_wos_as_other_pub_id_annotation_if_not_present(reference_element)
     add_doi_annotation_if_not_present(reference_element)
     return reference_element
 
