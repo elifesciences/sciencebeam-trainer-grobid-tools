@@ -224,6 +224,19 @@ def replace_element_with_text(current: etree.Element, text: str):
     current.getparent().remove(current)
 
 
+def add_next_sibling_element(element: etree.Element, new_element: etree.Element):
+    element.getparent().insert(
+        element.getparent().index(element) + 1,
+        new_element
+    )
+
+
+def add_next_sibling_elements(element: etree.Element, new_elements: List[etree.Element]):
+    for new_element in new_elements:
+        add_next_sibling_element(element, new_element)
+        element = new_element
+
+
 def find_re_pattern_start_end(
         text: str,
         pattern: str,
@@ -431,10 +444,7 @@ def add_annotation_to_element_text_if_matching(
         tail=text[end:]
     )
     if as_next_sibling:
-        element.getparent().insert(
-            element.getparent().index(element) + 1,
-            new_element
-        )
+        add_next_sibling_element(element, new_element)
     else:
         element.insert(0, new_element)
     return True
@@ -508,7 +518,37 @@ def add_annotation_to_reference_element_if_matching(
     return False
 
 
+def split_url(url: str) -> List[str]:
+    pos = 0
+    result = []
+    for m in regex.finditer(r'https?://', url):
+        start = m.start()
+        if start > pos:
+            result.append(url[pos:start])
+        pos = start
+    if len(url) > pos:
+        result.append(url[pos:])
+    return result
+
+
 def fix_ext_link(reference_element: etree.Element):
+    for child_element in list(reference_element.xpath(JatsXpaths.EXT_LINK)):
+        text = child_element.text
+        if not text:
+            continue
+        href = child_element.attrib.get(XLINK_HREF)
+        hrefs = split_url(text)
+        # very special case where hrefs are joined by 'w'
+        if not href or (href != text and href != 'w'.join(hrefs)):
+            continue
+        LOGGER.debug('hrefs: %r', hrefs)
+        if len(hrefs) > 1:
+            child_element.text = hrefs[0]
+            child_element.attrib[XLINK_HREF] = hrefs[0]
+        add_next_sibling_elements(child_element, [
+            get_jats_ext_link_element(other_href)
+            for other_href in hrefs[1:]
+        ])
     change_annotations_to_matching_text(
         reference_element.xpath(JatsXpaths.EXT_LINK),
         find_start_end_fn=find_ext_link_start_end
