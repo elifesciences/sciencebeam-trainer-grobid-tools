@@ -107,8 +107,8 @@ IDNO_SUB_TAGS = {
 IDNO_PREFIX_REGEX_MAP = {
     'reference-issn': DEFAULT_IDNO_PREFIX_REGEX,
     'reference-isbn': DEFAULT_IDNO_PREFIX_REGEX,
-    'reference-doi': r'\b(?i)DOI(\s?:)?$',
-    'reference-pii': r'\b(?i)PII(\s?:)?$',
+    'reference-doi': r'(?i)\bDOI(\s?:)?$',
+    'reference-pii': r'(?i)\bPII(\s?:)?$',
     'reference-pmid': DEFAULT_IDNO_PREFIX_REGEX,
     'reference-pmcid': DEFAULT_IDNO_PREFIX_REGEX,
     'reference-arxiv': DEFAULT_IDNO_PREFIX_REGEX

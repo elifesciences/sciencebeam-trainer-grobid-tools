@@ -7,6 +7,8 @@ from collections import Counter, OrderedDict
 from datetime import datetime
 from typing import Callable, Dict, Iterable, List, Tuple, Optional
 
+import regex
+
 from lxml import etree
 from lxml.builder import E
 
@@ -88,6 +90,13 @@ PMCID_PATTERN = r'(PMC\d{1,})'
 DOI_URL_PREFIX_PATTERN = r'((?:https?\s*\:\s*/\s*/\s*)?(?:[a-z]+\s*\.\s*)?doi\s*.\s*org\s*/\s*)'
 
 ARTICLE_TITLE_PATTERN = r'^(.*?)(\;\s*PMC\d+|\s*,\s*)?$'
+
+
+DOI_TRUNCATE_AT_TOKENS = {'PubMed', 'PMID', 'PMCID', 'Error', 'Epub'}
+DOI_TRUNCATE_AT_PATTERN = r'(?i)(%s)' % '|'.join([
+    r'(?:\s)(' + re.escape(token) + r')\b'
+    for token in DOI_TRUNCATE_AT_TOKENS
+])
 
 
 # https://jats.nlm.nih.gov/articleauthoring/tag-library/1.2/attribute/pub-id-type.html
@@ -229,17 +238,85 @@ def find_re_pattern_start_end(
     return m.start(group_index), m.end(group_index)
 
 
+def remove_punct(text: str) -> str:
+    return regex.sub(r'\p{Punct}', '', text)
+
+
+def remove_punct_or_whitespace(text: str) -> str:
+    return regex.sub(r'\p{Punct}|\s', '', text)
+
+
+def strip_pii_from_doi(doi: str) -> str:
+    if not doi.endswith('[pii]'):
+        return doi
+    doi = doi[0:-5].rstrip()
+    doi_dup_token_candidate = doi.rsplit(' ', maxsplit=1)
+    LOGGER.debug('doi_dup_token_candidate: %r', doi_dup_token_candidate)
+    if len(doi_dup_token_candidate) != 2:
+        return doi
+    doi_start, dup_token_candidate = doi_dup_token_candidate
+    if len(dup_token_candidate) < 3:
+        # too short to be certain
+        return doi
+    if dup_token_candidate in doi_start:
+        # obvious duplication of some part of the doi
+        return doi_start.rstrip()
+    doi_dup_token_candidate_no_punct = remove_punct(dup_token_candidate)
+    if len(doi_dup_token_candidate_no_punct) < 3:
+        # too short to be certain
+        return doi
+    doi_start_no_punct = remove_punct(doi_start)
+    if doi_dup_token_candidate_no_punct in doi_start_no_punct:
+        # repeat of part of the doi
+        return doi_start.rstrip()
+    return doi
+
+
+def remove_duplicate_doi(doi: str) -> str:
+    doi_prefix, path = doi.split('/', maxsplit=1)
+    other_doi_start_end = find_re_pattern_start_end(path, DOI_PATTERN)
+    if not other_doi_start_end:
+        return doi
+    other_doi_start, _ = other_doi_start_end
+    other_doi = path[other_doi_start:]
+    doi_start = doi_prefix + '/' + path[:other_doi_start]
+    if other_doi in doi_start:
+        return doi_start.rstrip()
+    other_doi_no_punct = remove_punct_or_whitespace(other_doi)
+    doi_start_no_punct = remove_punct_or_whitespace(doi_start)
+    if other_doi_no_punct in doi_start_no_punct:
+        return doi_start.rstrip()
+    return doi
+
+
+def truncate_doi_at_known_tokens(doi: str) -> str:
+    m = re.search(DOI_TRUNCATE_AT_PATTERN, doi)
+    LOGGER.debug(
+        'truncate_doi_at_known_stop_words: doi=%r, p=%r, m=%s',
+        doi, DOI_TRUNCATE_AT_PATTERN, m
+    )
+    if not m:
+        return doi
+    return doi[:m.start(1)].rstrip().rstrip('.')
+
+
 def find_doi_start_end(text: str) -> Optional[Tuple[int, int]]:
     start_end = find_re_pattern_start_end(text, DOI_PATTERN)
     if start_end:
         start, end = start_end
         doi = text[start:end].rstrip().rstrip('.').rstrip()
-        char_counts = Counter(doi)
+        doi = truncate_doi_at_known_tokens(doi)
         if doi.endswith('[doi]'):
             doi = doi[0:-5].rstrip()
+        doi = strip_pii_from_doi(doi)
+        doi = remove_duplicate_doi(doi)
+        doi = doi.rstrip(';')
+        char_counts = Counter(doi)
         if char_counts[']'] > char_counts['[']:
             doi = doi.rstrip(']').rstrip()
         start_end = (start, start + len(doi))
+        extracted_doi = text[start:start_end[1]]
+        assert extracted_doi == doi, 'expect %r to be %r' % (extracted_doi, doi)
     return start_end
 
 
