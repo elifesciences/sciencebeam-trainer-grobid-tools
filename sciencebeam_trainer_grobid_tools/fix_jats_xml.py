@@ -93,9 +93,9 @@ DOI_URL_PREFIX_PATTERN = r'((?:https?\s*\:\s*/\s*/\s*)?(?:[a-z]+\s*\.\s*)?doi\s*
 ARTICLE_TITLE_PATTERN = r'^(.*?)(\;\s*PMC\d+|\s*,\s*)?$'
 
 
-DOI_TRUNCATE_AT_TOKENS = {'PubMed', 'PMID', 'PMCID', 'Error', 'Epub'}
+DOI_TRUNCATE_AT_TOKENS = {'PubMed', 'PMID', 'PMCID', 'Error', 'Epub', 'Accessed'}
 DOI_TRUNCATE_AT_PATTERN = r'(?i)(%s)' % '|'.join([
-    r'(?:\s)(' + re.escape(token) + r')\b'
+    r'(?:\s|\()(' + re.escape(token) + r')\b'
     for token in DOI_TRUNCATE_AT_TOKENS
 ])
 
