@@ -45,10 +45,12 @@ ARTICLE_TITLE_1 = 'This is the article title'
 INVALID_PII_1 = '12/34/4567'
 PII_1 = 'S0123-1234(11)01234-5'
 DOI_1 = '10.12345/abc/1'
+DOI_2 = '10.12345/abc/2'
 PMID_1 = '12345'
 PMCID_1 = 'PMC1234567'
 
 HTTPS_DOI_URL_PREFIX = 'https://doi.org/'
+HTTP_DOI_URL_PREFIX = 'http://doi.org/'
 HTTPS_SPACED_DOI_URL_PREFIX = 'https : // doi . org / '
 
 
@@ -393,6 +395,39 @@ class TestFixReference:
         fixed_ext_link = '|'.join(get_text_content_list(fixed_ext_links))
         assert fixed_ext_link == url
         assert fixed_ext_links[0].attrib[XLINK_HREF] == url
+
+    def test_should_split_ext_link_containing_multiple_https_links(self):
+        url_1 = HTTPS_DOI_URL_PREFIX + DOI_1
+        url_2 = HTTPS_DOI_URL_PREFIX + DOI_2
+        original_ref = get_jats_mixed_ref(
+            get_jats_ext_link_element(url_1 + url_2)
+        )
+        fixed_ref = fix_reference(clone_node(original_ref))
+        fixed_ext_links = fixed_ref.xpath(JatsXpaths.EXT_LINK)
+        fixed_ext_link_urls = get_text_content_list(fixed_ext_links)
+        assert fixed_ext_link_urls == [url_1, url_2]
+
+    def test_should_split_ext_link_containing_multiple_http_links(self):
+        url_1 = HTTP_DOI_URL_PREFIX + DOI_1
+        url_2 = HTTP_DOI_URL_PREFIX + DOI_2
+        original_ref = get_jats_mixed_ref(
+            get_jats_ext_link_element(url_1 + url_2)
+        )
+        fixed_ref = fix_reference(clone_node(original_ref))
+        fixed_ext_links = fixed_ref.xpath(JatsXpaths.EXT_LINK)
+        fixed_ext_link_urls = get_text_content_list(fixed_ext_links)
+        assert fixed_ext_link_urls == [url_1, url_2]
+
+    def test_should_split_ext_link_containing_multiple_links_and_extra_char_in_href(self):
+        url_1 = HTTPS_DOI_URL_PREFIX + DOI_1
+        url_2 = HTTPS_DOI_URL_PREFIX + DOI_2
+        original_ref = get_jats_mixed_ref(
+            get_jats_ext_link_element(url_1 + url_2, url=url_1 + 'w' + url_2)
+        )
+        fixed_ref = fix_reference(clone_node(original_ref))
+        fixed_ext_links = fixed_ref.xpath(JatsXpaths.EXT_LINK)
+        fixed_ext_link_urls = get_text_content_list(fixed_ext_links)
+        assert fixed_ext_link_urls == [url_1, url_2]
 
     def test_should_separately_annotate_pii_without_preceding_element(self):
         original_ref = get_jats_mixed_ref(
