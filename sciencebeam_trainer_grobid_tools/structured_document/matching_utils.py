@@ -218,7 +218,7 @@ class SequenceWrapper:
 
 class SequenceWrapperWithPosition(SequenceWrapper):
     def __init__(self, *args, position: int = None, **kwargs):
-        super(SequenceWrapperWithPosition, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.position = position
 
     def sub_sequence_for_tokens(self, tokens: list) -> 'SequenceWrapperWithPosition':

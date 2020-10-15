@@ -882,7 +882,7 @@ class FixJatsProcessor:
         try:
             return self.process_source_file(source_file)
         except Exception as exc:
-            raise get_serializable_exception(exc)
+            raise get_serializable_exception(exc) from exc
 
     def run_local_pipeline(self, xml_file_list: List[str]):
         num_workers = min(self.num_workers, len(xml_file_list))
