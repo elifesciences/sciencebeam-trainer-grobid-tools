@@ -706,5 +706,5 @@ def save_grobid_training_tei_structured_document(
     try:
         xml = etree.tostring(grobid_training_tei_structured_document.root)
     except Exception as e:
-        raise RuntimeError('failed to convert to xml for %s due to %s' % (filename, e))
+        raise RuntimeError('failed to convert to xml for %s due to %s' % (filename, e)) from e
     save_file_content(filename, xml)
