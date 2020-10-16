@@ -9,6 +9,7 @@ from sciencebeam_gym.preprocess.annotation.annotator import Annotator
 
 from .utils.string import comma_separated_str_to_list
 from .utils.xml import parse_xml
+from .utils.tei_xml import TEI_NS, TEI_NS_MAP
 
 from .structured_document.grobid_training_tei import (
     DEFAULT_TAG_KEY
@@ -37,13 +38,6 @@ from .structured_document.simple_matching_annotator import (
 
 
 LOGGER = logging.getLogger(__name__)
-
-
-TEI_NS = 'http://www.tei-c.org/ns/1.0'
-
-TEI_NS_MAP = {
-    'tei': TEI_NS
-}
 
 
 AFFILIATION_CONTAINER_NODE_PATH = (

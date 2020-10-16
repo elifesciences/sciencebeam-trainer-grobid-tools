@@ -9,11 +9,9 @@ from lxml.builder import ElementMaker, E
 
 from sciencebeam_utils.utils.xml import get_text_content, get_text_content_list
 
-from sciencebeam_trainer_grobid_tools.auto_annotate_affiliation_address import (
-    main,
-    TEI_NS,
-    TEI_NS_MAP
-)
+from sciencebeam_trainer_grobid_tools.utils.tei_xml import TEI_NS, TEI_NS_MAP, tei_xpath
+
+from sciencebeam_trainer_grobid_tools.auto_annotate_affiliation_address import main
 
 from .test_utils import log_on_exception, dict_to_args
 from .auto_annotate_test_utils import (
@@ -43,22 +41,15 @@ LABEL_1 = '1'
 TEI_E = ElementMaker(namespace=TEI_NS, nsmap=TEI_NS_MAP)
 
 
-def _tei_xpath(parent: etree.Element, xpath: str) -> List[etree.Element]:
-    result = parent.xpath(xpath, namespaces=TEI_NS_MAP)
-    if not result:
-        LOGGER.debug('no results found for: %r', xpath)
-    return result
-
-
 def _get_first_tei_xpath(parent: etree.Element, xpath: str) -> List[etree.Element]:
-    result = _tei_xpath(parent, xpath)
+    result = tei_xpath(parent, xpath)
     if not result:
         xpath_fragments = xpath.split('/')
         for fragment_count in reversed(range(1, len(xpath_fragments))):
             parent_xpath = '/'.join(xpath_fragments[:fragment_count])
             if len(parent_xpath) <= 1:
                 break
-            parent_result = _tei_xpath(parent, parent_xpath)
+            parent_result = tei_xpath(parent, parent_xpath)
             if parent_result:
                 LOGGER.debug(
                     'no results for %r, but found matching elements for %r: %s',
@@ -99,7 +90,7 @@ def get_nodes_text(nodes: List[Union[str, etree.Element]]) -> str:
 
 
 def get_all_affiliations(root: etree.Element) -> etree.Element:
-    return _tei_xpath(root, AFFILIATION_XPATH)
+    return tei_xpath(root, AFFILIATION_XPATH)
 
 
 def get_first_affiliation(root: etree.Element) -> etree.Element:

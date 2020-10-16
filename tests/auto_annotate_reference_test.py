@@ -9,11 +9,9 @@ from lxml.builder import ElementMaker, E
 
 from sciencebeam_utils.utils.xml import get_text_content
 
-from sciencebeam_trainer_grobid_tools.auto_annotate_reference import (
-    main,
-    TEI_NS,
-    TEI_NS_MAP
-)
+from sciencebeam_trainer_grobid_tools.utils.tei_xml import TEI_NS, TEI_NS_MAP
+
+from sciencebeam_trainer_grobid_tools.auto_annotate_reference import main
 
 from .test_utils import log_on_exception, dict_to_args
 from .auto_annotate_test_utils import (
