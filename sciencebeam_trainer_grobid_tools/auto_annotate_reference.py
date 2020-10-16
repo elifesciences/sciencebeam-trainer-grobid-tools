@@ -118,10 +118,6 @@ ETAL_MERGE_ENABLED_SUB_TAGS = {
 }
 
 
-def get_logger():
-    return logging.getLogger(__name__)
-
-
 def _get_default_reference_annotator_config() -> ReferenceAnnotatorConfig:
     return ReferenceAnnotatorConfig(
         sub_tag_map=DEFAULT_SUB_TAG_MAP,
@@ -276,7 +272,7 @@ def parse_args(argv=None):
 
     parsed_args = parser.parse_args(argv)
     process_annotation_pipeline_arguments(parser, parsed_args)
-    get_logger().info('parsed_args: %s', parsed_args)
+    LOGGER.info('parsed_args: %s', parsed_args)
     return parsed_args
 
 
