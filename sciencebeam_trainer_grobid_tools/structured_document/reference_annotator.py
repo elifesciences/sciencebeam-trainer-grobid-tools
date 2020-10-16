@@ -421,6 +421,4 @@ class ReferencePostProcessingAnnotator(AbstractAnnotator):
                 entity_tokens,
                 config=self.config
             )
-        if self.config.remove_untagged_enabled:
-            structured_document.remove_all_untagged()
         return structured_document

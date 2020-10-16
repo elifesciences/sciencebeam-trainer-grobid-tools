@@ -19,6 +19,8 @@ from .annotation.target_annotation import (
     xml_root_to_target_annotations
 )
 
+from .annotation.remove_untagged_annotator import RemoveUntaggedPostProcessingAnnotator
+
 from .auto_annotate_utils import (
     add_debug_argument,
     process_debug_argument,
@@ -138,7 +140,8 @@ def _get_annotator(
         xml_mapping,
         annotator_config: AnnotatorConfig,
         reference_annotator_config: ReferenceAnnotatorConfig,
-        segment_references: bool):
+        segment_references: bool,
+        remove_untagged_enabled: bool):
     target_annotations = xml_root_to_target_annotations(
         parse_xml(xml_path).getroot(),
         xml_mapping
@@ -163,6 +166,8 @@ def _get_annotator(
             reference_annotator_config
         )
     )
+    if remove_untagged_enabled:
+        annotators.append(RemoveUntaggedPostProcessingAnnotator())
     annotator = Annotator(annotators)
     return annotator
 
@@ -214,9 +219,7 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
         self.reference_annotator_config = _get_default_reference_annotator_config()
         if opt.include_idno_prefix:
             self.reference_annotator_config.include_prefix_enabled_sub_tags = IDNO_SUB_TAGS
-        self.reference_annotator_config.remove_untagged_enabled = (
-            opt.remove_invalid_references
-        )
+        self.remove_untagged_enabled = opt.remove_invalid_references
 
     def get_annotator(self, source_url: str):
         target_xml_path = self.get_target_xml_for_source_file(source_url)
@@ -225,7 +228,8 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
             self.xml_mapping,
             annotator_config=self.get_annotator_config(),
             reference_annotator_config=self.reference_annotator_config,
-            segment_references=self.segment_references
+            segment_references=self.segment_references,
+            remove_untagged_enabled=self.remove_untagged_enabled
         )
 
 
