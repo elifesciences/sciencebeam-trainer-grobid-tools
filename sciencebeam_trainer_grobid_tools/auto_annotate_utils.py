@@ -1,6 +1,7 @@
 import argparse
 import logging
 import concurrent.futures
+import re
 import os
 from abc import ABC, abstractmethod
 from typing import Callable, Dict, List, Set
@@ -391,6 +392,29 @@ def get_file_list_without_output_file(
     ]
 
 
+def _resolve_tag_expression_namespace(
+        tag_expression: str,
+        namespaces: Dict[str, str]) -> str:
+    if not tag_expression or not namespaces:
+        return tag_expression
+    for ns_name, ns_url in namespaces.items():
+        tag_expression = re.sub(
+            r'\b' + re.escape(ns_name) + r':',
+            '{' + ns_url + '}',
+            tag_expression
+        )
+    return tag_expression
+
+
+def _resolve_tag_to_tei_mapping_namespace(
+        tag_to_tei_path_mapping: Dict[str, str],
+        namespaces: Dict[str, str]) -> Dict[str, str]:
+    return {
+        key: _resolve_tag_expression_namespace(value, namespaces=namespaces)
+        for key, value in tag_to_tei_path_mapping.items()
+    }
+
+
 class AbstractAnnotatePipelineFactory(ABC):
     def __init__(
             self,
@@ -402,7 +426,10 @@ class AbstractAnnotatePipelineFactory(ABC):
             namespaces: Dict[str, str] = None):
         self.tei_filename_pattern = tei_filename_pattern
         self.container_node_path = container_node_path
-        self.tag_to_tei_path_mapping = tag_to_tei_path_mapping
+        self.tag_to_tei_path_mapping = _resolve_tag_to_tei_mapping_namespace(
+            tag_to_tei_path_mapping,
+            namespaces=namespaces
+        )
         self.source_base_path = opt.source_base_path
         self.source_path = opt.source_path
         self.output_path = opt.output_path

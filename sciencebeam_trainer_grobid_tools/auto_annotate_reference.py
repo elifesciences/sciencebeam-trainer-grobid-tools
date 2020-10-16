@@ -2,14 +2,12 @@ from __future__ import absolute_import
 
 import argparse
 import logging
-import re
-from typing import Dict
 
 from sciencebeam_gym.preprocess.annotation.annotator import Annotator
 
 from .utils.string import comma_separated_str_to_list
 from .utils.xml import parse_xml
-from .utils.tei_xml import TEI_NS, TEI_NS_MAP
+from .utils.tei_xml import TEI_NS_MAP
 
 from .structured_document.grobid_training_tei import (
     DEFAULT_TAG_KEY
@@ -168,34 +166,13 @@ def _get_annotator(
     return annotator
 
 
-def _resolve_tag_expression_namespace(
-        tag_expression: str) -> str:
-    if not tag_expression:
-        return tag_expression
-    return re.sub(
-        r'\btei:',
-        '{' + TEI_NS + '}',
-        tag_expression
-    )
-
-
-def _resolve_tag_to_tei_mapping_namespace(
-        tag_to_tei_path_mapping: Dict[str, str]) -> Dict[str, str]:
-    return {
-        key: _resolve_tag_expression_namespace(value)
-        for key, value in tag_to_tei_path_mapping.items()
-    }
-
-
 class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
     def __init__(self, opt):
         super().__init__(
             opt,
             tei_filename_pattern='*.references.tei.xml*',
             container_node_path=REFERENCE_CONTAINER_NODE_PATH,
-            tag_to_tei_path_mapping=_resolve_tag_to_tei_mapping_namespace(
-                REFERENCE_TAG_TO_TEI_PATH_MAPPING
-            ),
+            tag_to_tei_path_mapping=REFERENCE_TAG_TO_TEI_PATH_MAPPING,
             output_fields=opt.fields,
             namespaces=TEI_NS_MAP
         )
