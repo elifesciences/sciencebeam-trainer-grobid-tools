@@ -5,13 +5,13 @@ from typing import List, Union
 import pytest
 
 from lxml import etree
-from lxml.builder import ElementMaker, E
+from lxml.builder import E
 
 from sciencebeam_utils.utils.xml import get_text_content
 
 from sciencebeam_trainer_grobid_tools.utils.tei_xml import (
-    TEI_NS,
     TEI_NS_MAP,
+    TEI_E,
     get_tei_xpath_matches
 )
 
@@ -59,9 +59,6 @@ PMID_1 = '1234567'
 PMCID_1 = 'PMC1000001'
 ARXIV_1 = '1723.008484'
 LINK_1 = 'https://test.org/path'
-
-
-TEI_E = ElementMaker(namespace=TEI_NS, nsmap=TEI_NS_MAP)
 
 
 def get_tei_xpath_text(*args, **kwargs):

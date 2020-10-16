@@ -5,13 +5,13 @@ from typing import List, Union
 import pytest
 
 from lxml import etree
-from lxml.builder import ElementMaker, E
+from lxml.builder import E
 
 from sciencebeam_utils.utils.xml import get_text_content, get_text_content_list
 
 from sciencebeam_trainer_grobid_tools.utils.tei_xml import (
-    TEI_NS,
     TEI_NS_MAP,
+    TEI_E,
     get_tei_xpath_matches
 )
 
@@ -41,8 +41,6 @@ AFFILIATION_XPATH = (
 TEXT_1 = 'text 1'
 
 LABEL_1 = '1'
-
-TEI_E = ElementMaker(namespace=TEI_NS, nsmap=TEI_NS_MAP)
 
 
 def get_tei_xpath_text(*args, **kwargs):

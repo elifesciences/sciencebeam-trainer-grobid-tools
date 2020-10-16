@@ -1,6 +1,7 @@
 from typing import List
 
 from lxml import etree
+from lxml.builder import ElementMaker
 
 
 from sciencebeam_trainer_grobid_tools.utils.xml import (
@@ -14,6 +15,8 @@ TEI_NS = 'http://www.tei-c.org/ns/1.0'
 TEI_NS_MAP = {
     'tei': TEI_NS
 }
+
+TEI_E = ElementMaker(namespace=TEI_NS, nsmap=TEI_NS_MAP)
 
 
 def get_tei_xpath_matches(
