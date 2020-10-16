@@ -101,8 +101,8 @@ def get_first_bibl(root: etree.Element) -> etree.Element:
     return get_all_bibl(root, required=True)[0]
 
 
+@log_on_exception
 class TestEndToEnd(object):
-    @log_on_exception
     def test_should_auto_annotate_single_reference_with_single_field(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_reference_content_nodes = [
@@ -132,7 +132,6 @@ class TestEndToEnd(object):
             ARTICLE_TITLE_1
         )
 
-    @log_on_exception
     def test_should_auto_annotate_single_reference_with_all_fields(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_reference_content_nodes = [
@@ -255,7 +254,6 @@ class TestEndToEnd(object):
             LINK_1
         )
 
-    @log_on_exception
     def test_should_merge_multiple_author_fields(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_reference_content_nodes = [
@@ -292,7 +290,6 @@ class TestEndToEnd(object):
             LAST_NAME_2, FIRST_NAME_INITIAL_2
         )
 
-    @log_on_exception
     def test_should_merge_multiple_editor_fields(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_reference_content_nodes = [
@@ -339,7 +336,6 @@ class TestEndToEnd(object):
             LAST_NAME_2, FIRST_NAME_INITIAL_2
         )
 
-    @log_on_exception
     def test_should_include_etal_in_author_and_editor_tag(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_reference_content_nodes = [
@@ -391,7 +387,6 @@ class TestEndToEnd(object):
         assert get_tei_xpath_text(first_bibl, './tei:author', '|') == expected_author_string
         assert get_tei_xpath_text(first_bibl, './tei:editor', '|') == expected_editor_string
 
-    @log_on_exception
     def test_should_include_dot_after_initials_in_author_and_editor_tag(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_reference_content_nodes = [
@@ -442,7 +437,6 @@ class TestEndToEnd(object):
         assert get_tei_xpath_text(first_bibl, './tei:author', '|') == expected_author_string
         assert get_tei_xpath_text(first_bibl, './tei:editor', '|') == expected_editor_string
 
-    @log_on_exception
     def test_should_allow_varying_spaces_in_author_name(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_reference_content_nodes = [
@@ -476,7 +470,6 @@ class TestEndToEnd(object):
         first_bibl = get_first_bibl(tei_auto_root)
         assert get_tei_xpath_text(first_bibl, './tei:author', '|') == tei_author_text
 
-    @log_on_exception
     def test_should_merge_multiple_issue_fields(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_reference_content_nodes = [
@@ -510,7 +503,6 @@ class TestEndToEnd(object):
             '%s-%s' % (ISSUE_1, ISSUE_2)
         )
 
-    @log_on_exception
     def test_should_merge_multiple_page_fields(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_reference_content_nodes = [
@@ -544,7 +536,6 @@ class TestEndToEnd(object):
             '%s-%s' % (FIRST_PAGE_1, LAST_PAGE_1)
         )
 
-    @log_on_exception
     def test_should_merge_multiple_page_fields_with_dot_suffix(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_reference_content_nodes = [
@@ -579,7 +570,6 @@ class TestEndToEnd(object):
             '%s-%s' % (FIRST_PAGE_1, LAST_PAGE_1)
         )
 
-    @log_on_exception
     def test_should_annotate_with_same_issue_and_last_page_number(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         issue_number = '6'
@@ -620,7 +610,6 @@ class TestEndToEnd(object):
             '%s-%s' % (FIRST_PAGE_1, last_page)
         )
 
-    @log_on_exception
     def test_should_add_idno_prefix_if_enabled(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_reference_content_nodes = [
@@ -685,7 +674,6 @@ class TestEndToEnd(object):
             'arXiv: ' + ARXIV_1
         )
 
-    @log_on_exception
     def test_should_not_add_unrelated_idno_prefix_if_enabled(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_reference_content_nodes = [
@@ -729,7 +717,6 @@ class TestEndToEnd(object):
             'PMID: ' + PMID_1
         )
 
-    @log_on_exception
     def test_should_not_preserve_original_bibl_segmentation_when_segmenting_references(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         # we only create a single jats reference that we expect to be reflected
@@ -767,7 +754,6 @@ class TestEndToEnd(object):
             invalid_text
         )
 
-    @log_on_exception
     def test_should_remove_invalid_references_if_enabled(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         # we only create a single jats reference that we expect to be reflected
@@ -804,7 +790,6 @@ class TestEndToEnd(object):
         )
         assert get_tei_xpath_text(tei_auto_root, './/tei:note', '|') == ''
 
-    @log_on_exception
     def test_should_preserve_original_bibl_segmentation_when_not_segmenting_references(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         # we only create a single jats reference that would usually change the tei refererences
@@ -837,7 +822,6 @@ class TestEndToEnd(object):
             tei_text
         ])
 
-    @log_on_exception
     def test_should_preserve_original_bibl_element_with_single_immediately_child(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         text = ARTICLE_TITLE_1
@@ -866,7 +850,6 @@ class TestEndToEnd(object):
             == [text]
         )
 
-    @log_on_exception
     def test_should_not_preserve_sub_tag(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         text_1 = ARTICLE_TITLE_1

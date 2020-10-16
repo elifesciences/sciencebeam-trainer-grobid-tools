@@ -217,6 +217,7 @@ class TestGetExtendedLineTokenTags:
         ) == [None, B_TAG1, I_TAG1]
 
 
+@log_on_exception
 class TestSimpleMatchingAnnotator:
     def test_should_not_fail_on_empty_document(self):
         doc = SimpleStructuredDocument(lines=[])
@@ -432,7 +433,6 @@ class TestSimpleMatchingAnnotator:
         assert _get_tag_values_of_tokens(number_tokens) == [None] * len(number_tokens)
         assert _get_tag_values_of_tokens(matching_tokens) == [TAG1] * len(matching_tokens)
 
-    @log_on_exception
     def test_should_not_annotate_author_aff_label_between_author_names(self):
         author_tokens = _tokens_for_text('Mary 1 , Smith 1')
         aff_tokens = _tokens_for_text('University of Science')
@@ -448,7 +448,6 @@ class TestSimpleMatchingAnnotator:
         assert _get_tag_values_of_tokens(author_tokens) == [TAG1] * len(author_tokens)
         assert _get_tag_values_of_tokens(aff_tokens) == [TAG2] * len(aff_tokens)
 
-    @log_on_exception
     def test_should_annotate_separate_author_aff_with_begin_prefix(self):
         aff1_tokens = _tokens_for_text('University of Science')
         aff2_tokens = _tokens_for_text('University of Madness')
@@ -579,7 +578,6 @@ class TestSimpleMatchingAnnotator:
         assert _get_tag_values_of_tokens(pre_tokens) == [None] * len(pre_tokens)
         assert _get_tag_values_of_tokens(post_tokens) == [None] * len(post_tokens)
 
-    @log_on_exception
     def test_should_annotate_and_merge_multiple_authors_annotation(self):
         pre_tokens = _tokens_for_text('this is')
         matching_tokens = _tokens_for_text('john smith, mary maison')
@@ -599,7 +597,6 @@ class TestSimpleMatchingAnnotator:
         assert _get_tag_values_of_tokens(pre_tokens) == [None] * len(pre_tokens)
         assert _get_tag_values_of_tokens(post_tokens) == [None] * len(post_tokens)
 
-    @log_on_exception
     def test_should_annotate_but_not_merge_multiple_authors_annotation_too_far_apart(self):
         pre_tokens = _tokens_for_text('this is')
         matching_tokens_1 = _tokens_for_text('john smith')
@@ -620,7 +617,6 @@ class TestSimpleMatchingAnnotator:
         assert _get_tag_values_of_tokens(pre_tokens) == [None] * len(pre_tokens)
         assert _get_tag_values_of_tokens(post_tokens) == [None] * len(post_tokens)
 
-    @log_on_exception
     def test_should_annotate_whole_line(self):
         pre_tokens = _tokens_for_text('this is')
         matching_tokens = _tokens_for_text('john smith 1, mary maison 2')

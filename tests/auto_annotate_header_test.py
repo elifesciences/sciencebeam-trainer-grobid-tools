@@ -49,8 +49,8 @@ def _test_helper(temp_dir: Path) -> SingleFileAutoAnnotateEndToEndTestHelper:
     )
 
 
+@log_on_exception
 class TestEndToEnd(object):
-    @log_on_exception
     def test_should_auto_annotate_title(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
@@ -66,7 +66,6 @@ class TestEndToEnd(object):
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text(tei_auto_root, '//docTitle/titlePart') == TEXT_1
 
-    @log_on_exception
     def test_should_auto_annotate_using_simple_matcher(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
@@ -83,7 +82,6 @@ class TestEndToEnd(object):
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text(tei_auto_root, '//docTitle/titlePart') == TEXT_1
 
-    @log_on_exception
     def test_should_extend_title_annotation_to_whole_line(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         title_text = 'Chocolate bars for mice'
@@ -101,7 +99,6 @@ class TestEndToEnd(object):
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text(tei_auto_root, '//docTitle/titlePart') == title_text
 
-    @log_on_exception
     def test_should_auto_annotate_multiple_fields_using_simple_matcher(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         title_text = 'Chocolate bars for mice'
@@ -151,7 +148,6 @@ class TestEndToEnd(object):
             abstract_prefix + abstract_text
         )
 
-    @log_on_exception
     def test_should_replace_affiliation_with_author_if_single_tokens(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         author_text = 'Mary Maison 1, John Smith 1'
@@ -192,7 +188,6 @@ class TestEndToEnd(object):
     @pytest.mark.skip(
         reason='difficult to implement correctly due to prefix only seeging untagged text'
     )
-    @log_on_exception
     def test_should_auto_annotate_affiliation_preceding_number_using_simple_matcher(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         title_text = 'Chocolate bars for mice'
@@ -245,7 +240,6 @@ class TestEndToEnd(object):
             abstract_prefix + abstract_text
         )
 
-    @log_on_exception
     def test_should_auto_annotate_alternative_spellings_using_simple_matcher(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         title_text = 'Chocolate bars for mice'
@@ -295,7 +289,6 @@ class TestEndToEnd(object):
             abstract_prefix + abstract_text
         )
 
-    @log_on_exception
     def test_should_skip_errors(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         tei_raw_other_file_path = test_helper.tei_raw_path.joinpath('document0.header.tei.xml')

@@ -75,8 +75,8 @@ def get_first_affiliation(root: etree.Element) -> etree.Element:
     return get_all_affiliations(root, required=True)[0]
 
 
+@log_on_exception
 class TestEndToEnd(object):
-    @log_on_exception
     def test_should_auto_annotate_single_affiliation_with_single_field(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_reference_content_nodes = [
@@ -107,7 +107,6 @@ class TestEndToEnd(object):
             LABEL_1
         )
 
-    @log_on_exception
     def test_should_preserve_original_affiliation_annotation(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         # we only create a single jats affiliation that would usually change the tei affiliation
@@ -140,7 +139,6 @@ class TestEndToEnd(object):
             tei_text
         ]
 
-    @log_on_exception
     def test_should_not_preserve_original_affiliation_annotation(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         # we only create a single jats affiliation that would usually change the tei affiliation
@@ -173,7 +171,6 @@ class TestEndToEnd(object):
             tei_text + tei_text
         ]
 
-    @log_on_exception
     def test_should_remove_invalid_affiliation(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         # we only create a single jats affiliation that would usually change the tei affiliation
