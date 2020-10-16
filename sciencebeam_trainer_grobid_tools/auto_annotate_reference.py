@@ -124,8 +124,7 @@ def _get_default_reference_annotator_config() -> ReferenceAnnotatorConfig:
         include_suffix_enabled_sub_tags=NAME_SUFFIX_ENABLED_SUB_TAGS,
         prefix_regex_by_sub_tag_map=IDNO_PREFIX_REGEX_MAP,
         etal_sub_tag=ETAL_SUB_TAG,
-        etal_merge_enabled_sub_tags=ETAL_MERGE_ENABLED_SUB_TAGS,
-        remove_untagged_enabled=False
+        etal_merge_enabled_sub_tags=ETAL_MERGE_ENABLED_SUB_TAGS
     )
 
 

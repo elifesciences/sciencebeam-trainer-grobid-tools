@@ -45,8 +45,7 @@ class ReferenceAnnotatorConfig:
             include_suffix_enabled_sub_tags: Set[str],
             prefix_regex_by_sub_tag_map: Dict[str, str],
             etal_sub_tag: str,
-            etal_merge_enabled_sub_tags: Set[str],
-            remove_untagged_enabled: bool):
+            etal_merge_enabled_sub_tags: Set[str]):
         self.sub_tag_map = sub_tag_map
         self.merge_enabled_sub_tags = merge_enabled_sub_tags
         self.include_prefix_enabled_sub_tags = include_prefix_enabled_sub_tags
@@ -54,7 +53,6 @@ class ReferenceAnnotatorConfig:
         self.prefix_regex_by_sub_tag_map = prefix_regex_by_sub_tag_map
         self.etal_sub_tag = etal_sub_tag
         self.etal_merge_enabled_sub_tags = etal_merge_enabled_sub_tags
-        self.remove_untagged_enabled = remove_untagged_enabled
 
     def __repr__(self):
         return '%s(%s)' % (type(self), self.__dict__)
