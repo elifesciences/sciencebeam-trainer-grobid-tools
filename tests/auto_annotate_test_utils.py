@@ -47,18 +47,27 @@ class SingleFileAutoAnnotateEndToEndTestHelper:
         return tei_auto_root
 
 
+def _add_all(parent: etree.Element, children: List[etree.Element]):
+    if not children:
+        return
+    for child in children:
+        parent.append(child)
+
+
 def get_target_xml_node(
         title: str = None,
         author_nodes: List[etree.Element] = None,
+        affiliation_nodes: List[etree.Element] = None,
         abstract_node: etree.Element = None,
         reference_nodes: List[etree.Element] = None) -> etree.Element:
-    article_meta_node = E('article-meta')
+    contrib_group = E('contrib-group')
+    article_meta_node = E('article-meta', contrib_group)
     front_node = E.front(article_meta_node)
     back_node = E.back()
     if title:
         article_meta_node.append(E('title-group', E('article-title', title)))
-    if author_nodes:
-        article_meta_node.append(E('contrib-group', *author_nodes))
+    _add_all(contrib_group, author_nodes)
+    _add_all(contrib_group, affiliation_nodes)
     if abstract_node is not None:
         article_meta_node.append(abstract_node)
     if reference_nodes:
