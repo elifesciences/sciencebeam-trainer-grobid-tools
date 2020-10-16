@@ -9,7 +9,11 @@ from lxml.builder import ElementMaker, E
 
 from sciencebeam_utils.utils.xml import get_text_content
 
-from sciencebeam_trainer_grobid_tools.utils.tei_xml import TEI_NS, TEI_NS_MAP
+from sciencebeam_trainer_grobid_tools.utils.tei_xml import (
+    TEI_NS,
+    TEI_NS_MAP,
+    get_tei_xpath_matches
+)
 
 from sciencebeam_trainer_grobid_tools.auto_annotate_reference import main
 
@@ -60,10 +64,6 @@ LINK_1 = 'https://test.org/path'
 TEI_E = ElementMaker(namespace=TEI_NS, nsmap=TEI_NS_MAP)
 
 
-def _tei_xpath(parent: etree.Element, xpath: str) -> List[etree.Element]:
-    return parent.xpath(xpath, namespaces=TEI_NS_MAP)
-
-
 def get_tei_xpath_text(*args, **kwargs):
     return get_xpath_text(*args, namespaces=TEI_NS_MAP, **kwargs)
 
@@ -101,12 +101,12 @@ def get_nodes_text(nodes: List[Union[str, etree.Element]]) -> str:
     ])
 
 
+def get_all_bibl(root: etree.Element, **kwargs) -> etree.Element:
+    return get_tei_xpath_matches(root, '//tei:back/tei:listBibl/tei:bibl', **kwargs)
+
+
 def get_first_bibl(root: etree.Element) -> etree.Element:
-    return _tei_xpath(root, '//tei:back/tei:listBibl/tei:bibl[1]')[0]
-
-
-def get_all_bibl(root: etree.Element) -> etree.Element:
-    return _tei_xpath(root, '//tei:back/tei:listBibl/tei:bibl')
+    return get_all_bibl(root, required=True)[0]
 
 
 class TestEndToEnd(object):

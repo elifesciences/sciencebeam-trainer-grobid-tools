@@ -9,7 +9,11 @@ from lxml.builder import ElementMaker, E
 
 from sciencebeam_utils.utils.xml import get_text_content, get_text_content_list
 
-from sciencebeam_trainer_grobid_tools.utils.tei_xml import TEI_NS, TEI_NS_MAP, tei_xpath
+from sciencebeam_trainer_grobid_tools.utils.tei_xml import (
+    TEI_NS,
+    TEI_NS_MAP,
+    get_tei_xpath_matches
+)
 
 from sciencebeam_trainer_grobid_tools.auto_annotate_affiliation_address import main
 
@@ -41,25 +45,6 @@ LABEL_1 = '1'
 TEI_E = ElementMaker(namespace=TEI_NS, nsmap=TEI_NS_MAP)
 
 
-def _get_first_tei_xpath(parent: etree.Element, xpath: str) -> List[etree.Element]:
-    result = tei_xpath(parent, xpath)
-    if not result:
-        xpath_fragments = xpath.split('/')
-        for fragment_count in reversed(range(1, len(xpath_fragments))):
-            parent_xpath = '/'.join(xpath_fragments[:fragment_count])
-            if len(parent_xpath) <= 1:
-                break
-            parent_result = tei_xpath(parent, parent_xpath)
-            if parent_result:
-                LOGGER.debug(
-                    'no results for %r, but found matching elements for %r: %s',
-                    xpath, parent_xpath, parent_result
-                )
-                break
-        raise ValueError('no item found for xpath: %r (in %s)' % (xpath, parent))
-    return result[0]
-
-
 def get_tei_xpath_text(*args, **kwargs):
     return get_xpath_text(*args, namespaces=TEI_NS_MAP, **kwargs)
 
@@ -89,12 +74,12 @@ def get_nodes_text(nodes: List[Union[str, etree.Element]]) -> str:
     ])
 
 
-def get_all_affiliations(root: etree.Element) -> etree.Element:
-    return tei_xpath(root, AFFILIATION_XPATH)
+def get_all_affiliations(root: etree.Element, **kwargs) -> List[etree.Element]:
+    return get_tei_xpath_matches(root, AFFILIATION_XPATH, **kwargs)
 
 
 def get_first_affiliation(root: etree.Element) -> etree.Element:
-    return _get_first_tei_xpath(root, AFFILIATION_XPATH)
+    return get_all_affiliations(root, required=True)[0]
 
 
 class TestEndToEnd(object):
