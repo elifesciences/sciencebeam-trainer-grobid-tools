@@ -19,6 +19,7 @@ from .annotation.target_annotation import (
     xml_root_to_target_annotations
 )
 
+from .annotation.sub_tag_annotator import SubTagOnlyAnnotator
 from .annotation.remove_untagged_annotator import RemoveUntaggedPostProcessingAnnotator
 
 from .auto_annotate_utils import (
@@ -38,7 +39,6 @@ from .structured_document.simple_matching_annotator import (
 from .structured_document.reference_annotator import (
     DEFAULT_IDNO_PREFIX_REGEX,
     ReferenceAnnotatorConfig,
-    ReferenceSubTagOnlyAnnotator,
     ReferencePostProcessingAnnotator
 )
 
@@ -157,7 +157,7 @@ def _get_annotator(
             config=simple_annotator_config
         ))
     else:
-        annotators.append(ReferenceSubTagOnlyAnnotator(
+        annotators.append(SubTagOnlyAnnotator(
             target_annotations,
             config=simple_annotator_config
         ))

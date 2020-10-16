@@ -22,8 +22,7 @@ from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei im
 
 from sciencebeam_trainer_grobid_tools.structured_document.simple_matching_annotator import (
     get_extended_line_token_tags,
-    to_inside_tag,
-    SimpleMatchingAnnotator
+    to_inside_tag
 )
 
 from sciencebeam_trainer_grobid_tools.structured_document.matching_utils import (
@@ -353,39 +352,6 @@ def _merge_sub_tags(
             continue
         structured_document.set_sub_tag(token, token_sub_tag)
     return structured_document
-
-
-class ReferenceSubTagOnlyAnnotator(SimpleMatchingAnnotator):
-    def update_annotation_for_index_range(self, *_, **__):  # pylint: disable=arguments-differ
-        pass
-
-    def extend_annotations_to_whole_line(self, *_, **__):  # pylint: disable=arguments-differ
-        pass
-
-    def annotate(self, structured_document: GrobidTrainingTeiStructuredDocument):
-        LOGGER.debug('preserving tags')
-        token_preserved_tags = [
-            (token, structured_document.get_tag_or_preserved_tag(token))
-            for token in _iter_all_tokens(structured_document)
-        ]
-        # we need to clear the tag for now, otherwise they will be ignored for annotation
-        for token, _ in token_preserved_tags:
-            structured_document.set_tag_only(
-                token,
-                None
-            )
-            structured_document.clear_preserved_sub_tag(token)
-        # process auto-annotations
-        super().annotate(structured_document)
-        # restore original tags (but now with auto-annotated sub-tags)
-        for token, preserved_tag in token_preserved_tags:
-            preserved_tag = structured_document.get_tag_or_preserved_tag(token)
-            LOGGER.debug('restoring preserved tag: %r -> %r', token, preserved_tag)
-            structured_document.set_tag_only(
-                token,
-                structured_document.get_tag_or_preserved_tag(token)
-            )
-        return structured_document
 
 
 class ReferencePostProcessingAnnotator(AbstractAnnotator):
