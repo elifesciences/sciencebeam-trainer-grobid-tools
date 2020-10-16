@@ -108,11 +108,14 @@ def get_xpath_matches(
                 break
             parent_result = parent.xpath(parent_xpath, **kwargs)
             if parent_result:
-                LOGGER.debug(
-                    'no results for %r, but found matching elements for %r: %s',
-                    xpath, parent_xpath, parent_result
+                raise ValueError(
+                    (
+                        'no item found for xpath: %r (in %s),'
+                        ' but found matching elements for %r: %s'
+                    ) % (
+                        xpath, parent, parent_xpath, parent_result
+                    )
                 )
-                break
         raise ValueError('no item found for xpath: %r (in %s)' % (xpath, parent))
     return result
 
