@@ -5,8 +5,6 @@ from typing import List
 from lxml import etree
 from lxml.builder import E
 
-from sciencebeam_utils.utils.xml import get_text_content
-
 from .test_utils import dict_to_args
 
 
@@ -77,7 +75,3 @@ def get_target_xml_node(
 
 def get_default_target_xml_node():
     return get_target_xml_node(title=TOKEN_1)
-
-
-def get_xpath_text(root: etree.Element, xpath: str, delimiter: str = ' ', **kwargs) -> str:
-    return delimiter.join(get_text_content(node) for node in root.xpath(xpath, **kwargs))

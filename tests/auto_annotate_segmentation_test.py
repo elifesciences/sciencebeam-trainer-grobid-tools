@@ -7,6 +7,8 @@ import pytest
 from lxml import etree
 from lxml.builder import E
 
+from sciencebeam_trainer_grobid_tools.utils.xml import get_xpath_text
+
 from sciencebeam_trainer_grobid_tools.auto_annotate_utils import (
     MatcherNames
 )
@@ -20,7 +22,6 @@ from .test_utils import log_on_exception, dict_to_args
 from .auto_annotate_test_utils import (
     get_target_xml_node,
     get_default_target_xml_node,
-    get_xpath_text,
     SingleFileAutoAnnotateEndToEndTestHelper
 )
 

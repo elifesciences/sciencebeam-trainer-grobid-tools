@@ -10,9 +10,9 @@ from lxml.builder import E
 from sciencebeam_utils.utils.xml import get_text_content, get_text_content_list
 
 from sciencebeam_trainer_grobid_tools.utils.tei_xml import (
-    TEI_NS_MAP,
     TEI_E,
-    get_tei_xpath_matches
+    get_tei_xpath_matches,
+    get_tei_xpath_text
 )
 
 from sciencebeam_trainer_grobid_tools.auto_annotate_affiliation_address import main
@@ -20,7 +20,6 @@ from sciencebeam_trainer_grobid_tools.auto_annotate_affiliation_address import m
 from .test_utils import log_on_exception, dict_to_args
 from .auto_annotate_test_utils import (
     get_target_xml_node,
-    get_xpath_text,
     SingleFileAutoAnnotateEndToEndTestHelper
 )
 
@@ -41,10 +40,6 @@ AFFILIATION_XPATH = (
 TEXT_1 = 'text 1'
 
 LABEL_1 = '1'
-
-
-def get_tei_xpath_text(*args, **kwargs):
-    return get_xpath_text(*args, namespaces=TEI_NS_MAP, **kwargs)
 
 
 def get_affiliation_tei_node(
