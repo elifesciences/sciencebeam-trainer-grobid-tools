@@ -23,6 +23,7 @@ def log_on_exception(f: Union[callable, type]) -> callable:
     """
     if inspect.isclass(f):
         return wrap_class_methods(f, log_on_exception)
+
     @wraps(f)
     def wrapper(*args, **kwargs):
         try:
@@ -35,7 +36,13 @@ def log_on_exception(f: Union[callable, type]) -> callable:
 
 def dict_to_args(args_dict: Dict[str, str]) -> List[str]:
     return [
-        '--%s' % key if isinstance(value, bool) and value else '--%s=%s' % (key, value)
+        (
+            '--%s' % key if isinstance(value, bool) and value
+            else '--%s=%s' % (key, value)
+        )
         for key, value in args_dict.items()
-        if value is not None
+        if (
+            value is not None
+            and (not isinstance(value, bool) or value)
+        )
     ]
