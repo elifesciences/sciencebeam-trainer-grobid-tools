@@ -40,6 +40,7 @@ AFFILIATION_XPATH = (
 TEXT_1 = 'text 1'
 
 LABEL_1 = '1'
+LABEL_2 = '2'
 
 
 def get_affiliation_tei_node(
@@ -240,3 +241,39 @@ class TestEndToEnd(object):
         assert get_tei_xpath_text(first_aff, './tei:marker') == LABEL_1
         assert get_tei_xpath_text(first_aff, './tei:other1') == other1_sub_tag_text
         assert get_tei_xpath_text(first_aff, './tei:other2') == other2_sub_tag_text
+
+    @pytest.mark.parametrize('segment_affiliation', [False, True])
+    def test_should_not_preserve_existing_sub_tags_if_provided_by_data(
+            self,
+            test_helper: SingleFileAutoAnnotateEndToEndTestHelper,
+            segment_affiliation: bool):
+        target_jats_xml = etree.tostring(
+            get_target_xml_node(affiliation_nodes=[
+                E.aff(E.label(LABEL_1), ' ' + LABEL_2 + ' ' + TEXT_1),
+            ])
+        )
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_affiliation_tei_node([
+                TEI_E.affiliation(
+                    TEI_E.other(LABEL_1),
+                    ' ',
+                    TEI_E.marker(LABEL_2),
+                    ' ',
+                    TEI_E.preserved(TEXT_1)
+                )
+            ])
+        ))
+        LOGGER.debug('target_jats_xml: %s', target_jats_xml)
+        test_helper.xml_file_path.write_bytes(target_jats_xml)
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'matcher': 'simple',
+            'segment-affiliation': segment_affiliation,
+            'fields': 'author_aff',
+            'no-preserve-sub-fields': 'author_aff-label'
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        first_aff = get_first_affiliation(tei_auto_root)
+        assert get_tei_xpath_text(first_aff, './tei:marker') == LABEL_1
+        assert get_tei_xpath_text(first_aff, './tei:preserved') == TEXT_1

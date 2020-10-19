@@ -91,6 +91,7 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
             tag_to_tei_path_mapping=AFFILIATION_TAG_TO_TEI_PATH_MAPPING,
             output_fields=opt.fields,
             preserve_sub_tags=True,
+            no_preserve_sub_fields=opt.no_preserve_sub_fields,
             namespaces=TEI_NS_MAP
         )
         self.segment_affiliation = opt.segment_affiliation
@@ -127,6 +128,12 @@ def add_main_args(parser):
         type=comma_separated_str_to_list,
         default='reference',
         help='comma separated list of fields to annotate'
+    )
+
+    parser.add_argument(
+        '--no-preserve-sub-fields',
+        type=comma_separated_str_to_list,
+        help='comma separated list of sub fields that should not be preserved'
     )
 
     parser.add_argument(

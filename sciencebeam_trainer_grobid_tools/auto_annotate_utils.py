@@ -424,6 +424,7 @@ class AbstractAnnotatePipelineFactory(ABC):
             tag_to_tei_path_mapping: Dict[str, str] = None,
             output_fields: Set[str] = None,
             preserve_sub_tags: bool = False,
+            no_preserve_sub_fields: Set[str] = None,
             namespaces: Dict[str, str] = None):
         self.tei_filename_pattern = tei_filename_pattern
         self.container_node_path = container_node_path
@@ -442,6 +443,7 @@ class AbstractAnnotatePipelineFactory(ABC):
         self.preserve_tags = not opt.no_preserve_tags
         self.always_preserve_fields = opt.always_preserve_fields
         self.preserve_sub_tags = preserve_sub_tags
+        self.no_preserve_sub_fields = no_preserve_sub_fields
         self.output_fields = output_fields
         self.namespaces = namespaces
         self.annotator_config = AnnotatorConfig(
@@ -492,6 +494,7 @@ class AbstractAnnotatePipelineFactory(ABC):
                 container_node_path=self.container_node_path,
                 tag_to_tei_path_mapping=self.tag_to_tei_path_mapping,
                 preserve_sub_tags=self.preserve_sub_tags,
+                no_preserve_sub_fields=self.no_preserve_sub_fields,
                 namespaces=self.namespaces
             )
         except Exception as e:  # pylint: disable=broad-except

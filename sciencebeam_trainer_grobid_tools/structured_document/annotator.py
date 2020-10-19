@@ -60,13 +60,22 @@ def _no_preserve_tag_fn(*_):
     return None
 
 
+def _get_used_sub_tag_counts(
+        structured_document: GrobidTrainingTeiStructuredDocument) -> Counter:
+    return Counter((
+        structured_document.get_tag_or_preserved_tag_value(token, level=SUB_LEVEL)
+        for token in _iter_all_tokens(structured_document)
+    ))
+
+
 def annotate_structured_document_inplace(
         structured_document: GrobidTrainingTeiStructuredDocument,
         annotator,
         preserve_tags: bool,
         fields: List[str],
         preserve_fields: List[str] = None,
-        preserve_sub_tags: bool = False):
+        preserve_sub_tags: bool = False,
+        no_preserve_sub_fields: Set[str] = None):
     if not fields:
         fields = set()
     if preserve_tags or preserve_fields:
@@ -88,7 +97,32 @@ def annotate_structured_document_inplace(
     _map_token_tags(structured_document, tag_fn)
 
     if not preserve_sub_tags:
+        LOGGER.debug('not preserving sub tags')
         _map_token_tags(structured_document, _no_preserve_tag_fn, level=SUB_LEVEL)
+    elif no_preserve_sub_fields:
+        LOGGER.debug(
+            'preserving sub tags, except for fields: %s',
+            no_preserve_sub_fields
+        )
+        if LOGGER.isEnabledFor(logging.DEBUG):
+            LOGGER.debug(
+                'used sub tags counts: %s', _get_used_sub_tag_counts(structured_document)
+            )
+        _map_token_tags(
+            structured_document,
+            partial(
+                _preserve_tag_fn,
+                exclude_fields=no_preserve_sub_fields,
+                structured_document=structured_document
+            ),
+            level=SUB_LEVEL
+        )
+        if LOGGER.isEnabledFor(logging.DEBUG):
+            LOGGER.debug(
+                'used sub tags counts (after): %s', _get_used_sub_tag_counts(structured_document)
+            )
+    else:
+        LOGGER.debug('preserving all sub tags')
 
     annotator.annotate(structured_document)
 
@@ -122,6 +156,7 @@ def annotate_structured_document(
         fields: List[str],
         always_preserve_fields: List[str] = None,
         preserve_sub_tags: bool = False,
+        no_preserve_sub_fields: Set[str] = None,
         **kwargs):
     get_logger().info('loading from: %s', source_structured_document_path)
     structured_document = load_grobid_training_tei_structured_document(
@@ -138,6 +173,7 @@ def annotate_structured_document(
         preserve_tags=preserve_tags,
         preserve_fields=always_preserve_fields,
         preserve_sub_tags=preserve_sub_tags,
+        no_preserve_sub_fields=no_preserve_sub_fields,
         fields=fields
     )
 

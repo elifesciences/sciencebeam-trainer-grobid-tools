@@ -610,11 +610,11 @@ class GrobidTrainingTeiStructuredDocument(AbstractStructuredDocument):
     def get_tag(self, parent, scope=None, level=None):
         return parent.attrib.get(_get_tag_attrib_name(scope, level))
 
-    def get_tag_or_preserved_tag(self, parent, scope=None, level=None):
-        tag = self.get_tag(parent, scope=scope, level=level)
-        if not tag:
-            tag = parent.attrib.get(PRESERVED_TAG_ATTRIB_NAME)
-        return tag
+    def get_preserved_tag(self, parent, **kwargs):
+        return parent.attrib.get(get_scoped_attrib_name(PRESERVED_TAG_ATTRIB_NAME, **kwargs))
+
+    def get_tag_or_preserved_tag(self, parent, **kwargs):
+        return self.get_tag(parent, **kwargs) or self.get_preserved_tag(parent, **kwargs)
 
     def get_tag_or_preserved_tag_value(self, *args, **kwargs):
         return strip_tag_prefix(self.get_tag_or_preserved_tag(*args, **kwargs))
