@@ -233,7 +233,8 @@ class TestEndToEnd(object):
             **test_helper.main_args_dict,
             'matcher': 'simple',
             'segment-affiliation': segment_affiliation,
-            'fields': 'author_aff'
+            'fields': 'author_aff',
+            'preserve-sub-tags': True
         }), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
@@ -270,6 +271,7 @@ class TestEndToEnd(object):
             'matcher': 'simple',
             'segment-affiliation': segment_affiliation,
             'fields': 'author_aff',
+            'preserve-sub-tags': True,
             'no-preserve-sub-fields': 'author_aff-label'
         }), save_main_session=False)
 
