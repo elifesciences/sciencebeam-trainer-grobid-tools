@@ -172,6 +172,37 @@ class TestEndToEnd(object):
             tei_text + tei_text
         ]
 
+    def test_should_not_merge_multiple_affiliation_annotations(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        aff1_text = 'Some affiliation 1'
+        aff2_text = 'Some affiliation 2'
+        target_jats_xml = etree.tostring(
+            get_target_xml_node(affiliation_nodes=[
+                E.aff(aff1_text),
+                E.aff(aff2_text)
+            ])
+        )
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_affiliation_tei_node([
+                TEI_E.affiliation(aff1_text),
+                TEI_E.affiliation(aff2_text)
+            ])
+        ))
+        LOGGER.debug('target_jats_xml: %s', target_jats_xml)
+        test_helper.xml_file_path.write_bytes(target_jats_xml)
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'matcher': 'simple',
+            'fields': 'author_aff',
+            'segment-affiliation': True
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_text_content_list(get_all_affiliations(tei_auto_root)) == [
+            aff1_text,
+            aff2_text
+        ]
+
     def test_should_remove_invalid_affiliation(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         # we only create a single jats affiliation that would usually change the tei affiliation
