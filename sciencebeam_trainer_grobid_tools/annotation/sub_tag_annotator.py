@@ -54,8 +54,5 @@ class SubTagOnlyAnnotator(SimpleMatchingAnnotator):
         for token, preserved_tag in token_preserved_tags:
             preserved_tag = structured_document.get_tag_or_preserved_tag(token)
             LOGGER.debug('restoring preserved tag: %r -> %r', token, preserved_tag)
-            structured_document.set_tag_only(
-                token,
-                structured_document.get_tag_or_preserved_tag(token)
-            )
+            structured_document.set_tag_only(token, preserved_tag)
         return structured_document
