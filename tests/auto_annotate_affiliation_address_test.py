@@ -172,8 +172,11 @@ class TestEndToEnd(object):
             tei_text + tei_text
         ]
 
+    @pytest.mark.parametrize('segment_affiliation', [False, True])
     def test_should_not_merge_multiple_affiliation_annotations(
-            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+            self,
+            test_helper: SingleFileAutoAnnotateEndToEndTestHelper,
+            segment_affiliation: bool):
         aff1_text = 'Some affiliation 1'
         aff2_text = 'Some affiliation 2'
         target_jats_xml = etree.tostring(
@@ -193,8 +196,8 @@ class TestEndToEnd(object):
         main(dict_to_args({
             **test_helper.main_args_dict,
             'matcher': 'simple',
-            'fields': 'author_aff',
-            'segment-affiliation': True
+            'segment-affiliation': segment_affiliation,
+            'fields': 'author_aff'
         }), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
