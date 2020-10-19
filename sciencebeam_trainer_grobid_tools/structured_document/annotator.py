@@ -8,6 +8,7 @@ from sciencebeam_gym.structured_document import (
 )
 
 from .grobid_training_tei import (
+    SUB_LEVEL,
     load_grobid_training_tei_structured_document,
     save_grobid_training_tei_structured_document,
     GrobidTrainingTeiStructuredDocument
@@ -30,12 +31,13 @@ def _iter_all_tokens(structured_document):
     )
 
 
-def _map_token_tags(structured_document, tag_fn):
+def _map_token_tags(structured_document, tag_fn, **kwargs):
     for token in _iter_all_tokens(structured_document):
-        tag = structured_document.get_tag_or_preserved_tag(token)
+        tag = structured_document.get_tag_or_preserved_tag(token, **kwargs)
         updated_tag = tag_fn(tag, token)
         if updated_tag != tag:
-            structured_document.set_tag(token, updated_tag)
+            structured_document.set_tag_only(token, updated_tag, **kwargs)
+            structured_document.clear_preserved_tag_only(token, **kwargs)
 
 
 def _preserve_tag_fn(
@@ -63,7 +65,8 @@ def annotate_structured_document_inplace(
         annotator,
         preserve_tags: bool,
         fields: List[str],
-        preserve_fields: List[str] = None):
+        preserve_fields: List[str] = None,
+        preserve_sub_tags: bool = False):
     if not fields:
         fields = set()
     if preserve_tags or preserve_fields:
@@ -83,6 +86,9 @@ def annotate_structured_document_inplace(
         tag_fn = _no_preserve_tag_fn
 
     _map_token_tags(structured_document, tag_fn)
+
+    if not preserve_sub_tags:
+        _map_token_tags(structured_document, _no_preserve_tag_fn, level=SUB_LEVEL)
 
     annotator.annotate(structured_document)
 
@@ -115,6 +121,7 @@ def annotate_structured_document(
         preserve_tags: bool,
         fields: List[str],
         always_preserve_fields: List[str] = None,
+        preserve_sub_tags: bool = False,
         **kwargs):
     get_logger().info('loading from: %s', source_structured_document_path)
     structured_document = load_grobid_training_tei_structured_document(
@@ -130,6 +137,7 @@ def annotate_structured_document(
         annotator=annotator,
         preserve_tags=preserve_tags,
         preserve_fields=always_preserve_fields,
+        preserve_sub_tags=preserve_sub_tags,
         fields=fields
     )
 

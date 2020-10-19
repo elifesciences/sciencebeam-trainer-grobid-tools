@@ -99,6 +99,7 @@ class SimpleSimpleMatchingConfig:
             use_begin_prefix: bool = True,
             extend_to_line_enabled: bool = True,
             use_sub_annotations: bool = False,
+            preserve_sub_annotations: bool = False,
             tag_config_map: Dict[str, SimpleTagConfig] = None):
         self.threshold = threshold
         self.lookahead_sequence_count = lookahead_sequence_count
@@ -107,6 +108,7 @@ class SimpleSimpleMatchingConfig:
         self.use_begin_prefix = use_begin_prefix
         self.extend_to_line_enabled = extend_to_line_enabled
         self.use_sub_annotations = use_sub_annotations
+        self.preserve_sub_annotations = preserve_sub_annotations
         self.tag_config_map = tag_config_map or {}
 
     def __repr__(self):
@@ -455,7 +457,10 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             if self.config.use_begin_prefix:
                 prefix = B_TAG_PREFIX if index == 0 else I_TAG_PREFIX
             full_tag = add_tag_prefix(tag_name, prefix=prefix)
-            structured_document.set_tag(token, full_tag)
+            if self.config.preserve_sub_annotations:
+                structured_document.set_tag_only(token, full_tag)
+            else:
+                structured_document.set_tag(token, full_tag)
 
     def process_sub_annotations(
             self,

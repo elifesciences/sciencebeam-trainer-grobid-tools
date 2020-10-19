@@ -46,7 +46,8 @@ class SubTagOnlyAnnotator(SimpleMatchingAnnotator):
                 token,
                 None
             )
-            structured_document.clear_preserved_sub_tag(token)
+            if not self.config.preserve_sub_annotations:
+                structured_document.clear_preserved_sub_tag(token)
         # process auto-annotations
         super().annotate(structured_document)
         # restore original tags (but now with auto-annotated sub-tags)

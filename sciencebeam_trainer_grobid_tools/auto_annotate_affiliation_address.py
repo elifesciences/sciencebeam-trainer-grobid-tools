@@ -62,6 +62,7 @@ def _get_annotator(
     )
     simple_annotator_config = annotator_config.get_simple_annotator_config(
         xml_mapping=xml_mapping,
+        preserve_sub_annotations=True,
         extend_to_line_enabled=False
     )
     annotators = []
@@ -89,6 +90,7 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
             container_node_path=AFFILIATION_CONTAINER_NODE_PATH,
             tag_to_tei_path_mapping=AFFILIATION_TAG_TO_TEI_PATH_MAPPING,
             output_fields=opt.fields,
+            preserve_sub_tags=True,
             namespaces=TEI_NS_MAP
         )
         self.segment_affiliation = opt.segment_affiliation
