@@ -20,12 +20,12 @@ from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei im
     GrobidTrainingTeiStructuredDocument
 )
 
-from sciencebeam_trainer_grobid_tools.structured_document.simple_matching_annotator import (
+from sciencebeam_trainer_grobid_tools.annotation.simple_matching_annotator import (
     get_extended_line_token_tags,
     to_inside_tag
 )
 
-from sciencebeam_trainer_grobid_tools.structured_document.matching_utils import (
+from sciencebeam_trainer_grobid_tools.annotation.matching_utils import (
     JoinedText
 )
 

@@ -1,4 +1,4 @@
-from sciencebeam_trainer_grobid_tools.structured_document.reference_annotator import (
+from sciencebeam_trainer_grobid_tools.annotation.reference_annotator import (
     DEFAULT_IDNO_PREFIX_REGEX,
     get_prefix_extended_token_tags,
     get_suffix_extended_token_tags,

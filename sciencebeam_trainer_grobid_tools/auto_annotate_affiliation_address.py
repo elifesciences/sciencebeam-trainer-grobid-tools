@@ -30,11 +30,11 @@ from .auto_annotate_utils import (
     AnnotatorConfig
 )
 
-from .structured_document.simple_matching_annotator import (
+from .annotation.simple_matching_annotator import (
     SimpleMatchingAnnotator
 )
 
-from .structured_document.affiliation_address_annotator import (
+from .annotation.affiliation_address_annotator import (
     AffiliationAddressAnnotatorConfig,
     AffiliationAddressPostProcessingAnnotator
 )

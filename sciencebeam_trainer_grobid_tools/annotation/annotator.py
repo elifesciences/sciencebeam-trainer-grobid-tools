@@ -7,7 +7,7 @@ from sciencebeam_gym.structured_document import (
     strip_tag_prefix
 )
 
-from .grobid_training_tei import (
+from ..structured_document.grobid_training_tei import (
     SUB_LEVEL,
     load_grobid_training_tei_structured_document,
     save_grobid_training_tei_structured_document,

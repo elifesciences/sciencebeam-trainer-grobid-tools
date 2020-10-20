@@ -8,7 +8,7 @@ from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei im
     ContainerNodePaths
 )
 
-from sciencebeam_trainer_grobid_tools.structured_document.line_number_annotator import (
+from sciencebeam_trainer_grobid_tools.annotation.line_number_annotator import (
     TextLineNumberAnnotatorConfig,
     TextLineNumberAnnotator,
     DEFAULT_LINE_NO_TAG as LINE_NO_TAG
