@@ -15,7 +15,7 @@ from sciencebeam_gym.preprocess.annotation.fuzzy_match import (
 LOGGER = logging.getLogger(__name__)
 
 
-DEFAULT_WORD_SEPARATORS = ' .,-:;()[]'
+DEFAULT_WORD_SEPARATORS = ' .,-:;()[]\n\t'
 
 NOT_SET = 'NOT_SET'
 

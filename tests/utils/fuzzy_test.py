@@ -50,6 +50,16 @@ class TestFuzzySearchIndexRange:
         needle = 'abc'
         assert fuzzy_search_index_range(haystack, needle, 0.8) == (1, 4)
 
+    def test_should_find_exact_match_surrounded_by_tab(self):
+        haystack = '\tabc\t'
+        needle = 'abc'
+        assert fuzzy_search_index_range(haystack, needle, 0.8) == (1, 4)
+
+    def test_should_find_exact_match_surrounded_by_line_feed(self):
+        haystack = '\nabc\n'
+        needle = 'abc'
+        assert fuzzy_search_index_range(haystack, needle, 0.8) == (1, 4)
+
     def test_should_find_exact_match_containing_dot(self):
         haystack = 'abc.'
         needle = 'abc.'
