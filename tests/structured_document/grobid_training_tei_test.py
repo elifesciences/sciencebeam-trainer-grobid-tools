@@ -462,6 +462,29 @@ class TestGrobidTrainingStructuredDocument(object):
         LOGGER.debug('xml: %s', _to_xml(front))
         assert [aff.text for aff in affiliations] == [TOKEN_1, TOKEN_2]
 
+    def test_should_preserve_separation_between_existing_tag_surrounded_by_space(self):
+        spaced_token_1 = ' ' + TOKEN_1 + ' '
+        spaced_token_2 = ' ' + TOKEN_2 + ' '
+        original_tei_xml = _tei(front_items=[
+            E.byline(E.affiliation(spaced_token_1)),
+            E.byline(E.affiliation(spaced_token_2))
+        ])
+        LOGGER.debug('original tei xml: %s', _to_xml(original_tei_xml))
+        doc = GrobidTrainingTeiStructuredDocument(
+            original_tei_xml,
+            preserve_tags=True,
+            tag_to_tei_path_mapping={}
+        )
+        LOGGER.debug('doc: %s', doc)
+
+        root = doc.root
+        front = root.find('./text/front')
+        affiliations = front.xpath('./byline/affiliation')
+        LOGGER.debug('xml: %s', _to_xml(front))
+        assert [aff.text.strip() for aff in affiliations] == [
+            TOKEN_1, TOKEN_2
+        ]
+
     def test_should_preserve_existing_tag_with_attrib(self):
         original_tei_xml = _tei(front_items=[
             E.div(TOKEN_1, {'tag': TAG_1}),

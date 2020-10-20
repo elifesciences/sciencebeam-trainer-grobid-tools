@@ -23,7 +23,7 @@ def _iter_all_tokens(
         token
         for page in structured_document.get_pages()
         for line in structured_document.get_lines_of_page(page)
-        for token in structured_document.get_tokens_of_line(line)
+        for token in structured_document.get_all_tokens_of_line(line)
     )
 
 

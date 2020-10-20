@@ -206,6 +206,43 @@ class TestEndToEnd(object):
             aff2_text
         ]
 
+    @pytest.mark.parametrize('segment_affiliation', [False])
+    def test_should_not_merge_multiple_affiliation_annotations_surrounded_by_line_feeds(
+            self,
+            test_helper: SingleFileAutoAnnotateEndToEndTestHelper,
+            segment_affiliation: bool):
+        aff1_text = '\nSome affiliation 1\n'
+        aff2_text = '\nSome affiliation 2\n'
+        target_jats_xml = etree.tostring(
+            get_target_xml_node(affiliation_nodes=[
+                E.aff(aff1_text),
+                E.aff(aff2_text)
+            ])
+        )
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_affiliation_tei_node([
+                TEI_E.affiliation(aff1_text),
+                TEI_E.affiliation(aff2_text)
+            ])
+        ))
+        LOGGER.debug('target_jats_xml: %s', target_jats_xml)
+        test_helper.xml_file_path.write_bytes(target_jats_xml)
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'matcher': 'simple',
+            'segment-affiliation': segment_affiliation,
+            'fields': 'author_aff'
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert [
+            s.strip()
+            for s in get_text_content_list(get_all_affiliations(tei_auto_root))
+        ] == [
+            aff1_text.strip(),
+            aff2_text.strip()
+        ]
+
     def test_should_remove_invalid_affiliation(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         # we only create a single jats affiliation that would usually change the tei affiliation

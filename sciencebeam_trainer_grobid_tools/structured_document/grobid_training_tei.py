@@ -445,13 +445,11 @@ def _lines_to_tei(
         tag_to_tei_path_mapping = {}
     writer = XmlTreeWriter(parent)
     pending_space_tokens = []
+    pending_reset_tag_values = set()
     for line_index, line in enumerate(lines):
         if line_index:
             writer.append(E(TeiTagNames.LB))
         for token in line.tokens:
-            if not token.stripped_text:
-                pending_space_tokens.append(token)
-                continue
             main_full_tag = token.attrib.get(TAG_ATTRIB_NAME)
             if not main_full_tag:
                 main_full_tag = token.attrib.get(PRESERVED_TAG_ATTRIB_NAME)
@@ -460,6 +458,12 @@ def _lines_to_tei(
                 sub_full_tag = token.attrib.get(PRESERVED_SUB_TAG_ATTRIB_NAME)
             main_prefix, main_tag = split_tag_prefix(main_full_tag)
             sub_prefix, sub_tag = split_tag_prefix(sub_full_tag)
+            if not token.stripped_text:
+                if main_prefix == B_TAG_PREFIX:
+                    LOGGER.debug('adding to pending reset tags, for %s', token)
+                    pending_reset_tag_values.add(main_tag)
+                pending_space_tokens.append(token)
+                continue
             main_required_path = _get_tag_required_path(main_tag, tag_to_tei_path_mapping)
             sub_required_path = (
                 _get_tag_required_path(sub_tag, tag_to_tei_path_mapping)
@@ -482,9 +486,17 @@ def _lines_to_tei(
             if main_prefix == B_TAG_PREFIX:
                 LOGGER.debug('found begin prefix, resetting path: %s', main_full_tag)
                 writer.require_path([], token=token)
+            elif main_tag in pending_reset_tag_values:
+                LOGGER.debug(
+                    'found begin prefix via preceding space, resetting path: %s',
+                    main_full_tag
+                )
+                writer.require_path([], token=token)
             elif sub_prefix == B_TAG_PREFIX:
                 LOGGER.debug('found begin sub prefix, resetting path to parent: %s', sub_full_tag)
                 writer.require_path_or_below(main_required_path, token=token)
+
+            pending_reset_tag_values.clear()
 
             required_path = (
                 sub_required_path if sub_full_tag

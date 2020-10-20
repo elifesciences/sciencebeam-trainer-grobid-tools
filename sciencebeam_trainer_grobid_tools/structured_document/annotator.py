@@ -42,12 +42,9 @@ def _map_token_tags(structured_document, tag_fn, **kwargs):
 
 def _preserve_tag_fn(
         existing_tag: str,
-        token,
-        structured_document: GrobidTrainingTeiStructuredDocument,
+        token,  # pylint: disable=unused-argument
         include_fields: List[str] = None,
         exclude_fields: List[str] = None):
-    if not structured_document.get_text(token).strip():
-        return None
     simple_existing_tag = strip_tag_prefix(existing_tag)
     if exclude_fields and simple_existing_tag in exclude_fields:
         return None
@@ -87,8 +84,7 @@ def annotate_structured_document_inplace(
         tag_fn = partial(
             _preserve_tag_fn,
             include_fields=preserve_fields,
-            exclude_fields=exclude_fields,
-            structured_document=structured_document
+            exclude_fields=exclude_fields
         )
     else:
         get_logger().debug('not preserving tags')
@@ -112,8 +108,7 @@ def annotate_structured_document_inplace(
             structured_document,
             partial(
                 _preserve_tag_fn,
-                exclude_fields=no_preserve_sub_fields,
-                structured_document=structured_document
+                exclude_fields=no_preserve_sub_fields
             ),
             level=SUB_LEVEL
         )
