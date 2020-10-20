@@ -42,7 +42,12 @@ class AffiliationPostProcessingAnnotator(AbstractAnnotator):
         self.config = config
         super().__init__()
 
-    def annotate(self, structured_document: GrobidTrainingTeiStructuredDocument):
+    def join_address_fields_by_adding_address_sub_tag(
+            self, structured_document: GrobidTrainingTeiStructuredDocument):
+        # There is currently no support for three level tagging,
+        # which would allow the "address" level to be represented.
+        # As a workaround we are adding the "address" sub tag, to the tokens without sub tag.
+        # That way those tokens will share a common "address" element in the output.
         all_tokens_iterable = _iter_all_tokens(structured_document)
         is_in_address = False
         for token in all_tokens_iterable:
@@ -57,4 +62,7 @@ class AffiliationPostProcessingAnnotator(AbstractAnnotator):
                 continue
             structured_document.set_tag(token, self.config.address_sub_tag, level=SUB_LEVEL)
             LOGGER.debug('updated address token: %s', token)
+
+    def annotate(self, structured_document: GrobidTrainingTeiStructuredDocument):
+        self.join_address_fields_by_adding_address_sub_tag(structured_document)
         return structured_document
