@@ -34,6 +34,11 @@ from .structured_document.simple_matching_annotator import (
     SimpleMatchingAnnotator
 )
 
+from .structured_document.affiliation_annotator import (
+    AffiliationAnnotatorConfig,
+    AffiliationPostProcessingAnnotator
+)
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -47,8 +52,15 @@ AFFILIATION_TAG_TO_TEI_PATH_MAPPING = {
     DEFAULT_TAG_KEY: 'tei:note[@type="other"]',
     'author_aff': 'tei:affiliation',
     'author_aff-label': 'tei:affiliation/tei:marker',
-    'author_aff-country': 'tei:affiliation/tei:address/tei:country',
+    'author_aff-address': 'tei:affiliation/tei:address',
+    'author_aff-address-country': 'tei:affiliation/tei:address/tei:country',
 }
+
+
+def is_address_sub_tag(sub_tag: str) -> bool:
+    # this includes the defined address fields as well as unknown preserved sub tags
+    # that will have the full namespace
+    return 'address' in sub_tag
 
 
 def _get_annotator(
@@ -79,6 +91,10 @@ def _get_annotator(
         ))
     if remove_untagged_enabled:
         annotators.append(RemoveUntaggedPostProcessingAnnotator())
+    annotators.append(AffiliationPostProcessingAnnotator(AffiliationAnnotatorConfig(
+        address_sub_tag='author_aff-address',
+        is_address_sub_tag_fn=is_address_sub_tag
+    )))
     annotator = Annotator(annotators)
     return annotator
 

@@ -493,8 +493,12 @@ def _lines_to_tei(
                 )
                 writer.require_path([], token=token)
             elif sub_prefix == B_TAG_PREFIX:
-                LOGGER.debug('found begin sub prefix, resetting path to parent: %s', sub_full_tag)
-                writer.require_path_or_below(main_required_path, token=token)
+                sub_parent_path = sub_required_path[:-1]
+                LOGGER.debug(
+                    'found begin sub prefix, resetting sub path to parent %s, for %s',
+                    sub_parent_path, sub_full_tag
+                )
+                writer.require_path_or_below(sub_parent_path, token=token)
 
             pending_reset_tag_values.clear()
 
