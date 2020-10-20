@@ -414,11 +414,30 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                 return index_range
         return None
 
+    def get_sub_tag_placeholders(self, sub_annotations: List[TargetAnnotation]) -> Dict[str, str]:
+        placeholders = {}
+        if sub_annotations:
+            for sub_annotation in sub_annotations:
+                if isinstance(sub_annotation.value, list):
+                    continue
+                placeholders[sub_annotation.name] = sub_annotation.value
+        return placeholders
+
+    def resolve_regex_placeholders(self, regex_pattern: str, placeholders: Dict[str, str]) -> str:
+        if '{' not in regex_pattern:
+            return regex_pattern
+        return re.sub(
+            r'{([^}]+)}',
+            lambda m: re.escape(placeholders.get(m.group(1), 'NOT_FOUND')),
+            regex_pattern
+        )
+
     def apply_match_prefix_regex_to_index_range(
             self,
             text: SequencesText,
             index_range: Tuple[int, int],
-            tag_name: str):
+            tag_name: str,
+            target_annotation: TargetAnnotation):
         tag_config = self.config.tag_config_map.get(
             tag_name,
             DEFAULT_SIMPLE_TAG_CONFIG
@@ -426,10 +445,16 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
         start_index, end_index = index_range
         LOGGER.debug('index_range: %s', (start_index, end_index))
         LOGGER.debug('match_prefix_regex: [%s]', tag_config.match_prefix_regex)
-        if start_index > 0 and tag_config.match_prefix_regex:
+        match_prefix_regex = tag_config.match_prefix_regex
+        if start_index > 0 and match_prefix_regex:
             prefix = str(text)[:start_index]
             LOGGER.debug('prefix: [%s]', prefix)
-            m = re.search(tag_config.match_prefix_regex, prefix)
+            match_prefix_regex = self.resolve_regex_placeholders(
+                match_prefix_regex,
+                self.get_sub_tag_placeholders(target_annotation.sub_annotations)
+            )
+            LOGGER.debug('match_prefix_regex: %r', match_prefix_regex)
+            m = re.search(match_prefix_regex, prefix)
             if m:
                 LOGGER.debug('match: [%s]', m.span())
                 start_index = m.start()
@@ -643,7 +668,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                 index_range = merge_index_ranges(index_ranges)
                 LOGGER.debug('merged index ranges: %s -> %s', index_ranges, index_range)
                 index_range = self.apply_match_prefix_regex_to_index_range(
-                    text, index_range, tag_name
+                    text, index_range, tag_name, target_annotation=target_annotation
                 )
                 self.update_annotation_for_index_range(
                     structured_document,
