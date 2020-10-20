@@ -1,18 +1,29 @@
 import logging
+import inspect
 from functools import wraps
-from typing import Dict, List
+from typing import Dict, List, Union
 
 
 LOGGER = logging.getLogger(__name__)
 
 
-def log_on_exception(f: callable) -> callable:
+def wrap_class_methods(cls, wrapper):
+    for key, value in cls.__dict__.items():
+        if callable(value):
+            setattr(cls, key, wrapper(value))
+    return cls
+
+
+def log_on_exception(f: Union[callable, type]) -> callable:
     """
     Wraps function to log error on exception.
     That is useful for tests that log a lot of things,
     and pytest displaying the test failure at the top of the method.
     (there doesn't seem to be an option to change that)
     """
+    if inspect.isclass(f):
+        return wrap_class_methods(f, log_on_exception)
+
     @wraps(f)
     def wrapper(*args, **kwargs):
         try:
@@ -25,7 +36,13 @@ def log_on_exception(f: callable) -> callable:
 
 def dict_to_args(args_dict: Dict[str, str]) -> List[str]:
     return [
-        '--%s' % key if isinstance(value, bool) and value else '--%s=%s' % (key, value)
+        (
+            '--%s' % key if isinstance(value, bool) and value
+            else '--%s=%s' % (key, value)
+        )
         for key, value in args_dict.items()
-        if value is not None
+        if (
+            value is not None
+            and (not isinstance(value, bool) or value)
+        )
     ]

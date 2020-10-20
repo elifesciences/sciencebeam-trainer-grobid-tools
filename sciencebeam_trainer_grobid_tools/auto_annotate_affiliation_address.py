@@ -34,105 +34,39 @@ from .structured_document.simple_matching_annotator import (
     SimpleMatchingAnnotator
 )
 
-from .structured_document.reference_annotator import (
-    DEFAULT_IDNO_PREFIX_REGEX,
-    ReferenceAnnotatorConfig,
-    ReferencePostProcessingAnnotator
+from .structured_document.affiliation_address_annotator import (
+    AffiliationAddressAnnotatorConfig,
+    AffiliationAddressPostProcessingAnnotator
 )
 
 
 LOGGER = logging.getLogger(__name__)
 
 
-REFERENCE_CONTAINER_NODE_PATH = 'tei:text/tei:back/tei:listBibl'
+AFFILIATION_CONTAINER_NODE_PATH = (
+    'tei:teiHeader/tei:fileDesc/tei:sourceDesc/tei:biblStruct/tei:analytic/tei:author'
+)
 
 
-REFERENCE_TAG_TO_TEI_PATH_MAPPING = {
+AFFILIATION_TAG_TO_TEI_PATH_MAPPING = {
     DEFAULT_TAG_KEY: 'tei:note[@type="other"]',
-    'reference': 'tei:bibl',
-    'reference-label': 'tei:bibl/tei:label',
-    'reference-author': 'tei:bibl/tei:author',
-    'reference-editor': 'tei:bibl/tei:editor',
-    'reference-year': 'tei:bibl/tei:date',
-    'reference-article-title': 'tei:bibl/tei:title[@level="a"]',
-    'reference-source': 'tei:bibl/tei:title[@level="j"]',
-    'reference-publisher-name': 'tei:bibl/tei:publisher',
-    'reference-publisher-loc': 'tei:bibl/tei:pubPlace',
-    'reference-volume': 'tei:bibl/tei:biblScope[@unit="volume"]',
-    'reference-issue': 'tei:bibl/tei:biblScope[@unit="issue"]',
-    'reference-page': 'tei:bibl/tei:biblScope[@unit="page"]',
-    'reference-issn': 'tei:bibl/tei:idno[@type="ISSN"]',
-    'reference-isbn': 'tei:bibl/tei:idno[@type="ISBN"]',
-    'reference-doi': 'tei:bibl/tei:idno[@type="DOI"]',
-    'reference-pii': 'tei:bibl/tei:idno[@type="PII"]',
-    'reference-pmid': 'tei:bibl/tei:idno[@type="PMID"]',
-    'reference-pmcid': 'tei:bibl/tei:idno[@type="PMC"]',
-    'reference-arxiv': 'tei:bibl/tei:idno[@type="arxiv"]',
-    'ext-link': 'tei:bibl/tei:ptr[@type="web"]'
-}
-
-DEFAULT_SUB_TAG_MAP = {
-    'reference-fpage': 'reference-page',
-    'reference-lpage': 'reference-page'
-}
-
-DEFAULT_MERGE_ENABLED_SUB_TAGS = {
-    'reference-author',
-    'reference-editor',
-    'reference-issue',
-    'reference-page'
-}
-
-NAME_SUFFIX_ENABLED_SUB_TAGS = {
-    'reference-author',
-    'reference-editor'
-}
-
-IDNO_SUB_TAGS = {
-    'reference-issn',
-    'reference-isbn',
-    'reference-doi',
-    'reference-pii',
-    'reference-pmid',
-    'reference-pmcid',
-    'reference-arxiv'
-}
-
-IDNO_PREFIX_REGEX_MAP = {
-    'reference-issn': DEFAULT_IDNO_PREFIX_REGEX,
-    'reference-isbn': DEFAULT_IDNO_PREFIX_REGEX,
-    'reference-doi': r'(?i)\bDOI(\s?:)?$',
-    'reference-pii': r'(?i)\bPII(\s?:)?$',
-    'reference-pmid': DEFAULT_IDNO_PREFIX_REGEX,
-    'reference-pmcid': DEFAULT_IDNO_PREFIX_REGEX,
-    'reference-arxiv': DEFAULT_IDNO_PREFIX_REGEX
-}
-
-ETAL_SUB_TAG = 'reference-etal'
-
-ETAL_MERGE_ENABLED_SUB_TAGS = {
-    'reference-author',
-    'reference-editor'
+    'author_aff': 'tei:affiliation',
+    'author_aff-label': 'tei:affiliation/tei:marker',
+    'author_aff-address': 'tei:affiliation/tei:address',
+    'author_aff-address-country': 'tei:affiliation/tei:address/tei:country',
 }
 
 
-def _get_default_reference_annotator_config() -> ReferenceAnnotatorConfig:
-    return ReferenceAnnotatorConfig(
-        sub_tag_map=DEFAULT_SUB_TAG_MAP,
-        merge_enabled_sub_tags=DEFAULT_MERGE_ENABLED_SUB_TAGS,
-        include_prefix_enabled_sub_tags={},
-        include_suffix_enabled_sub_tags=NAME_SUFFIX_ENABLED_SUB_TAGS,
-        prefix_regex_by_sub_tag_map=IDNO_PREFIX_REGEX_MAP,
-        etal_sub_tag=ETAL_SUB_TAG,
-        etal_merge_enabled_sub_tags=ETAL_MERGE_ENABLED_SUB_TAGS
-    )
+def is_address_sub_tag(sub_tag: str) -> bool:
+    # this includes the defined address fields as well as unknown preserved sub tags
+    # that will have the full namespace
+    return 'address' in sub_tag
 
 
 def _get_annotator(
         xml_path,
         xml_mapping,
         annotator_config: AnnotatorConfig,
-        reference_annotator_config: ReferenceAnnotatorConfig,
         segment_references: bool,
         remove_untagged_enabled: bool):
     target_annotations = xml_root_to_target_annotations(
@@ -141,6 +75,7 @@ def _get_annotator(
     )
     simple_annotator_config = annotator_config.get_simple_annotator_config(
         xml_mapping=xml_mapping,
+        preserve_sub_annotations=True,
         extend_to_line_enabled=False
     )
     annotators = []
@@ -154,13 +89,12 @@ def _get_annotator(
             target_annotations,
             config=simple_annotator_config
         ))
-    annotators.append(
-        ReferencePostProcessingAnnotator(
-            reference_annotator_config
-        )
-    )
     if remove_untagged_enabled:
         annotators.append(RemoveUntaggedPostProcessingAnnotator())
+    annotators.append(AffiliationAddressPostProcessingAnnotator(AffiliationAddressAnnotatorConfig(
+        address_sub_tag='author_aff-address',
+        is_address_sub_tag_fn=is_address_sub_tag
+    )))
     annotator = Annotator(annotators)
     return annotator
 
@@ -169,15 +103,17 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
     def __init__(self, opt):
         super().__init__(
             opt,
-            tei_filename_pattern='*.references.tei.xml*',
-            container_node_path=REFERENCE_CONTAINER_NODE_PATH,
-            tag_to_tei_path_mapping=REFERENCE_TAG_TO_TEI_PATH_MAPPING,
+            tei_filename_pattern='*.affiliation.tei.xml*',
+            container_node_path=AFFILIATION_CONTAINER_NODE_PATH,
+            tag_to_tei_path_mapping=AFFILIATION_TAG_TO_TEI_PATH_MAPPING,
             output_fields=opt.fields,
+            preserve_sub_tags=opt.preserve_sub_tags,
+            no_preserve_sub_fields=opt.no_preserve_sub_fields,
             namespaces=TEI_NS_MAP
         )
-        self.segment_references = opt.segment_references
-        if not opt.segment_references:
-            self.always_preserve_fields = ['reference']
+        self.segment_affiliation = opt.segment_affiliation
+        if not opt.segment_affiliation:
+            self.always_preserve_fields = ['author_aff']
         self.xml_mapping, self.fields = get_xml_mapping_and_fields(
             opt.xml_mapping_path,
             opt.fields,
@@ -188,10 +124,7 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
             if field not in self.tag_to_tei_path_mapping:
                 self.tag_to_tei_path_mapping[field] = 'note[type="%s"]' % field
         self.annotator_config.use_sub_annotations = True
-        self.reference_annotator_config = _get_default_reference_annotator_config()
-        if opt.include_idno_prefix:
-            self.reference_annotator_config.include_prefix_enabled_sub_tags = IDNO_SUB_TAGS
-        self.remove_untagged_enabled = opt.remove_invalid_references
+        self.remove_untagged_enabled = opt.remove_invalid_affiliations
 
     def get_annotator(self, source_url: str):
         target_xml_path = self.get_target_xml_for_source_file(source_url)
@@ -199,8 +132,7 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
             target_xml_path,
             self.xml_mapping,
             annotator_config=self.get_annotator_config(),
-            reference_annotator_config=self.reference_annotator_config,
-            segment_references=self.segment_references,
+            segment_references=self.segment_affiliation,
             remove_untagged_enabled=self.remove_untagged_enabled
         )
 
@@ -211,31 +143,40 @@ def add_main_args(parser):
     parser.add_argument(
         '--fields',
         type=comma_separated_str_to_list,
-        default='reference',
+        default='author_aff',
         help='comma separated list of fields to annotate'
     )
 
     parser.add_argument(
-        '--include-idno-prefix',
+        '--preserve-sub-tags',
         action='store_true',
         default=False,
-        help='enable including the prefix of an idno, e.g. "doi:"'
+        help='enable preserving sub tags.'
     )
 
     parser.add_argument(
-        '--segment-references',
-        action='store_true',
-        default=False,
-        help='enable segmentation of references. bibl element will be set or replaced by note.'
+        '--no-preserve-sub-fields',
+        type=comma_separated_str_to_list,
+        help='comma separated list of sub fields that should not be preserved'
     )
 
     parser.add_argument(
-        '--remove-invalid-references',
+        '--segment-affiliation',
         action='store_true',
         default=False,
         help=(
-            'enable removing invalid references'
-            + ' (usually in combination with --segment-references).'
+            'enable segmentation of affiliations.'
+            ' affiliation element will be set or replaced by note.'
+        )
+    )
+
+    parser.add_argument(
+        '--remove-invalid-affiliations',
+        action='store_true',
+        default=False,
+        help=(
+            'enable removing invalid affiliations'
+            + ' (usually in combination with --segment-affiliation).'
         )
     )
 

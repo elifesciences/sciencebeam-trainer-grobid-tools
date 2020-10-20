@@ -445,13 +445,11 @@ def _lines_to_tei(
         tag_to_tei_path_mapping = {}
     writer = XmlTreeWriter(parent)
     pending_space_tokens = []
+    pending_reset_tag_values = set()
     for line_index, line in enumerate(lines):
         if line_index:
             writer.append(E(TeiTagNames.LB))
         for token in line.tokens:
-            if not token.stripped_text:
-                pending_space_tokens.append(token)
-                continue
             main_full_tag = token.attrib.get(TAG_ATTRIB_NAME)
             if not main_full_tag:
                 main_full_tag = token.attrib.get(PRESERVED_TAG_ATTRIB_NAME)
@@ -460,6 +458,12 @@ def _lines_to_tei(
                 sub_full_tag = token.attrib.get(PRESERVED_SUB_TAG_ATTRIB_NAME)
             main_prefix, main_tag = split_tag_prefix(main_full_tag)
             sub_prefix, sub_tag = split_tag_prefix(sub_full_tag)
+            if not token.stripped_text:
+                if main_prefix == B_TAG_PREFIX:
+                    LOGGER.debug('adding to pending reset tags, for %s', token)
+                    pending_reset_tag_values.add(main_tag)
+                pending_space_tokens.append(token)
+                continue
             main_required_path = _get_tag_required_path(main_tag, tag_to_tei_path_mapping)
             sub_required_path = (
                 _get_tag_required_path(sub_tag, tag_to_tei_path_mapping)
@@ -482,9 +486,21 @@ def _lines_to_tei(
             if main_prefix == B_TAG_PREFIX:
                 LOGGER.debug('found begin prefix, resetting path: %s', main_full_tag)
                 writer.require_path([], token=token)
+            elif main_tag in pending_reset_tag_values:
+                LOGGER.debug(
+                    'found begin prefix via preceding space, resetting path: %s',
+                    main_full_tag
+                )
+                writer.require_path([], token=token)
             elif sub_prefix == B_TAG_PREFIX:
-                LOGGER.debug('found begin sub prefix, resetting path to parent: %s', sub_full_tag)
-                writer.require_path_or_below(main_required_path, token=token)
+                sub_parent_path = sub_required_path[:-1]
+                LOGGER.debug(
+                    'found begin sub prefix, resetting sub path to parent %s, for %s',
+                    sub_parent_path, sub_full_tag
+                )
+                writer.require_path_or_below(sub_parent_path, token=token)
+
+            pending_reset_tag_values.clear()
 
             required_path = (
                 sub_required_path if sub_full_tag
@@ -610,11 +626,11 @@ class GrobidTrainingTeiStructuredDocument(AbstractStructuredDocument):
     def get_tag(self, parent, scope=None, level=None):
         return parent.attrib.get(_get_tag_attrib_name(scope, level))
 
-    def get_tag_or_preserved_tag(self, parent, scope=None, level=None):
-        tag = self.get_tag(parent, scope=scope, level=level)
-        if not tag:
-            tag = parent.attrib.get(PRESERVED_TAG_ATTRIB_NAME)
-        return tag
+    def get_preserved_tag(self, parent, **kwargs):
+        return parent.attrib.get(get_scoped_attrib_name(PRESERVED_TAG_ATTRIB_NAME, **kwargs))
+
+    def get_tag_or_preserved_tag(self, parent, **kwargs):
+        return self.get_tag(parent, **kwargs) or self.get_preserved_tag(parent, **kwargs)
 
     def get_tag_or_preserved_tag_value(self, *args, **kwargs):
         return strip_tag_prefix(self.get_tag_or_preserved_tag(*args, **kwargs))
@@ -631,6 +647,14 @@ class GrobidTrainingTeiStructuredDocument(AbstractStructuredDocument):
     def clear_preserved_sub_tag(
             self, parent: TeiText):
         set_or_remove_attrib(parent.attrib, PRESERVED_SUB_TAG_ATTRIB_NAME, None)
+
+    def clear_preserved_tag_only(
+            self, parent: TeiText, **kwargs):
+        set_or_remove_attrib(
+            parent.attrib,
+            get_scoped_attrib_name(PRESERVED_TAG_ATTRIB_NAME, **kwargs),
+            None
+        )
 
     def set_tag(self, parent, tag, scope=None, level=None):
         _previous_tag = self.get_tag_or_preserved_tag(parent, level=level)

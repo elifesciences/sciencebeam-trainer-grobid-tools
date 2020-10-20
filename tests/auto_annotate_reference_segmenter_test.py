@@ -7,7 +7,7 @@ import pytest
 from lxml import etree
 from lxml.builder import E
 
-from sciencebeam_utils.utils.xml import get_text_content
+from sciencebeam_trainer_grobid_tools.utils.xml import get_text_content, get_xpath_text
 
 from sciencebeam_trainer_grobid_tools.auto_annotate_reference_segmenter import (
     main
@@ -16,7 +16,6 @@ from sciencebeam_trainer_grobid_tools.auto_annotate_reference_segmenter import (
 from .test_utils import log_on_exception, dict_to_args
 from .auto_annotate_test_utils import (
     get_target_xml_node,
-    get_xpath_text,
     SingleFileAutoAnnotateEndToEndTestHelper
 )
 
@@ -74,8 +73,8 @@ def get_nodes_text(nodes: List[Union[str, etree.Element]]) -> str:
     ])
 
 
+@log_on_exception
 class TestEndToEnd(object):
-    @log_on_exception
     def test_should_auto_annotate_single_reference(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
@@ -99,7 +98,6 @@ class TestEndToEnd(object):
             LABEL_1, REFERENCE_TEXT_1
         ])
 
-    @log_on_exception
     def test_should_not_auto_annotate_other_sub_tags(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_reference_content_nodes = [
@@ -131,7 +129,6 @@ class TestEndToEnd(object):
             LABEL_1, reference_text
         ])
 
-    @log_on_exception
     def test_should_auto_annotate_label_within_reference(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
@@ -157,7 +154,6 @@ class TestEndToEnd(object):
         ])
         assert get_xpath_text(tei_auto_root, '//listBibl/bibl/label') == LABEL_1
 
-    @log_on_exception
     def test_should_auto_annotate_label_containing_dot_within_reference(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         label_with_dot = '1.'

@@ -4,9 +4,11 @@ from contextlib import contextmanager
 from io import BufferedReader
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Iterable, Union
+from typing import Iterable, List, Union
 
 from lxml import etree
+
+from sciencebeam_utils.utils.xml import get_text_content
 
 from sciencebeam_trainer_grobid_tools.utils.io import auto_download_input_file
 
@@ -90,3 +92,40 @@ def parse_xml(file_url: str, **kwargs) -> etree.ElementTree:
         file_url,
         **kwargs
     )
+
+
+def get_xpath_matches(
+        parent: etree.Element,
+        xpath: str,
+        required: bool = False,
+        **kwargs) -> List[etree.Element]:
+    result = parent.xpath(xpath, **kwargs)
+    if required and not result:
+        xpath_fragments = xpath.split('/')
+        for fragment_count in reversed(range(1, len(xpath_fragments))):
+            parent_xpath = '/'.join(xpath_fragments[:fragment_count])
+            if len(parent_xpath) <= 1:
+                break
+            parent_result = parent.xpath(parent_xpath, **kwargs)
+            if parent_result:
+                raise ValueError(
+                    (
+                        'no item found for xpath: %r (in %s),'
+                        ' but found matching elements for %r: %s'
+                    ) % (
+                        xpath, parent, parent_xpath, parent_result
+                    )
+                )
+        raise ValueError('no item found for xpath: %r (in %s)' % (xpath, parent))
+    return result
+
+
+def get_first_xpath_match(
+        parent: etree.Element,
+        xpath: str,
+        **kwargs) -> etree.Element:
+    return get_xpath_matches(parent, xpath, required=True, **kwargs)[0]
+
+
+def get_xpath_text(root: etree.Element, xpath: str, delimiter: str = ' ', **kwargs) -> str:
+    return delimiter.join(get_text_content(node) for node in root.xpath(xpath, **kwargs))
