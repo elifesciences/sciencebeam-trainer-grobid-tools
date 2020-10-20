@@ -4,7 +4,7 @@ from sciencebeam_gym.structured_document import (
     SimpleToken
 )
 
-from sciencebeam_trainer_grobid_tools.structured_document.matching_utils import (
+from sciencebeam_trainer_grobid_tools.annotation.matching_utils import (
     join_with_index_ranges,
     SequenceWrapper
 )

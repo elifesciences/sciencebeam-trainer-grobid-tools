@@ -31,7 +31,7 @@ from sciencebeam_trainer_grobid_tools.utils.fuzzy import (
     iter_fuzzy_search_all_index_ranges
 )
 
-from sciencebeam_trainer_grobid_tools.structured_document.matching_utils import (
+from sciencebeam_trainer_grobid_tools.annotation.matching_utils import (
     SequenceWrapper,
     PendingSequences,
     SequencesText,

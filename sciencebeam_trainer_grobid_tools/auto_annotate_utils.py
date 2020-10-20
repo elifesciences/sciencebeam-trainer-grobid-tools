@@ -42,9 +42,9 @@ from sciencebeam_trainer_grobid_tools.annotation.target_annotation import (
 from .utils.string import comma_separated_str_to_list, parse_dict
 from .utils.regex import regex_change_name
 from .utils.xml import parse_xml
-from .structured_document.annotator import annotate_structured_document
+from .annotation.annotator import annotate_structured_document
 
-from .structured_document.line_number_annotator import (
+from .annotation.line_number_annotator import (
     DEFAULT_MIN_LINE_NUMBER_COUNT,
     DEFAULT_MAX_LINE_NUMBER_GAP,
     DEFAULT_LINE_NUMBER_RATIO_THRESHOLD,
@@ -52,7 +52,7 @@ from .structured_document.line_number_annotator import (
     TextLineNumberAnnotator
 )
 
-from .structured_document.simple_matching_annotator import (
+from .annotation.simple_matching_annotator import (
     SimpleMatchingAnnotator,
     SimpleSimpleMatchingConfig,
     get_simple_tag_config_map

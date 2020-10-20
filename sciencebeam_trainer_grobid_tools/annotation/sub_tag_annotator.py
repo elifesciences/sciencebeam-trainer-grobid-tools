@@ -9,7 +9,7 @@ from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei im
     GrobidTrainingTeiStructuredDocument
 )
 
-from sciencebeam_trainer_grobid_tools.structured_document.simple_matching_annotator import (
+from sciencebeam_trainer_grobid_tools.annotation.simple_matching_annotator import (
     SimpleMatchingAnnotator
 )
 

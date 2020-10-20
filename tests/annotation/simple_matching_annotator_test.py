@@ -20,7 +20,7 @@ from sciencebeam_gym.preprocess.annotation.target_annotation import (
     TargetAnnotation
 )
 
-from sciencebeam_trainer_grobid_tools.structured_document.simple_matching_annotator import (
+from sciencebeam_trainer_grobid_tools.annotation.simple_matching_annotator import (
     SimpleTagConfig,
     SimpleMatchingAnnotator,
     get_extended_line_token_tags,

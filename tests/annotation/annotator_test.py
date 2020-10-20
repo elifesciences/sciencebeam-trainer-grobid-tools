@@ -14,11 +14,11 @@ from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei im
     DEFAULT_TAG_TO_TEI_PATH_MAPPING as _DEFAULT_TAG_TO_TEI_PATH_MAPPING
 )
 
-from sciencebeam_trainer_grobid_tools.structured_document.annotator import (
+from sciencebeam_trainer_grobid_tools.annotation.annotator import (
     annotate_structured_document_inplace
 )
 
-from .grobid_training_tei_test import _tei
+from ..structured_document.grobid_training_tei_test import _tei
 
 
 LOGGER = logging.getLogger(__name__)

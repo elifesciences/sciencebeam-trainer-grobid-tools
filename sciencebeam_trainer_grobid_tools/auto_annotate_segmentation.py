@@ -21,7 +21,7 @@ from .structured_document.grobid_training_tei import (
     ContainerNodePaths,
     DEFAULT_TAG_KEY
 )
-from .structured_document.segmentation_annotator import (
+from .annotation.segmentation_annotator import (
     SegmentationAnnotator,
     SegmentationConfig,
     parse_segmentation_config

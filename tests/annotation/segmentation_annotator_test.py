@@ -12,7 +12,7 @@ from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei im
     I_TAG_PREFIX
 )
 
-from sciencebeam_trainer_grobid_tools.structured_document.segmentation_annotator import (
+from sciencebeam_trainer_grobid_tools.annotation.segmentation_annotator import (
     parse_segmentation_config,
     SegmentationConfig,
     SegmentationAnnotator,
