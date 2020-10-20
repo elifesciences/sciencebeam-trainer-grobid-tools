@@ -34,9 +34,9 @@ from .structured_document.simple_matching_annotator import (
     SimpleMatchingAnnotator
 )
 
-from .structured_document.affiliation_annotator import (
-    AffiliationAnnotatorConfig,
-    AffiliationPostProcessingAnnotator
+from .structured_document.affiliation_address_annotator import (
+    AffiliationAddressAnnotatorConfig,
+    AffiliationAddressPostProcessingAnnotator
 )
 
 
@@ -91,7 +91,7 @@ def _get_annotator(
         ))
     if remove_untagged_enabled:
         annotators.append(RemoveUntaggedPostProcessingAnnotator())
-    annotators.append(AffiliationPostProcessingAnnotator(AffiliationAnnotatorConfig(
+    annotators.append(AffiliationAddressPostProcessingAnnotator(AffiliationAddressAnnotatorConfig(
         address_sub_tag='author_aff-address',
         is_address_sub_tag_fn=is_address_sub_tag
     )))

@@ -18,7 +18,7 @@ from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei im
 LOGGER = logging.getLogger(__name__)
 
 
-class AffiliationAnnotatorConfig:
+class AffiliationAddressAnnotatorConfig:
     def __init__(
             self,
             address_sub_tag: str,
@@ -37,8 +37,8 @@ def _iter_all_tokens(
     )
 
 
-class AffiliationPostProcessingAnnotator(AbstractAnnotator):
-    def __init__(self, config: AffiliationAnnotatorConfig):
+class AffiliationAddressPostProcessingAnnotator(AbstractAnnotator):
+    def __init__(self, config: AffiliationAddressAnnotatorConfig):
         self.config = config
         super().__init__()
 
