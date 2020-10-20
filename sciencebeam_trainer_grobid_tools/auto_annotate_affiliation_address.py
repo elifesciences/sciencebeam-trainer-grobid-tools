@@ -47,6 +47,7 @@ AFFILIATION_TAG_TO_TEI_PATH_MAPPING = {
     DEFAULT_TAG_KEY: 'tei:note[@type="other"]',
     'author_aff': 'tei:affiliation',
     'author_aff-label': 'tei:affiliation/tei:marker',
+    'author_aff-country': 'tei:affiliation/tei:address/tei:country',
 }
 
 
