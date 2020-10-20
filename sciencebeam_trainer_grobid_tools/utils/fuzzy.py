@@ -36,7 +36,7 @@ def default_is_junk(s, i):
 
 
 def space_is_junk(s: str, i: int) -> bool:
-    return s[i] == ' '
+    return s[i] in {' ', '\t', '\n'}
 
 
 class StringView:
@@ -140,13 +140,15 @@ def fuzzy_search(
         matcher_is_junk_fn = space_is_junk
         haystack_string_view = get_no_junk_string_view(haystack, isjunk=matcher_is_junk_fn)
         needle_string_view = get_no_junk_string_view(needle, isjunk=matcher_is_junk_fn)
-        LOGGER.debug('haystack_string_view: %s', haystack_string_view)
-        LOGGER.debug('needle_string_view: %s', needle_string_view)
+        LOGGER.debug('haystack_string_view: %r', str(haystack_string_view))
+        LOGGER.debug('needle_string_view: %r', str(needle_string_view))
         sm = LocalSequenceMatcher(
             a=str(haystack_string_view),
             b=str(needle_string_view),
             scoring=DEFAULT_SCORING
         )
+        raw_matching_blocks = sm.get_matching_blocks()
+        LOGGER.debug('raw_matching_blocks: %s', raw_matching_blocks)
         matching_blocks = [
             (
                 haystack_string_view.original_index_at[ai],
@@ -157,7 +159,7 @@ def fuzzy_search(
                     + 1
                 )
             )
-            for ai, bi, size in sm.get_matching_blocks()
+            for ai, bi, size in raw_matching_blocks
             if size
         ]
     if start_index:
