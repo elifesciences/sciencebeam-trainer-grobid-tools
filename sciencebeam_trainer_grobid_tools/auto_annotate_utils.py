@@ -4,7 +4,7 @@ import concurrent.futures
 import re
 import os
 from abc import ABC, abstractmethod
-from typing import Callable, Dict, List, Set
+from typing import Callable, Dict, List, Optional, Set
 
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions, SetupOptions
@@ -32,6 +32,7 @@ from sciencebeam_gym.preprocess.annotation.matching_annotator import (
 
 from sciencebeam_gym.preprocess.annotation.annotator import AbstractAnnotator
 from sciencebeam_gym.preprocess.annotation.target_annotation import (
+    XmlMappingSuffix,
     parse_xml_mapping
 )
 
@@ -241,9 +242,43 @@ def get_mapping_key_field_name(key: str) -> str:
     return key.split('.', maxsplit=1)[0]
 
 
+def get_sub_field_for_key_or_none(key: str) -> Optional[str]:
+    field_name = get_mapping_key_field_name(key)
+    sub_prefix = field_name + XmlMappingSuffix.SUB + '.'
+    if not key.startswith(sub_prefix):
+        return None
+    return key[len(sub_prefix):]
+
+
+def is_key_selected_sub_fields_or_no_sub_field(
+        key: str,
+        sub_fields: List[str]) -> bool:
+    sub_field = get_sub_field_for_key_or_none(key)
+    if not sub_field:
+        return True
+    return sub_field in sub_fields
+
+
+def get_xml_mapping_with_filtered_sub_fields(
+        xml_mapping: Dict[str, Dict[str, str]],
+        sub_fields: List[str] = None) -> Dict[str, Dict[str, str]]:
+    if not sub_fields:
+        return xml_mapping
+    LOGGER.debug('selecting sub_fields: %s', sub_fields)
+    return {
+        top_level_key: {
+            k: v
+            for k, v in field_mapping.items()
+            if is_key_selected_sub_fields_or_no_sub_field(k, sub_fields)
+        }
+        for top_level_key, field_mapping in xml_mapping.items()
+    }
+
+
 def get_filtered_xml_mapping_and_fields(
         xml_mapping: Dict[str, Dict[str, str]],
-        fields: List[str]) -> Dict[str, Dict[str, str]]:
+        fields: List[str],
+        sub_fields: List[str] = None) -> Dict[str, Dict[str, str]]:
     if fields:
         xml_mapping = {
             top_level_key: {
@@ -260,6 +295,10 @@ def get_filtered_xml_mapping_and_fields(
             for k in field_mapping.keys()
             if '.' not in k
         }
+    xml_mapping = get_xml_mapping_with_filtered_sub_fields(
+        xml_mapping,
+        sub_fields=sub_fields
+    )
     return xml_mapping, fields
 
 
@@ -280,13 +319,15 @@ def get_xml_mapping_with_overrides(
 def get_xml_mapping_and_fields(
         xml_mapping_path: str,
         fields: List[str],
+        sub_fields: List[str] = None,
         xml_mapping_overrides: Dict[str, str] = None) -> Dict[str, Dict[str, str]]:
     return get_filtered_xml_mapping_and_fields(
         get_xml_mapping_with_overrides(
             parse_xml_mapping(xml_mapping_path),
             xml_mapping_overrides=xml_mapping_overrides
         ),
-        fields
+        fields,
+        sub_fields=sub_fields
     )
 
 

@@ -52,8 +52,13 @@ AFFILIATION_TAG_TO_TEI_PATH_MAPPING = {
     DEFAULT_TAG_KEY: 'tei:note[@type="other"]',
     'author_aff': 'tei:affiliation',
     'author_aff-label': 'tei:affiliation/tei:marker',
+    'author_aff-department': 'tei:affiliation/tei:orgName[@type="department"]',
+    'author_aff-institution': 'tei:affiliation/tei:orgName[@type="institution"]',
     'author_aff-address': 'tei:affiliation/tei:address',
-    'author_aff-address-country': 'tei:affiliation/tei:address/tei:country',
+    'author_aff-address-city': 'tei:affiliation/tei:address/tei:settlement',
+    'author_aff-address-postcode': 'tei:affiliation/tei:address/tei:postCode',
+    'author_aff-address-state': 'tei:affiliation/tei:address/tei:region',
+    'author_aff-address-country': 'tei:affiliation/tei:address/tei:country'
 }
 
 
@@ -117,6 +122,7 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
         self.xml_mapping, self.fields = get_xml_mapping_and_fields(
             opt.xml_mapping_path,
             opt.fields,
+            sub_fields=opt.sub_fields,
             xml_mapping_overrides=opt.xml_mapping_overrides
         )
         self.tag_to_tei_path_mapping = self.tag_to_tei_path_mapping.copy()
@@ -145,6 +151,15 @@ def add_main_args(parser):
         type=comma_separated_str_to_list,
         default='author_aff',
         help='comma separated list of fields to annotate'
+    )
+
+    parser.add_argument(
+        '--sub-fields',
+        type=comma_separated_str_to_list,
+        help=(
+            'comma separated list of sub fields to annotate.'
+            ' if blank, all available sub fields will be used.'
+        )
     )
 
     parser.add_argument(
