@@ -42,6 +42,8 @@ TEXT_1 = 'text 1'
 LABEL_1 = '1'
 LABEL_2 = '2'
 
+INSTITUTION_1 = 'Institution 1'
+
 COUNTRY_1 = 'Country1'
 CITY_1 = 'City1'
 
@@ -110,6 +112,41 @@ class TestEndToEnd(object):
         assert get_tei_xpath_text(first_aff, './tei:marker') == (
             LABEL_1
         )
+
+    def test_should_auto_annotate_single_affiliation_with_all_supported_fields(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        target_reference_content_nodes = [
+            E('label', LABEL_1),
+            ' ',
+            E.institution(INSTITUTION_1),
+            ' ',
+            E.country(COUNTRY_1)
+        ]
+        target_jats_xml = etree.tostring(
+            get_target_xml_node(affiliation_nodes=[
+                E.aff(*target_reference_content_nodes),
+            ])
+        )
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_affiliation_tei_node([
+                TEI_E.affiliation(get_nodes_text(target_reference_content_nodes))
+            ])
+        ))
+        LOGGER.debug('target_jats_xml: %s', target_jats_xml)
+        test_helper.xml_file_path.write_bytes(target_jats_xml)
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'matcher': 'simple',
+            'fields': 'author_aff'
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        first_aff = get_first_affiliation(tei_auto_root)
+        assert get_tei_xpath_text(first_aff, './tei:marker') == LABEL_1
+        assert get_tei_xpath_text(first_aff, './tei:orgName[@type="institution"]') == (
+            INSTITUTION_1
+        )
+        assert get_tei_xpath_text(first_aff, './tei:address/tei:country') == COUNTRY_1
 
     def test_should_preserve_original_affiliation_annotation(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
