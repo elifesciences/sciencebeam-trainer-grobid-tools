@@ -57,6 +57,7 @@ AFFILIATION_TAG_TO_TEI_PATH_MAPPING = {
     'author_aff-address': 'tei:affiliation/tei:address',
     'author_aff-address-city': 'tei:affiliation/tei:address/tei:settlement',
     'author_aff-address-postcode': 'tei:affiliation/tei:address/tei:postCode',
+    'author_aff-address-state': 'tei:affiliation/tei:address/tei:region',
     'author_aff-address-country': 'tei:affiliation/tei:address/tei:country'
 }
 

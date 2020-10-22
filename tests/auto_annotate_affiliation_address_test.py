@@ -46,6 +46,7 @@ DEPARTMENT_1 = 'Department 1'
 INSTITUTION_1 = 'Institution 1'
 
 COUNTRY_1 = 'Country1'
+STATE_1 = 'State 1'
 CITY_1 = 'City1'
 POST_CODE_1 = 'Post Code 1'
 
@@ -128,6 +129,8 @@ class TestEndToEnd(object):
             ' ',
             E('addr-line', E('named-content', {'content-type': 'postcode'}, POST_CODE_1)),
             ' ',
+            E('addr-line', E('named-content', {'content-type': 'state'}, STATE_1)),
+            ' ',
             E.country(COUNTRY_1)
         ]
         target_jats_xml = etree.tostring(
@@ -159,6 +162,7 @@ class TestEndToEnd(object):
         )
         assert get_tei_xpath_text(first_aff, './tei:address/tei:settlement') == CITY_1
         assert get_tei_xpath_text(first_aff, './tei:address/tei:postCode') == POST_CODE_1
+        assert get_tei_xpath_text(first_aff, './tei:address/tei:region') == STATE_1
         assert get_tei_xpath_text(first_aff, './tei:address/tei:country') == COUNTRY_1
 
     def test_should_preserve_original_affiliation_annotation(
