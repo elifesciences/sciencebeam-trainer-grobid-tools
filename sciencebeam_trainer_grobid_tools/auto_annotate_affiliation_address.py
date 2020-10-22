@@ -117,6 +117,7 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
         self.xml_mapping, self.fields = get_xml_mapping_and_fields(
             opt.xml_mapping_path,
             opt.fields,
+            sub_fields=opt.sub_fields,
             xml_mapping_overrides=opt.xml_mapping_overrides
         )
         self.tag_to_tei_path_mapping = self.tag_to_tei_path_mapping.copy()
@@ -145,6 +146,15 @@ def add_main_args(parser):
         type=comma_separated_str_to_list,
         default='author_aff',
         help='comma separated list of fields to annotate'
+    )
+
+    parser.add_argument(
+        '--sub-fields',
+        type=comma_separated_str_to_list,
+        help=(
+            'comma separated list of sub fields to annotate.'
+            ' if blank, all available sub fields will be used.'
+        )
     )
 
     parser.add_argument(

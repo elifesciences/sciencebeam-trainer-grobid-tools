@@ -385,7 +385,7 @@ class TestEndToEnd(object):
         assert get_tei_xpath_text(first_aff, './tei:other2') == other2_sub_tag_text
 
     @pytest.mark.parametrize('segment_affiliation', [False, True])
-    def test_should_not_preserve_existing_sub_tags_if_provided_by_data(
+    def test_should_not_preserve_existing_sub_tags_if_provided_by_excluded(
             self,
             test_helper: SingleFileAutoAnnotateEndToEndTestHelper,
             segment_affiliation: bool):
@@ -420,3 +420,47 @@ class TestEndToEnd(object):
         first_aff = get_first_affiliation(tei_auto_root)
         assert get_tei_xpath_text(first_aff, './tei:marker') == LABEL_1
         assert get_tei_xpath_text(first_aff, './tei:preserved') == TEXT_1
+
+    @pytest.mark.parametrize('segment_affiliation', [False])
+    @pytest.mark.parametrize('sub_fields,expected_country', [
+        ('', COUNTRY_1), ('author_aff-label', '')
+    ])
+    def test_should_ignore_sub_fields_if_excluded(
+            self,
+            test_helper: SingleFileAutoAnnotateEndToEndTestHelper,
+            segment_affiliation: bool,
+            sub_fields: str,
+            expected_country: str):
+        target_jats_xml = etree.tostring(
+            get_target_xml_node(affiliation_nodes=[
+                E.aff(
+                    E.label(LABEL_1),
+                    ' ',
+                    E.country(COUNTRY_1)),
+            ])
+        )
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_affiliation_tei_node([
+                TEI_E.affiliation(
+                    TEI_E.other(LABEL_1),
+                    ' ',
+                    COUNTRY_1
+                )
+            ])
+        ))
+        LOGGER.debug('target_jats_xml: %s', target_jats_xml)
+        test_helper.xml_file_path.write_bytes(target_jats_xml)
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'matcher': 'simple',
+            'segment-affiliation': segment_affiliation,
+            'fields': 'author_aff',
+            'sub-fields': sub_fields,
+            'preserve-sub-tags': True,
+            'no-preserve-sub-fields': 'author_aff-label'
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        first_aff = get_first_affiliation(tei_auto_root)
+        assert get_tei_xpath_text(first_aff, './tei:marker') == LABEL_1
+        assert get_tei_xpath_text(first_aff, './tei:address/tei:country') == expected_country
