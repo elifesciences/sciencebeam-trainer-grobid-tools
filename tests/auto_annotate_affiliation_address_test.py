@@ -123,6 +123,8 @@ class TestEndToEnd(object):
             ' ',
             E.institution(INSTITUTION_1),
             ' ',
+            E('addr-line', E('named-content', {'content-type': 'city'}, CITY_1)),
+            ' ',
             E.country(COUNTRY_1)
         ]
         target_jats_xml = etree.tostring(
@@ -152,6 +154,7 @@ class TestEndToEnd(object):
         assert get_tei_xpath_text(first_aff, './tei:orgName[@type="institution"]') == (
             INSTITUTION_1
         )
+        assert get_tei_xpath_text(first_aff, './tei:address/tei:settlement') == CITY_1
         assert get_tei_xpath_text(first_aff, './tei:address/tei:country') == COUNTRY_1
 
     def test_should_preserve_original_affiliation_annotation(
