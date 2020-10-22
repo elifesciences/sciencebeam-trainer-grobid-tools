@@ -42,6 +42,7 @@ TEXT_1 = 'text 1'
 LABEL_1 = '1'
 LABEL_2 = '2'
 
+DEPARTMENT_1 = 'Department 1'
 INSTITUTION_1 = 'Institution 1'
 
 COUNTRY_1 = 'Country1'
@@ -118,6 +119,8 @@ class TestEndToEnd(object):
         target_reference_content_nodes = [
             E('label', LABEL_1),
             ' ',
+            E('addr-line', E('named-content', {'content-type': 'department'}, DEPARTMENT_1)),
+            ' ',
             E.institution(INSTITUTION_1),
             ' ',
             E.country(COUNTRY_1)
@@ -143,6 +146,9 @@ class TestEndToEnd(object):
         tei_auto_root = test_helper.get_tei_auto_root()
         first_aff = get_first_affiliation(tei_auto_root)
         assert get_tei_xpath_text(first_aff, './tei:marker') == LABEL_1
+        assert get_tei_xpath_text(first_aff, './tei:orgName[@type="department"]') == (
+            DEPARTMENT_1
+        )
         assert get_tei_xpath_text(first_aff, './tei:orgName[@type="institution"]') == (
             INSTITUTION_1
         )
