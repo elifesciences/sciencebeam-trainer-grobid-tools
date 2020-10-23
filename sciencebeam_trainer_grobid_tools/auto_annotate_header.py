@@ -17,6 +17,7 @@ from .auto_annotate_utils import (
     process_debug_argument,
     get_xml_mapping_and_fields,
     add_annotation_pipeline_arguments,
+    add_document_checks_arguments,
     process_annotation_pipeline_arguments,
     get_default_annotators,
     AbstractAnnotatePipelineFactory
@@ -56,6 +57,8 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
             tei_filename_pattern='*.header.tei.xml*',
             container_node_path=HEADER_CONTAINER_NODE_PATH,
             tag_to_tei_path_mapping=HEADER_TAG_TO_TEI_PATH_MAPPING,
+            require_matching_fields=opt.require_matching_fields,
+            required_fields=opt.required_fields,
             output_fields=opt.fields
         )
         self.xml_mapping, self.fields = get_xml_mapping_and_fields(
@@ -79,6 +82,7 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
 
 def add_main_args(parser):
     add_annotation_pipeline_arguments(parser)
+    add_document_checks_arguments(parser)
 
     parser.add_argument(
         '--fields',

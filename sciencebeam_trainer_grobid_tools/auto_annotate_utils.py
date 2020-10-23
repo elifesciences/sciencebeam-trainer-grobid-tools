@@ -4,6 +4,7 @@ import concurrent.futures
 import re
 import os
 from abc import ABC, abstractmethod
+from functools import partial
 from typing import Callable, Dict, List, Optional, Set
 
 import apache_beam as beam
@@ -30,7 +31,10 @@ from sciencebeam_gym.preprocess.annotation.matching_annotator import (
     DEFAULT_CHOICE_RATIO_MIN_MATCH_COUNT
 )
 
-from sciencebeam_gym.preprocess.annotation.annotator import AbstractAnnotator
+from sciencebeam_gym.preprocess.annotation.annotator import (
+    AbstractAnnotator
+)
+
 from sciencebeam_gym.preprocess.annotation.target_annotation import (
     XmlMappingSuffix,
     parse_xml_mapping
@@ -44,6 +48,13 @@ from .utils.string import comma_separated_str_to_list, parse_dict
 from .utils.regex import regex_change_name
 from .utils.xml import parse_xml
 from .annotation.annotator import annotate_structured_document
+from .annotation.checks import (
+    is_structured_document_passing_checks,
+    get_target_annotations_from_annotator
+)
+from .annotation.target_annotation import TargetAnnotation
+
+from .structured_document.grobid_training_tei import GrobidTrainingTeiStructuredDocument
 
 from .annotation.line_number_annotator import (
     DEFAULT_MIN_LINE_NUMBER_COUNT,
@@ -111,6 +122,14 @@ def add_annotation_pipeline_arguments(parser: argparse.ArgumentParser):
     parser.add_argument(
         '--output-path', type=str, required=True,
         help='target training data path'
+    )
+
+    parser.add_argument(
+        '--failed-output-path', type=str, required=False,
+        help=(
+            'Target data path where documents should be saved to, if they fail quality checks.'
+            ' Leave blank if those documents should not be saved.'
+        )
     )
 
     parser.add_argument(
@@ -226,6 +245,25 @@ def add_annotation_pipeline_arguments(parser: argparse.ArgumentParser):
 
     add_cloud_args(parser)
     return parser
+
+
+def add_document_checks_arguments(parser: argparse.ArgumentParser):
+    parser.add_argument(
+        '--require-matching-fields',
+        type=comma_separated_str_to_list,
+        help=(
+            'Comma separated list of fields that are required to match (if present).'
+            ' XML files are discarded if one of those fields do not meet the threshold.'
+        )
+    )
+    parser.add_argument(
+        '--required-fields',
+        type=comma_separated_str_to_list,
+        help=(
+            'Comma separated list of fields that are required to be present.'
+            ' Where the target value is missing, this would cause the document to fail.'
+        )
+    )
 
 
 def process_annotation_pipeline_arguments(
@@ -466,6 +504,8 @@ class AbstractAnnotatePipelineFactory(ABC):
             output_fields: Set[str] = None,
             preserve_sub_tags: bool = False,
             no_preserve_sub_fields: Set[str] = None,
+            require_matching_fields: Set[str] = None,
+            required_fields: Set[str] = None,
             namespaces: Dict[str, str] = None):
         self.tei_filename_pattern = tei_filename_pattern
         self.container_node_path = container_node_path
@@ -476,6 +516,7 @@ class AbstractAnnotatePipelineFactory(ABC):
         self.source_base_path = opt.source_base_path
         self.source_path = opt.source_path
         self.output_path = opt.output_path
+        self.failed_output_path = opt.failed_output_path
         self.xml_path = opt.xml_path
         self.xml_filename_regex = opt.xml_filename_regex
         self.limit = opt.limit
@@ -485,6 +526,8 @@ class AbstractAnnotatePipelineFactory(ABC):
         self.always_preserve_fields = opt.always_preserve_fields
         self.preserve_sub_tags = preserve_sub_tags
         self.no_preserve_sub_fields = no_preserve_sub_fields
+        self.require_matching_fields = require_matching_fields
+        self.required_fields = required_fields
         self.output_fields = output_fields
         self.namespaces = namespaces
         self.annotator_config = AnnotatorConfig(
@@ -506,9 +549,17 @@ class AbstractAnnotatePipelineFactory(ABC):
     def get_annotator_config(self) -> AnnotatorConfig:
         return self.annotator_config
 
-    def get_tei_xml_output_file_for_source_file(self, source_url):
+    def get_tei_xml_output_file_for_source_file(self, source_url: str) -> str:
         return os.path.join(
             self.output_path,
+            os.path.basename(source_url)
+        )
+
+    def get_tei_xml_failed_output_file_for_source_file(self, source_url: str) -> str:
+        if not self.failed_output_path:
+            return None
+        return os.path.join(
+            self.failed_output_path,
             os.path.basename(source_url)
         )
 
@@ -519,6 +570,17 @@ class AbstractAnnotatePipelineFactory(ABC):
                 os.path.basename(source_url),
                 self.xml_filename_regex
             )
+        )
+
+    def is_structured_document_passing_checks(
+            self,
+            structured_document: GrobidTrainingTeiStructuredDocument,
+            target_annotations: List[TargetAnnotation]) -> bool:
+        return is_structured_document_passing_checks(
+            structured_document,
+            require_matching_fields=self.require_matching_fields,
+            required_fields=self.required_fields,
+            target_annotations=target_annotations
         )
 
     def auto_annotate(self, source_url: str):
@@ -536,6 +598,13 @@ class AbstractAnnotatePipelineFactory(ABC):
                 tag_to_tei_path_mapping=self.tag_to_tei_path_mapping,
                 preserve_sub_tags=self.preserve_sub_tags,
                 no_preserve_sub_fields=self.no_preserve_sub_fields,
+                is_structured_document_passing_checks=partial(
+                    self.is_structured_document_passing_checks,
+                    target_annotations=get_target_annotations_from_annotator(annotator)
+                ),
+                failed_target_structured_document_path=(
+                    self.get_tei_xml_failed_output_file_for_source_file(source_url)
+                ),
                 namespaces=self.namespaces
             )
         except Exception as e:  # pylint: disable=broad-except

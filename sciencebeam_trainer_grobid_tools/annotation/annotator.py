@@ -1,7 +1,7 @@
 import logging
 from collections import Counter
 from functools import partial
-from typing import List, Set
+from typing import Callable, List, Set
 
 from sciencebeam_gym.structured_document import (
     strip_tag_prefix
@@ -16,10 +16,6 @@ from ..structured_document.grobid_training_tei import (
 
 
 LOGGER = logging.getLogger(__name__)
-
-
-def get_logger():
-    return logging.getLogger(__name__)
 
 
 def _iter_all_tokens(structured_document):
@@ -87,7 +83,7 @@ def annotate_structured_document_inplace(
             exclude_fields=exclude_fields
         )
     else:
-        get_logger().debug('not preserving tags')
+        LOGGER.debug('not preserving tags')
         tag_fn = _no_preserve_tag_fn
 
     _map_token_tags(structured_document, tag_fn)
@@ -132,7 +128,7 @@ def _apply_preserved_fields(
         all_preserved_tags.append(full_preserved_tag)
         preserved_tag = strip_tag_prefix(full_preserved_tag)
         if preserved_tag in always_preserve_fields:
-            get_logger().debug('apply preserved field: %s -> %s', token, full_preserved_tag)
+            LOGGER.debug('apply preserved field: %s -> %s', token, full_preserved_tag)
             structured_document.set_tag(token, full_preserved_tag)
             num_tokens += 1
     LOGGER.debug(
@@ -152,8 +148,12 @@ def annotate_structured_document(
         always_preserve_fields: List[str] = None,
         preserve_sub_tags: bool = False,
         no_preserve_sub_fields: Set[str] = None,
+        is_structured_document_passing_checks: Callable[
+            [GrobidTrainingTeiStructuredDocument], bool
+        ] = None,
+        failed_target_structured_document_path: str = None,
         **kwargs):
-    get_logger().info('loading from: %s', source_structured_document_path)
+    LOGGER.info('loading from: %s', source_structured_document_path)
     structured_document = load_grobid_training_tei_structured_document(
         source_structured_document_path,
         **kwargs
@@ -172,7 +172,20 @@ def annotate_structured_document(
         fields=fields
     )
 
-    get_logger().info('saving to: %s', target_structured_document_path)
+    if not is_structured_document_passing_checks(structured_document):
+        if not failed_target_structured_document_path:
+            LOGGER.warning(
+                'document failed checks, skipping: %s', source_structured_document_path
+            )
+            return
+        LOGGER.info('failed checks, saving to: %s', failed_target_structured_document_path)
+        save_grobid_training_tei_structured_document(
+            failed_target_structured_document_path,
+            structured_document
+        )
+        return
+
+    LOGGER.info('saving to: %s', target_structured_document_path)
     save_grobid_training_tei_structured_document(
         target_structured_document_path,
         structured_document
