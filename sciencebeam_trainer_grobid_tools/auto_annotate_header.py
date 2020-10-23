@@ -56,6 +56,7 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
             tei_filename_pattern='*.header.tei.xml*',
             container_node_path=HEADER_CONTAINER_NODE_PATH,
             tag_to_tei_path_mapping=HEADER_TAG_TO_TEI_PATH_MAPPING,
+            require_matching_fields=opt.require_matching_fields,
             output_fields=opt.fields
         )
         self.xml_mapping, self.fields = get_xml_mapping_and_fields(
@@ -84,6 +85,15 @@ def add_main_args(parser):
         '--fields',
         type=comma_separated_str_to_list,
         help='comma separated list of fields to annotate'
+    )
+
+    parser.add_argument(
+        '--require-matching-fields',
+        type=comma_separated_str_to_list,
+        help=(
+            'comma separated list of fields that are required to match (if present).'
+            ' XML files are discarded if one of those fields do not meet the threshold.'
+        )
     )
 
     add_debug_argument(parser)

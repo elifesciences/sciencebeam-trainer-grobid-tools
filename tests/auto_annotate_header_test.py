@@ -35,6 +35,9 @@ ABSTRACT_PREFIX_1 = 'Abstract'
 ABSTRACT_1 = (
     'This study explores the nutritious value of chocolate bars for mice.'
 )
+NOT_MATCHING_ABSTRACT_1 = (
+    'Something different.'
+)
 
 
 def get_header_tei_node(
@@ -304,3 +307,48 @@ class TestEndToEnd(object):
 
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text(tei_auto_root, '//docTitle/titlePart') == TEXT_1
+
+    @pytest.mark.parametrize(
+        'relative_failed_output_path', ['tei-error']
+    )
+    @pytest.mark.parametrize(
+        'actual_abstract,expected_match', [
+            (ABSTRACT_1, True),
+            (NOT_MATCHING_ABSTRACT_1, False)
+        ]
+    )
+    def test_should_filter_out_xml_if_selected_fields_are_not_matching(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper,
+            actual_abstract: str,
+            expected_match: bool,
+            relative_failed_output_path: str,
+            temp_dir: Path):
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_header_tei_node([
+                E.note(TITLE_1), E.lb(),
+                E.note(ABSTRACT_PREFIX_1, E.lb(), ABSTRACT_1)
+            ])
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(get_target_xml_node(
+            title=TITLE_1,
+            abstract_node=E.abstract(E.p(actual_abstract))
+        )))
+        failed_output_path = (
+            temp_dir / relative_failed_output_path
+            if relative_failed_output_path
+            else ''
+        )
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'fields': ','.join(['title', 'author', 'author_aff', 'abstract']),
+            'require-matching-fields': ','.join(['abstract']),
+            'failed-output-path': failed_output_path,
+            'matcher': 'simple'
+        }), save_main_session=False)
+
+        if not expected_match:
+            assert not test_helper.tei_auto_file_path.exists()
+            if failed_output_path:
+                assert (failed_output_path / test_helper.tei_auto_file_path.name).exists()
+        else:
+            assert test_helper.tei_auto_file_path.exists()
