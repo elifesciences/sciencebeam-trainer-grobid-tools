@@ -52,6 +52,9 @@ from .annotation.checks import (
     is_structured_document_passing_checks,
     get_target_annotations_from_annotator
 )
+from .annotation.target_annotation import TargetAnnotation
+
+from .structured_document.grobid_training_tei import GrobidTrainingTeiStructuredDocument
 
 from .annotation.line_number_annotator import (
     DEFAULT_MIN_LINE_NUMBER_COUNT,
@@ -242,6 +245,17 @@ def add_annotation_pipeline_arguments(parser: argparse.ArgumentParser):
 
     add_cloud_args(parser)
     return parser
+
+
+def add_document_checks_arguments(parser: argparse.ArgumentParser):
+    parser.add_argument(
+        '--require-matching-fields',
+        type=comma_separated_str_to_list,
+        help=(
+            'comma separated list of fields that are required to match (if present).'
+            ' XML files are discarded if one of those fields do not meet the threshold.'
+        )
+    )
 
 
 def process_annotation_pipeline_arguments(
@@ -548,6 +562,16 @@ class AbstractAnnotatePipelineFactory(ABC):
             )
         )
 
+    def is_structured_document_passing_checks(
+            self,
+            structured_document: GrobidTrainingTeiStructuredDocument,
+            target_annotations: List[TargetAnnotation]) -> bool:
+        return is_structured_document_passing_checks(
+            structured_document,
+            require_matching_fields=self.require_matching_fields,
+            target_annotations=target_annotations
+        )
+
     def auto_annotate(self, source_url: str):
         try:
             output_xml_path = self.get_tei_xml_output_file_for_source_file(source_url)
@@ -564,8 +588,7 @@ class AbstractAnnotatePipelineFactory(ABC):
                 preserve_sub_tags=self.preserve_sub_tags,
                 no_preserve_sub_fields=self.no_preserve_sub_fields,
                 is_structured_document_passing_checks=partial(
-                    is_structured_document_passing_checks,
-                    require_matching_fields=self.require_matching_fields,
+                    self.is_structured_document_passing_checks,
                     target_annotations=get_target_annotations_from_annotator(annotator)
                 ),
                 failed_target_structured_document_path=(

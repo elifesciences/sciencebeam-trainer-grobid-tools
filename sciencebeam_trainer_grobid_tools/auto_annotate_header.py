@@ -17,6 +17,7 @@ from .auto_annotate_utils import (
     process_debug_argument,
     get_xml_mapping_and_fields,
     add_annotation_pipeline_arguments,
+    add_document_checks_arguments,
     process_annotation_pipeline_arguments,
     get_default_annotators,
     AbstractAnnotatePipelineFactory
@@ -80,20 +81,12 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
 
 def add_main_args(parser):
     add_annotation_pipeline_arguments(parser)
+    add_document_checks_arguments(parser)
 
     parser.add_argument(
         '--fields',
         type=comma_separated_str_to_list,
         help='comma separated list of fields to annotate'
-    )
-
-    parser.add_argument(
-        '--require-matching-fields',
-        type=comma_separated_str_to_list,
-        help=(
-            'comma separated list of fields that are required to match (if present).'
-            ' XML files are discarded if one of those fields do not meet the threshold.'
-        )
     )
 
     add_debug_argument(parser)

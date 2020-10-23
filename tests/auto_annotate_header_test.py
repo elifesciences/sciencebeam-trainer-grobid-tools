@@ -309,7 +309,7 @@ class TestEndToEnd(object):
         assert get_xpath_text(tei_auto_root, '//docTitle/titlePart') == TEXT_1
 
     @pytest.mark.parametrize(
-        'relative_failed_output_path', ['tei-error']
+        'relative_failed_output_path', ['', 'tei-error']
     )
     @pytest.mark.parametrize(
         'actual_abstract,expected_match', [

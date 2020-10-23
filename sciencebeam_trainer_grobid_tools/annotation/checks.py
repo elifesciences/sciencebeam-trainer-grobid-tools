@@ -1,6 +1,6 @@
 import logging
 from itertools import groupby
-from typing import Iterable, List, Set, Tuple
+from typing import Dict, Iterable, List, Set, Tuple
 
 from sciencebeam_gym.preprocess.annotation.annotator import (
     AbstractAnnotator,
@@ -74,16 +74,11 @@ def iter_structured_document_entities(
         yield pending_tag_value, get_token_text(pending_tokens)
 
 
-def is_structured_document_passing_checks(
-        structured_document: GrobidTrainingTeiStructuredDocument,
-        require_matching_fields: Set[str],
+def get_required_target_annotation_by_name(
         target_annotations: List[TargetAnnotation],
-        threshold: float = 0.8) -> bool:
-    if not require_matching_fields:
-        return True
-    if not target_annotations:
-        raise RuntimeError('target_annotations required')
-    required_target_annotation_by_name = {
+        require_matching_fields: Set[str]
+        ) -> Dict[str, List[TargetAnnotation]]:
+    return {
         name: list(grouped_target_annotations)
         for name, grouped_target_annotations in groupby(
             sorted(target_annotations, key=get_target_annotation_name),
@@ -91,19 +86,17 @@ def is_structured_document_passing_checks(
         )
         if name in require_matching_fields
     }
-    if not required_target_annotation_by_name:
-        return True
-    entities_by_name = {
-        name: [pair[1] for pair in grouped_entities]
-        for name, grouped_entities in groupby(
-            sorted(
-                iter_structured_document_entities(structured_document),
-                key=get_entities_name
-            ),
-            key=get_entities_name
-        )
-    }
-    LOGGER.info('entities_by_name: %s', entities_by_name)
+
+
+def get_required_target_value_by_name(
+        target_annotations: List[TargetAnnotation],
+        require_matching_fields: Set[str]
+        ) -> Dict[str, List[TargetAnnotation]]:
+    result = {}
+    required_target_annotation_by_name = get_required_target_annotation_by_name(
+        target_annotations=target_annotations,
+        require_matching_fields=require_matching_fields
+    )
     for require_matching_field in require_matching_fields:
         required_target_annotations = required_target_annotation_by_name.get(
             require_matching_field
@@ -120,6 +113,43 @@ def is_structured_document_passing_checks(
                 'only simple str required values supported, but found: %s'
                 % required_target_annotations[0]
             )
+        result[require_matching_field] = required_value
+    return result
+
+
+def get_structured_document_entities_by_name(
+        structured_document: GrobidTrainingTeiStructuredDocument
+        ) -> Dict[str, List[str]]:
+    return {
+        name: [pair[1] for pair in grouped_entities]
+        for name, grouped_entities in groupby(
+            sorted(
+                iter_structured_document_entities(structured_document),
+                key=get_entities_name
+            ),
+            key=get_entities_name
+        )
+    }
+
+
+def is_structured_document_passing_checks(
+        structured_document: GrobidTrainingTeiStructuredDocument,
+        require_matching_fields: Set[str],
+        target_annotations: List[TargetAnnotation],
+        threshold: float = 0.8) -> bool:
+    if not require_matching_fields:
+        return True
+    if not target_annotations:
+        raise RuntimeError('target_annotations required')
+    required_value_by_name = get_required_target_value_by_name(
+        target_annotations=target_annotations,
+        require_matching_fields=require_matching_fields
+    )
+    if not required_value_by_name:
+        return True
+    entities_by_name = get_structured_document_entities_by_name(structured_document)
+    LOGGER.info('entities_by_name: %s', entities_by_name)
+    for require_matching_field, required_value in required_value_by_name.items():
         actual_entity_values = entities_by_name.get(require_matching_field, [])
         if not actual_entity_values:
             LOGGER.warning('required field not in tagged entities: %s', require_matching_field)

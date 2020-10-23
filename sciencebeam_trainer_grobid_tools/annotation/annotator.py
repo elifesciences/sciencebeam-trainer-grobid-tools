@@ -174,7 +174,9 @@ def annotate_structured_document(
 
     if not is_structured_document_passing_checks(structured_document):
         if not failed_target_structured_document_path:
-            LOGGER.warning('document failed checks, skipping')
+            LOGGER.warning(
+                'document failed checks, skipping: %s', source_structured_document_path
+            )
             return
         LOGGER.info('failed checks, saving to: %s', failed_target_structured_document_path)
         save_grobid_training_tei_structured_document(
