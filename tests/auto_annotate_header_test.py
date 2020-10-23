@@ -30,6 +30,11 @@ TEI_FILENAME_REGEX = r'/(.*).header.tei.xml/\1.xml/'
 
 TEXT_1 = 'text 1'
 
+TITLE_1 = 'Chocolate bars for mice'
+ABSTRACT_1 = (
+    'This study explores the nutritious value of chocolate bars for mice.'
+)
+
 
 def get_header_tei_node(
         front_items: List[Union[etree.Element, str]]) -> etree.Element:
@@ -101,23 +106,19 @@ class TestEndToEnd(object):
 
     def test_should_auto_annotate_multiple_fields_using_simple_matcher(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
-        title_text = 'Chocolate bars for mice'
         author_text = 'Mary Maison 1, John Smith 1'
         affiliation_text = '1 University of Science, Smithonia'
-        abstract_text = (
-            'This study explores the nutritious value of chocolate bars for mice.'
-        )
         abstract_prefix = 'Abstract'
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
             get_header_tei_node([
-                E.note(title_text), E.lb(),
+                E.note(TITLE_1), E.lb(),
                 E.note(author_text), E.lb(),
                 E.note(affiliation_text), E.lb(),
-                E.note(abstract_prefix, E.lb(), abstract_text)
+                E.note(abstract_prefix, E.lb(), ABSTRACT_1)
             ])
         ))
         test_helper.xml_file_path.write_bytes(etree.tostring(get_target_xml_node(
-            title=title_text,
+            title=TITLE_1,
             author_nodes=[
                 E.contrib(E.name(
                     E.surname('Maison'),
@@ -132,7 +133,7 @@ class TestEndToEnd(object):
                     E.country('Smithonia')
                 )
             ],
-            abstract_node=E.abstract(E.p(abstract_text))
+            abstract_node=E.abstract(E.p(ABSTRACT_1))
         )))
         main(dict_to_args({
             **test_helper.main_args_dict,
@@ -141,11 +142,11 @@ class TestEndToEnd(object):
         }), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
-        assert get_xpath_text(tei_auto_root, '//docTitle/titlePart') == title_text
+        assert get_xpath_text(tei_auto_root, '//docTitle/titlePart') == TITLE_1
         assert get_xpath_text(tei_auto_root, '//byline/docAuthor') == author_text
         assert get_xpath_text(tei_auto_root, '//byline/affiliation') == affiliation_text
         assert get_xpath_text(tei_auto_root, '//div[@type="abstract"]') == (
-            abstract_prefix + abstract_text
+            abstract_prefix + ABSTRACT_1
         )
 
     def test_should_replace_affiliation_with_author_if_single_tokens(
@@ -190,26 +191,22 @@ class TestEndToEnd(object):
     )
     def test_should_auto_annotate_affiliation_preceding_number_using_simple_matcher(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
-        title_text = 'Chocolate bars for mice'
         author_text = 'Mary Maison 1, John Smith 1'
         affiliation_text_1 = '1'
         affiliation_text_2 = 'University of Science, Smithonia'
         affiliation_text = ' '.join([affiliation_text_1, affiliation_text_2])
-        abstract_text = (
-            'This study explores the nutritious value of chocolate bars for mice.'
-        )
         abstract_prefix = 'Abstract'
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
             get_header_tei_node([
-                E.note(title_text), E.lb(),
+                E.note(TITLE_1), E.lb(),
                 E.note(author_text), E.lb(),
                 E.note(affiliation_text_1), E.lb(),
                 E.note(affiliation_text_2), E.lb(),
-                E.note(abstract_prefix, E.lb(), abstract_text)
+                E.note(abstract_prefix, E.lb(), ABSTRACT_1)
             ])
         ))
         test_helper.xml_file_path.write_bytes(etree.tostring(get_target_xml_node(
-            title=title_text,
+            title=TITLE_1,
             author_nodes=[
                 E.contrib(E.name(
                     E.surname('Maison'),
@@ -224,7 +221,7 @@ class TestEndToEnd(object):
                     E.country('Smithonia')
                 )
             ],
-            abstract_node=E.abstract(E.p(abstract_text))
+            abstract_node=E.abstract(E.p(ABSTRACT_1))
         )))
         main(dict_to_args({
             **test_helper.main_args_dict,
@@ -233,32 +230,28 @@ class TestEndToEnd(object):
         }), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
-        assert get_xpath_text(tei_auto_root, '//docTitle/titlePart') == title_text
+        assert get_xpath_text(tei_auto_root, '//docTitle/titlePart') == TITLE_1
         assert get_xpath_text(tei_auto_root, '//byline/docAuthor') == author_text
         assert get_xpath_text(tei_auto_root, '//byline/affiliation') == affiliation_text
         assert get_xpath_text(tei_auto_root, '//div[@type="abstract"]') == (
-            abstract_prefix + abstract_text
+            abstract_prefix + ABSTRACT_1
         )
 
     def test_should_auto_annotate_alternative_spellings_using_simple_matcher(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
-        title_text = 'Chocolate bars for mice'
         author_text = 'Mary Maison 1, John Smith 1'
         affiliation_text = 'Berkeley, CA 12345, USA'
-        abstract_text = (
-            'This study explores the nutritious value of chocolate bars for mice.'
-        )
         abstract_prefix = 'Abstract'
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
             get_header_tei_node([
-                E.note(title_text), E.lb(),
+                E.note(TITLE_1), E.lb(),
                 E.note(author_text), E.lb(),
                 E.note(affiliation_text), E.lb(),
-                E.note(abstract_prefix, E.lb(), abstract_text)
+                E.note(abstract_prefix, E.lb(), ABSTRACT_1)
             ])
         ))
         test_helper.xml_file_path.write_bytes(etree.tostring(get_target_xml_node(
-            title=title_text,
+            title=TITLE_1,
             author_nodes=[
                 E.contrib(E.name(
                     E.surname('Maison'),
@@ -273,7 +266,7 @@ class TestEndToEnd(object):
                     E.country('United States')
                 )
             ],
-            abstract_node=E.abstract(E.p(abstract_text))
+            abstract_node=E.abstract(E.p(ABSTRACT_1))
         )))
         main(dict_to_args({
             **test_helper.main_args_dict,
@@ -282,11 +275,11 @@ class TestEndToEnd(object):
         }), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
-        assert get_xpath_text(tei_auto_root, '//docTitle/titlePart') == title_text
+        assert get_xpath_text(tei_auto_root, '//docTitle/titlePart') == TITLE_1
         assert get_xpath_text(tei_auto_root, '//byline/docAuthor') == author_text
         assert get_xpath_text(tei_auto_root, '//byline/affiliation') == affiliation_text
         assert get_xpath_text(tei_auto_root, '//div[@type="abstract"]', '|') == (
-            abstract_prefix + abstract_text
+            abstract_prefix + ABSTRACT_1
         )
 
     def test_should_skip_errors(
