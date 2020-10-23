@@ -252,8 +252,16 @@ def add_document_checks_arguments(parser: argparse.ArgumentParser):
         '--require-matching-fields',
         type=comma_separated_str_to_list,
         help=(
-            'comma separated list of fields that are required to match (if present).'
+            'Comma separated list of fields that are required to match (if present).'
             ' XML files are discarded if one of those fields do not meet the threshold.'
+        )
+    )
+    parser.add_argument(
+        '--required-fields',
+        type=comma_separated_str_to_list,
+        help=(
+            'Comma separated list of fields that are required to be present.'
+            ' Where the target value is missing, this would cause the document to fail.'
         )
     )
 
@@ -497,6 +505,7 @@ class AbstractAnnotatePipelineFactory(ABC):
             preserve_sub_tags: bool = False,
             no_preserve_sub_fields: Set[str] = None,
             require_matching_fields: Set[str] = None,
+            required_fields: Set[str] = None,
             namespaces: Dict[str, str] = None):
         self.tei_filename_pattern = tei_filename_pattern
         self.container_node_path = container_node_path
@@ -518,6 +527,7 @@ class AbstractAnnotatePipelineFactory(ABC):
         self.preserve_sub_tags = preserve_sub_tags
         self.no_preserve_sub_fields = no_preserve_sub_fields
         self.require_matching_fields = require_matching_fields
+        self.required_fields = required_fields
         self.output_fields = output_fields
         self.namespaces = namespaces
         self.annotator_config = AnnotatorConfig(
@@ -569,6 +579,7 @@ class AbstractAnnotatePipelineFactory(ABC):
         return is_structured_document_passing_checks(
             structured_document,
             require_matching_fields=self.require_matching_fields,
+            required_fields=self.required_fields,
             target_annotations=target_annotations
         )
 

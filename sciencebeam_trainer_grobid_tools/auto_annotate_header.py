@@ -58,6 +58,7 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
             container_node_path=HEADER_CONTAINER_NODE_PATH,
             tag_to_tei_path_mapping=HEADER_TAG_TO_TEI_PATH_MAPPING,
             require_matching_fields=opt.require_matching_fields,
+            required_fields=opt.required_fields,
             output_fields=opt.fields
         )
         self.xml_mapping, self.fields = get_xml_mapping_and_fields(

@@ -135,8 +135,10 @@ def get_structured_document_entities_by_name(
 def is_structured_document_passing_checks(
         structured_document: GrobidTrainingTeiStructuredDocument,
         require_matching_fields: Set[str],
+        required_fields: Set[str],
         target_annotations: List[TargetAnnotation],
         threshold: float = 0.8) -> bool:
+    require_matching_fields = set(require_matching_fields or set()) | set(required_fields or set())
     if not require_matching_fields:
         return True
     if not target_annotations:
@@ -145,6 +147,12 @@ def is_structured_document_passing_checks(
         target_annotations=target_annotations,
         require_matching_fields=require_matching_fields
     )
+    LOGGER.debug('required_fields: %s', required_fields)
+    if required_fields:
+        missing_required_fields = set(required_fields) - set(required_value_by_name.keys())
+        if missing_required_fields:
+            LOGGER.warning('missing_required_fields: %s', missing_required_fields)
+            return False
     if not required_value_by_name:
         return True
     entities_by_name = get_structured_document_entities_by_name(structured_document)
