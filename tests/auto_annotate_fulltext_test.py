@@ -62,7 +62,7 @@ def _test_helper(temp_dir: Path) -> SingleFileAutoAnnotateEndToEndTestHelper:
 
 @log_on_exception
 class TestEndToEnd(object):
-    def test_should_auto_annotate_single_section_title(
+    def test_should_auto_annotate_single_section_title_and_paragraphs(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_body_content_nodes = [
             E.sec(
@@ -80,11 +80,15 @@ class TestEndToEnd(object):
         ))
         main(dict_to_args({
             **test_helper.main_args_dict,
-            'fields': 'section_titles'
+            'fields': ','.join([
+                'section_titles',
+                'section_paragraphs'
+            ])
         }), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text_list(tei_auto_root, '//head') == [SECTION_TITLE_1]
+        assert get_xpath_text_list(tei_auto_root, '//p') == [TEXT_1]
 
     def test_should_auto_annotate_single_section_title_with_label(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
@@ -114,7 +118,7 @@ class TestEndToEnd(object):
             SECTION_LABEL_1 + ' ' + SECTION_TITLE_1
         ]
 
-    def test_should_auto_annotate_single_back_section_title(
+    def test_should_auto_annotate_single_back_section_title_and_paragraph(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_back_content_nodes = [
             E.sec(
@@ -132,13 +136,17 @@ class TestEndToEnd(object):
         ))
         main(dict_to_args({
             **test_helper.main_args_dict,
-            'fields': 'section_titles'
+            'fields': ','.join([
+                'section_titles',
+                'section_paragraphs'
+            ])
         }), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text_list(tei_auto_root, '//head') == [SECTION_TITLE_1]
+        assert get_xpath_text_list(tei_auto_root, '//p') == [TEXT_1]
 
-    def test_should_auto_annotate_single_back_ack_section_title(
+    def test_should_auto_annotate_single_back_ack_section_title_and_paragraph(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_back_content_nodes = [
             E.ack(
@@ -156,13 +164,17 @@ class TestEndToEnd(object):
         ))
         main(dict_to_args({
             **test_helper.main_args_dict,
-            'fields': 'section_titles'
+            'fields': ','.join([
+                'section_titles',
+                'section_paragraphs'
+            ])
         }), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text_list(tei_auto_root, '//head') == [SECTION_TITLE_1]
+        assert get_xpath_text_list(tei_auto_root, '//p') == [TEXT_1]
 
-    def test_should_auto_annotate_multiple_section_titles(
+    def test_should_auto_annotate_multiple_section_titles_and_paragraphs(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_body_content_nodes = [
             E.sec(
@@ -186,13 +198,17 @@ class TestEndToEnd(object):
         ))
         main(dict_to_args({
             **test_helper.main_args_dict,
-            'fields': 'section_titles'
+            'fields': ','.join([
+                'section_titles',
+                'section_paragraphs'
+            ])
         }), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text_list(tei_auto_root, '//head') == [SECTION_TITLE_1, SECTION_TITLE_2]
+        assert get_xpath_text_list(tei_auto_root, '//p') == [TEXT_1, TEXT_2]
 
-    def test_should_auto_annotate_nested_section_titles(
+    def test_should_auto_annotate_nested_section_titles_and_paragraphs(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_body_content_nodes = [
             E.sec(
@@ -216,11 +232,15 @@ class TestEndToEnd(object):
         ))
         main(dict_to_args({
             **test_helper.main_args_dict,
-            'fields': 'section_titles'
+            'fields': ','.join([
+                'section_titles',
+                'section_paragraphs'
+            ])
         }), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text_list(tei_auto_root, '//head') == [SECTION_TITLE_1, SECTION_TITLE_2]
+        assert get_xpath_text_list(tei_auto_root, '//p') == [TEXT_1, TEXT_2]
 
     def test_should_auto_annotate_single_figure_label_description(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
