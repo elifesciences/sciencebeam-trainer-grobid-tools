@@ -138,6 +138,30 @@ class TestEndToEnd(object):
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text_list(tei_auto_root, '//head') == [SECTION_TITLE_1]
 
+    def test_should_auto_annotate_single_back_ack_section_title(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        target_back_content_nodes = [
+            E.ack(
+                E.title(SECTION_TITLE_1),
+                ' ',
+                E.p(TEXT_1)
+            )
+        ]
+        tei_text = get_nodes_text(target_back_content_nodes)
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_header_tei_node([E.note(tei_text)])
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(back_nodes=target_back_content_nodes)
+        ))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'fields': 'section_titles'
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text_list(tei_auto_root, '//head') == [SECTION_TITLE_1]
+
     def test_should_auto_annotate_multiple_section_titles(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_body_content_nodes = [
