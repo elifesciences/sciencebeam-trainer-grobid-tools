@@ -43,6 +43,7 @@ FULLTEXT_CONTAINER_NODE_PATH = 'text'
 FULLTEXT_TAG_TO_TEI_PATH_MAPPING = {
     DEFAULT_TAG_KEY: 'note[type="other"]',
     'body_section_titles': 'head',
+    'figure': 'figure',
     'table': 'figure[type="table"]',
 }
 
@@ -109,6 +110,7 @@ def add_main_args(parser):
         type=comma_separated_str_to_list,
         default=','.join([
             'body_section_titles',
+            'figure',
             'table'
         ]),
         help='comma separated list of fields to annotate'
