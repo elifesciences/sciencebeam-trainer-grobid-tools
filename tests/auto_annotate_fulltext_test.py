@@ -35,6 +35,10 @@ TEXT_2 = 'text 1'
 SECTION_TITLE_1 = 'Section Title 1'
 SECTION_TITLE_2 = 'Section Title 2'
 
+LABEL_1 = 'Label 1'
+CAPTION_TITLE_1 = 'Caption Title 1'
+CAPTION_PARAGRAPH_1 = 'Caption Paragraph 1'
+
 
 def get_header_tei_node(
         front_items: List[Union[etree.Element, str]]) -> etree.Element:
@@ -141,3 +145,45 @@ class TestEndToEnd(object):
 
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text_list(tei_auto_root, '//head') == [SECTION_TITLE_1, SECTION_TITLE_2]
+
+    def test_should_auto_annotate_single_table_label_description(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        target_body_content_nodes = [
+            E.sec(
+                E.title(SECTION_TITLE_1),
+                ' ',
+                E.p(TEXT_1),
+                ' ',
+                E('table-wrap', *[
+                    E.label(LABEL_1),
+                    ' ',
+                    E.caption(
+                        E.title(CAPTION_TITLE_1),
+                        ' ',
+                        E.p(CAPTION_PARAGRAPH_1)
+                    )
+                ]),
+                ' ',
+                E.p(TEXT_2)
+            )
+        ]
+        tei_text = get_nodes_text(target_body_content_nodes)
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_header_tei_node([E.note(tei_text)])
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(body_nodes=target_body_content_nodes)
+        ))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'fields': ','.join([
+                'body_section_titles',
+                'table'
+            ])
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text_list(tei_auto_root, '//head') == [SECTION_TITLE_1]
+        assert get_xpath_text_list(tei_auto_root, '//figure[@type="table"]') == [
+            ' '.join([LABEL_1, CAPTION_TITLE_1, CAPTION_PARAGRAPH_1])
+        ]
