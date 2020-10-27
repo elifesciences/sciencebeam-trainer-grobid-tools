@@ -204,4 +204,10 @@ def xml_root_to_target_annotations(xml_root, xml_mapping):
     LOGGER.debug('target_annotations:\n%s', '\n'.join([
         ' ' + str(a) for a in target_annotations
     ]))
+    if not target_annotations and LOGGER.isEnabledFor(logging.DEBUG):
+        LOGGER.debug(
+            'no target_annotations found for\nxml_mapping: %s\nxml: %s',
+            xml_mapping,
+            etree.tostring(xml_root, encoding='unicode')
+        )
     return target_annotations

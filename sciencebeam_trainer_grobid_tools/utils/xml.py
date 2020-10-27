@@ -8,7 +8,7 @@ from typing import Iterable, List, Union
 
 from lxml import etree
 
-from sciencebeam_utils.utils.xml import get_text_content
+from sciencebeam_utils.utils.xml import get_text_content_list
 
 from sciencebeam_trainer_grobid_tools.utils.io import auto_download_input_file
 
@@ -127,5 +127,9 @@ def get_first_xpath_match(
     return get_xpath_matches(parent, xpath, required=True, **kwargs)[0]
 
 
+def get_xpath_text_list(root: etree.Element, xpath: str, **kwargs) -> str:
+    return get_text_content_list(root.xpath(xpath, **kwargs))
+
+
 def get_xpath_text(root: etree.Element, xpath: str, delimiter: str = ' ', **kwargs) -> str:
-    return delimiter.join(get_text_content(node) for node in root.xpath(xpath, **kwargs))
+    return delimiter.join(get_xpath_text_list(root, xpath, **kwargs))
