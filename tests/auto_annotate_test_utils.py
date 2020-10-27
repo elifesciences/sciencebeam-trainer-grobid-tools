@@ -47,11 +47,16 @@ class SingleFileAutoAnnotateEndToEndTestHelper:
         return tei_auto_root
 
 
-def _add_all(parent: etree.Element, children: List[etree.Element]):
+def _add_all(parent: etree.Element, children: List[Union[str, etree.Element]]):
     if not children:
         return
+    previous_child = None
     for child in children:
-        parent.append(child)
+        if isinstance(child, str):
+            previous_child.tail = (previous_child.tail or '') + child
+        else:
+            parent.append(child)
+            previous_child = child
 
 
 def get_target_xml_node(
