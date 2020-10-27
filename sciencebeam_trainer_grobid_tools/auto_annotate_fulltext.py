@@ -106,6 +106,9 @@ def add_main_args(parser):
     parser.add_argument(
         '--fields',
         type=comma_separated_str_to_list,
+        default=','.join([
+            'body_section_titles'
+        ]),
         help='comma separated list of fields to annotate'
     )
 
