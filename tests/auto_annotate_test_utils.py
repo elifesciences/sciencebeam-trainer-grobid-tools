@@ -60,6 +60,7 @@ def get_target_xml_node(
         affiliation_nodes: List[etree.Element] = None,
         abstract_node: etree.Element = None,
         body_nodes: List[etree.Element] = None,
+        back_nodes: List[etree.Element] = None,
         reference_nodes: List[etree.Element] = None) -> etree.Element:
     contrib_group = E('contrib-group')
     article_meta_node = E('article-meta', contrib_group)
@@ -70,10 +71,10 @@ def get_target_xml_node(
         article_meta_node.append(E('title-group', E('article-title', title)))
     _add_all(contrib_group, author_nodes)
     _add_all(contrib_group, affiliation_nodes)
+    _add_all(body_node, body_nodes)
+    _add_all(back_node, back_nodes)
     if abstract_node is not None:
         article_meta_node.append(abstract_node)
-    if body_nodes:
-        _add_all(body_node, body_nodes)
     if reference_nodes:
         back_node.append(E('ref-list', *reference_nodes))
     return E.article(front_node, body_node, back_node)
