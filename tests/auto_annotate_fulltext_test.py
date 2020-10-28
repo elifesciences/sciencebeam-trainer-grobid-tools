@@ -45,7 +45,8 @@ TEI_BY_JATS_REF_TYPE_MAP = {
     'bibr': 'biblio',
     'fig': 'figure',
     'table': 'table',
-    'disp-formula': 'formula'
+    'disp-formula': 'formula',
+    'sec': 'section'
 }
 
 
