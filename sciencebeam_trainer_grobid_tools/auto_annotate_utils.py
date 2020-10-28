@@ -108,7 +108,9 @@ def get_default_config_path(filename: str):
     return os.path.join('config', filename)
 
 
-def add_annotation_pipeline_arguments(parser: argparse.ArgumentParser):
+def add_annotation_pipeline_arguments(
+        parser: argparse.ArgumentParser,
+        default_matcher_lookahead_lines: int = 500):
     source_group = parser.add_argument_group('source')
     source_group.add_argument(
         '--source-base-path', type=str,
@@ -181,7 +183,9 @@ def add_annotation_pipeline_arguments(parser: argparse.ArgumentParser):
         help='score threshold for a match to be accepted (1.0 for exact match)'
     )
     matcher_group.add_argument(
-        '--matcher-lookahead-lines', type=int, default=500,
+        '--matcher-lookahead-lines',
+        type=int,
+        default=default_matcher_lookahead_lines,
         help='simple matcher only: number of lines to try to find matches for'
     )
     matcher_group.add_argument(
