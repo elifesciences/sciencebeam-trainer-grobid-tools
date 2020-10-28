@@ -42,6 +42,8 @@ CAPTION_TITLE_1 = 'Caption Title 1'
 CAPTION_PARAGRAPH_1 = 'Caption Paragraph 1'
 
 CITATION_1 = 'Citation 1'
+CITATION_2 = 'Citation 2'
+CITATION_3 = 'Citation 3'
 
 
 def get_header_tei_node(
@@ -244,12 +246,16 @@ class TestEndToEnd(object):
         assert get_xpath_text_list(tei_auto_root, '//head') == [SECTION_TITLE_1, SECTION_TITLE_2]
         assert get_xpath_text_list(tei_auto_root, '//p') == [TEXT_1, TEXT_2]
 
-    def test_should_auto_annotate_single_paragraph_bibl_citation(
+    def test_should_auto_annotate_single_paragraph_citations(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_paragraph_content_nodes = [
             TEXT_1,
             ' ',
             E.xref({'ref-type': 'bibr'}, CITATION_1),
+            ' ',
+            E.xref({'ref-type': 'fig'}, CITATION_2),
+            ' ',
+            E.xref({'ref-type': 'table'}, CITATION_3),
             ' ',
             TEXT_2
         ]
@@ -272,6 +278,8 @@ class TestEndToEnd(object):
 
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text_list(tei_auto_root, '//p/ref[@type="biblio"]') == [CITATION_1]
+        assert get_xpath_text_list(tei_auto_root, '//p/ref[@type="figure"]') == [CITATION_2]
+        assert get_xpath_text_list(tei_auto_root, '//p/ref[@type="table"]') == [CITATION_3]
         assert get_xpath_text_list(tei_auto_root, '//p') == [paragraph_text]
 
     def test_should_auto_annotate_single_figure_label_description(
