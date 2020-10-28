@@ -228,7 +228,7 @@ def get_default_max_length_and_stride(
         haystack_length: int,
         needle_length: int,
         threshold: float,
-        min_max_length: int = 100) -> Tuple[int]:
+        min_max_length: int = 1000) -> Tuple[int]:
     if haystack_length <= min_max_length:
         return haystack_length, haystack_length
     max_l_dist = round(min(haystack_length, needle_length) * (1 - threshold))
