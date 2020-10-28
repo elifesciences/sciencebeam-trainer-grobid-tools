@@ -271,7 +271,39 @@ class TestEndToEnd(object):
         main(dict_to_args({
             **test_helper.main_args_dict,
             'fields': ','.join([
-                'section_titles',
+                'section_paragraphs'
+            ])
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        for key, tei_type_value in TEI_BY_JATS_REF_TYPE_MAP.items():
+            assert get_xpath_text_list(
+                tei_auto_root, '//p/ref[@type="%s"]' % tei_type_value
+            ) == [CITATION_TEXT_BY_JATS_REF_TYPE_MAP[key]]
+        assert get_xpath_text_list(tei_auto_root, '//p') == [paragraph_text]
+
+
+    def test_should_auto_annotate_single_paragraph_citations_in_list_items(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        target_paragraph_content_nodes = [TEXT_1, ' ']
+        for key, value in CITATION_TEXT_BY_JATS_REF_TYPE_MAP.items():
+            target_paragraph_content_nodes.append(E.xref({'ref-type': key}, value))
+            target_paragraph_content_nodes.append(' ')
+        target_paragraph_content_nodes.append(TEXT_2)
+        target_body_content_nodes = [E.sec(E.p(
+            E.list(E('list-item', *target_paragraph_content_nodes))
+        )), ' Other']
+        paragraph_text = get_nodes_text(target_paragraph_content_nodes)
+        tei_text = get_nodes_text(target_body_content_nodes)
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_training_tei_node([E.note(tei_text)])
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(body_nodes=target_body_content_nodes)
+        ))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'fields': ','.join([
                 'section_paragraphs'
             ])
         }), save_main_session=False)
