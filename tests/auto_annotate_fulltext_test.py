@@ -41,6 +41,8 @@ LABEL_1 = 'Label 1'
 CAPTION_TITLE_1 = 'Caption Title 1'
 CAPTION_PARAGRAPH_1 = 'Caption Paragraph 1'
 
+CITATION_1 = 'Citation 1'
+
 
 def get_header_tei_node(
         front_items: List[Union[etree.Element, str]]) -> etree.Element:
@@ -241,6 +243,36 @@ class TestEndToEnd(object):
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text_list(tei_auto_root, '//head') == [SECTION_TITLE_1, SECTION_TITLE_2]
         assert get_xpath_text_list(tei_auto_root, '//p') == [TEXT_1, TEXT_2]
+
+    def test_should_auto_annotate_single_paragraph_bibl_citation(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        target_paragraph_content_nodes = [
+            TEXT_1,
+            ' ',
+            E.xref({'ref-type': 'bibr'}, CITATION_1),
+            ' ',
+            TEXT_2
+        ]
+        target_body_content_nodes = [E.sec(E.p(*target_paragraph_content_nodes)), ' Other']
+        paragraph_text = get_nodes_text(target_paragraph_content_nodes)
+        tei_text = get_nodes_text(target_body_content_nodes)
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_header_tei_node([E.note(tei_text)])
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(body_nodes=target_body_content_nodes)
+        ))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'fields': ','.join([
+                'section_titles',
+                'section_paragraphs'
+            ])
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text_list(tei_auto_root, '//p/ref[@type="biblio"]') == [CITATION_1]
+        assert get_xpath_text_list(tei_auto_root, '//p') == [paragraph_text]
 
     def test_should_auto_annotate_single_figure_label_description(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
