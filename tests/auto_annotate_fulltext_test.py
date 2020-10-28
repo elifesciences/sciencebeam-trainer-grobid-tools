@@ -282,7 +282,6 @@ class TestEndToEnd(object):
             ) == [CITATION_TEXT_BY_JATS_REF_TYPE_MAP[key]]
         assert get_xpath_text_list(tei_auto_root, '//p') == [paragraph_text]
 
-
     def test_should_auto_annotate_single_paragraph_citations_in_list_items(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_paragraph_content_nodes = [TEXT_1, ' ']
