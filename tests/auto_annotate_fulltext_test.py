@@ -44,6 +44,7 @@ CAPTION_PARAGRAPH_1 = 'Caption Paragraph 1'
 CITATION_1 = 'Citation 1'
 CITATION_2 = 'Citation 2'
 CITATION_3 = 'Citation 3'
+CITATION_4 = 'Citation 4'
 
 
 def get_training_tei_node(
@@ -253,6 +254,8 @@ class TestEndToEnd(object):
             ' ',
             E.xref({'ref-type': 'table'}, CITATION_3),
             ' ',
+            E.xref({'ref-type': 'disp-formula'}, CITATION_4),
+            ' ',
             TEXT_2
         ]
         target_body_content_nodes = [E.sec(E.p(*target_paragraph_content_nodes)), ' Other']
@@ -276,6 +279,7 @@ class TestEndToEnd(object):
         assert get_xpath_text_list(tei_auto_root, '//p/ref[@type="biblio"]') == [CITATION_1]
         assert get_xpath_text_list(tei_auto_root, '//p/ref[@type="figure"]') == [CITATION_2]
         assert get_xpath_text_list(tei_auto_root, '//p/ref[@type="table"]') == [CITATION_3]
+        assert get_xpath_text_list(tei_auto_root, '//p/ref[@type="formula"]') == [CITATION_4]
         assert get_xpath_text_list(tei_auto_root, '//p') == [paragraph_text]
 
     def test_should_auto_annotate_single_figure_label_description(
