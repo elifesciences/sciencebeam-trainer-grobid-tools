@@ -53,10 +53,10 @@ class FuzzyMatchResult(_FuzzyMatchResult):
         a_junk_match_count = self.a_non_matching_junk_count(a_index_range)
         b_junk_count = self.b_non_matching_junk_count()
         a_gaps = max(0, a_match_len - match_count)
-        LOGGER.info(
-            'len b: %d, a gaps: %d, a junk: %d, b junk: %d, a_index_range: %s',
-            len(self.b), a_gaps, a_junk_match_count, b_junk_count, a_index_range
-        )
+        # LOGGER.debug(
+        #     'len b: %d, a gaps: %d, a junk: %d, b junk: %d, a_index_range: %s',
+        #     len(self.b), a_gaps, a_junk_match_count, b_junk_count, a_index_range
+        # )
         return self.ratio_to(len(self.b) + a_gaps - a_junk_match_count - b_junk_count)
 
 
