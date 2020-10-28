@@ -41,6 +41,10 @@ LABEL_1 = 'Label 1'
 CAPTION_TITLE_1 = 'Caption Title 1'
 CAPTION_PARAGRAPH_1 = 'Caption Paragraph 1'
 
+LONG_DATA_TEXT_1 = ' Some data ' * 10
+LONG_ATTRIB_TEXT_1 = 'Some long long attrib contents 1'
+
+
 TEI_BY_JATS_REF_TYPE_MAP = {
     'bibr': 'biblio',
     'fig': 'figure',
@@ -342,21 +346,22 @@ class TestEndToEnd(object):
 
     def test_should_auto_annotate_single_figure_label_description(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        target_figure_label_caption_content_nodes = [
+            E.label(LABEL_1),
+            ' ',
+            E.caption(
+                E.title(CAPTION_TITLE_1),
+                ' ',
+                E.p(CAPTION_PARAGRAPH_1)
+            )
+        ]
         target_body_content_nodes = [
             E.sec(
                 E.title(SECTION_TITLE_1),
                 ' ',
                 E.p(TEXT_1),
                 ' ',
-                E.fig(
-                    E.label(LABEL_1),
-                    ' ',
-                    E.caption(
-                        E.title(CAPTION_TITLE_1),
-                        ' ',
-                        E.p(CAPTION_PARAGRAPH_1)
-                    )
-                ),
+                E.fig(*target_figure_label_caption_content_nodes),
                 ' ',
                 E.p(TEXT_2)
             )
@@ -380,26 +385,70 @@ class TestEndToEnd(object):
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text_list(tei_auto_root, '//head') == [SECTION_TITLE_1]
         assert get_xpath_text_list(tei_auto_root, '//figure[not(@type="table")]') == [
-            ' '.join([LABEL_1, CAPTION_TITLE_1, CAPTION_PARAGRAPH_1])
+            get_nodes_text(target_figure_label_caption_content_nodes)
+        ]
+
+    def test_should_auto_annotate_single_figure_label_description_with_attrib(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        target_figure_label_caption_content_nodes = [
+            E.label(LABEL_1),
+            ' ',
+            E.caption(
+                E.title(CAPTION_TITLE_1),
+                ' ',
+                E.p(CAPTION_PARAGRAPH_1)
+            )
+        ]
+        target_body_content_nodes = [
+            E.sec(
+                E.fig(*target_figure_label_caption_content_nodes, *[
+                    ' ',
+                    E.attrib(LONG_ATTRIB_TEXT_1)
+                ])
+            )
+        ]
+        tei_text = (
+            get_nodes_text(target_figure_label_caption_content_nodes)
+            + LONG_DATA_TEXT_1
+            + LONG_ATTRIB_TEXT_1
+        )
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_training_tei_node([E.note(tei_text)])
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(body_nodes=target_body_content_nodes)
+        ))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'fields': ','.join([
+                'figure',
+                'table'
+            ])
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text_list(tei_auto_root, '//figure[not(@type="table")]') == [
+            get_nodes_text(target_figure_label_caption_content_nodes)
         ]
 
     def test_should_auto_annotate_single_table_label_description(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        target_table_label_caption_content_nodes = [
+            E.label(LABEL_1),
+            ' ',
+            E.caption(
+                E.title(CAPTION_TITLE_1),
+                ' ',
+                E.p(CAPTION_PARAGRAPH_1)
+            )
+        ]
         target_body_content_nodes = [
             E.sec(
                 E.title(SECTION_TITLE_1),
                 ' ',
                 E.p(TEXT_1),
                 ' ',
-                E('table-wrap', *[
-                    E.label(LABEL_1),
-                    ' ',
-                    E.caption(
-                        E.title(CAPTION_TITLE_1),
-                        ' ',
-                        E.p(CAPTION_PARAGRAPH_1)
-                    )
-                ]),
+                E('table-wrap', *target_table_label_caption_content_nodes),
                 ' ',
                 E.p(TEXT_2)
             )
@@ -422,7 +471,49 @@ class TestEndToEnd(object):
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text_list(tei_auto_root, '//head') == [SECTION_TITLE_1]
         assert get_xpath_text_list(tei_auto_root, '//figure[@type="table"]') == [
-            ' '.join([LABEL_1, CAPTION_TITLE_1, CAPTION_PARAGRAPH_1])
+            get_nodes_text(target_table_label_caption_content_nodes)
+        ]
+
+    def test_should_auto_annotate_single_table_label_description_with_attrib(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        target_table_label_caption_content_nodes = [
+            E.label(LABEL_1),
+            ' ',
+            E.caption(
+                E.title(CAPTION_TITLE_1),
+                ' ',
+                E.p(CAPTION_PARAGRAPH_1)
+            )
+        ]
+        target_body_content_nodes = [
+            E.sec(
+                E('table-wrap', *target_table_label_caption_content_nodes, *[
+                    ' ',
+                    E.attrib(LONG_ATTRIB_TEXT_1)
+                ]),
+            )
+        ]
+        tei_text = (
+            get_nodes_text(target_table_label_caption_content_nodes)
+            + LONG_DATA_TEXT_1
+            + LONG_ATTRIB_TEXT_1
+        )
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_training_tei_node([E.note(tei_text)])
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(body_nodes=target_body_content_nodes)
+        ))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'fields': ','.join([
+                'table'
+            ])
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text_list(tei_auto_root, '//figure[@type="table"]') == [
+            get_nodes_text(target_table_label_caption_content_nodes)
         ]
 
     def test_should_preserve_formula(
