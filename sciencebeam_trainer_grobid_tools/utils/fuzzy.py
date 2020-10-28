@@ -162,7 +162,7 @@ def get_str_left_strided_matching_blocks(
     LocalSequenceMatcher scales quadratically (O(n*m) with n=haystack length and m=needle length)
     By using a window, we are limiting the memory usage and stop early if we found a match.
     """
-    min_match_size = round(len(needle) * threshold)
+    min_match_size = round(min(len(haystack), len(needle)) * threshold)
     max_offset = stride
     while start_index < len(haystack):
         matching_blocks = get_str_matching_blocks_using_sequence_matcher(

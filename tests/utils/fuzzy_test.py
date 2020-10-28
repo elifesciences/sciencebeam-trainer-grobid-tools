@@ -147,6 +147,12 @@ class TestFuzzySearchIndexRange:
         needle = 'Smith, J. A.'
         assert fuzzy_search_index_range(haystack, needle, 0.5) == (0, 13)
 
+    def test_should_find_longer_needle(self):
+        haystack = 'PO Box 12345'
+        needle = 'P.O. Box 12345'
+        # Note: ideally it would match (0, 12)
+        assert fuzzy_search_index_range(haystack, needle, 0.8) == (3, 12)
+
 
 class TestIterFuzzySearchAllIndexRanges:
     def test_should_find_exact_complete_match(self):
