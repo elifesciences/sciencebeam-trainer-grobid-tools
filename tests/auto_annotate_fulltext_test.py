@@ -366,3 +366,33 @@ class TestEndToEnd(object):
         assert get_xpath_text_list(tei_auto_root, '//figure[@type="table"]') == [
             ' '.join([LABEL_1, CAPTION_TITLE_1, CAPTION_PARAGRAPH_1])
         ]
+
+    def test_should_preserve_formula(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        target_body_content_nodes = [
+            E.sec(
+                E.title(SECTION_TITLE_1),
+                ' ' + TEXT_1
+            )
+        ]
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_header_tei_node([
+                E.note(SECTION_TITLE_1),
+                ' ',
+                E.formula(TEXT_1)
+            ])
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(body_nodes=target_body_content_nodes)
+        ))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'fields': ','.join([
+                'section_titles',
+                'section_paragraphs'
+            ])
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text_list(tei_auto_root, '//formula') == [TEXT_1]
+        assert get_xpath_text_list(tei_auto_root, '//head') == [SECTION_TITLE_1]
