@@ -46,13 +46,9 @@ CITATION_2 = 'Citation 2'
 CITATION_3 = 'Citation 3'
 
 
-def get_header_tei_node(
-        front_items: List[Union[etree.Element, str]]) -> etree.Element:
-    return E.tei(E.text(E.front(*front_items)))
-
-
-def get_default_tei_node() -> etree.Element:
-    return get_header_tei_node([E.note(TEXT_1)])
+def get_training_tei_node(
+        items: List[Union[etree.Element, str]]) -> etree.Element:
+    return E.tei(E.text(*items))
 
 
 @pytest.fixture(name='test_helper')
@@ -77,7 +73,7 @@ class TestEndToEnd(object):
         ]
         tei_text = get_nodes_text(target_body_content_nodes)
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
-            get_header_tei_node([E.note(tei_text)])
+            get_training_tei_node([E.note(tei_text)])
         ))
         test_helper.xml_file_path.write_bytes(etree.tostring(
             get_target_xml_node(body_nodes=target_body_content_nodes)
@@ -107,7 +103,7 @@ class TestEndToEnd(object):
         ]
         tei_text = get_nodes_text(target_body_content_nodes)
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
-            get_header_tei_node([E.note(tei_text)])
+            get_training_tei_node([E.note(tei_text)])
         ))
         test_helper.xml_file_path.write_bytes(etree.tostring(
             get_target_xml_node(body_nodes=target_body_content_nodes)
@@ -133,7 +129,7 @@ class TestEndToEnd(object):
         ]
         tei_text = get_nodes_text(target_back_content_nodes)
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
-            get_header_tei_node([E.note(tei_text)])
+            get_training_tei_node([E.note(tei_text)])
         ))
         test_helper.xml_file_path.write_bytes(etree.tostring(
             get_target_xml_node(back_nodes=target_back_content_nodes)
@@ -161,7 +157,7 @@ class TestEndToEnd(object):
         ]
         tei_text = get_nodes_text(target_back_content_nodes)
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
-            get_header_tei_node([E.note(tei_text)])
+            get_training_tei_node([E.note(tei_text)])
         ))
         test_helper.xml_file_path.write_bytes(etree.tostring(
             get_target_xml_node(back_nodes=target_back_content_nodes)
@@ -195,7 +191,7 @@ class TestEndToEnd(object):
         ]
         tei_text = get_nodes_text(target_body_content_nodes)
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
-            get_header_tei_node([E.note(tei_text)])
+            get_training_tei_node([E.note(tei_text)])
         ))
         test_helper.xml_file_path.write_bytes(etree.tostring(
             get_target_xml_node(body_nodes=target_body_content_nodes)
@@ -229,7 +225,7 @@ class TestEndToEnd(object):
         ]
         tei_text = get_nodes_text(target_body_content_nodes)
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
-            get_header_tei_node([E.note(tei_text)])
+            get_training_tei_node([E.note(tei_text)])
         ))
         test_helper.xml_file_path.write_bytes(etree.tostring(
             get_target_xml_node(body_nodes=target_body_content_nodes)
@@ -263,7 +259,7 @@ class TestEndToEnd(object):
         paragraph_text = get_nodes_text(target_paragraph_content_nodes)
         tei_text = get_nodes_text(target_body_content_nodes)
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
-            get_header_tei_node([E.note(tei_text)])
+            get_training_tei_node([E.note(tei_text)])
         ))
         test_helper.xml_file_path.write_bytes(etree.tostring(
             get_target_xml_node(body_nodes=target_body_content_nodes)
@@ -305,7 +301,7 @@ class TestEndToEnd(object):
         ]
         tei_text = get_nodes_text(target_body_content_nodes)
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
-            get_header_tei_node([E.note(tei_text)])
+            get_training_tei_node([E.note(tei_text)])
         ))
         test_helper.xml_file_path.write_bytes(etree.tostring(
             get_target_xml_node(body_nodes=target_body_content_nodes)
@@ -348,7 +344,7 @@ class TestEndToEnd(object):
         ]
         tei_text = get_nodes_text(target_body_content_nodes)
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
-            get_header_tei_node([E.note(tei_text)])
+            get_training_tei_node([E.note(tei_text)])
         ))
         test_helper.xml_file_path.write_bytes(etree.tostring(
             get_target_xml_node(body_nodes=target_body_content_nodes)
@@ -376,7 +372,7 @@ class TestEndToEnd(object):
             )
         ]
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
-            get_header_tei_node([
+            get_training_tei_node([
                 E.note(SECTION_TITLE_1),
                 ' ',
                 E.formula(TEXT_1)
