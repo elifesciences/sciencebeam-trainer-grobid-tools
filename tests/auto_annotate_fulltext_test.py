@@ -41,10 +41,18 @@ LABEL_1 = 'Label 1'
 CAPTION_TITLE_1 = 'Caption Title 1'
 CAPTION_PARAGRAPH_1 = 'Caption Paragraph 1'
 
-CITATION_1 = 'Citation 1'
-CITATION_2 = 'Citation 2'
-CITATION_3 = 'Citation 3'
-CITATION_4 = 'Citation 4'
+TEI_BY_JATS_REF_TYPE_MAP = {
+    'bibr': 'biblio',
+    'fig': 'figure',
+    'table': 'table',
+    'disp-formula': 'formula'
+}
+
+
+CITATION_TEXT_BY_JATS_REF_TYPE_MAP = {
+    key: 'Citation %d' % (1 + index)
+    for index, key in enumerate(TEI_BY_JATS_REF_TYPE_MAP.keys())
+}
 
 
 def get_training_tei_node(
@@ -245,19 +253,11 @@ class TestEndToEnd(object):
 
     def test_should_auto_annotate_single_paragraph_citations(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
-        target_paragraph_content_nodes = [
-            TEXT_1,
-            ' ',
-            E.xref({'ref-type': 'bibr'}, CITATION_1),
-            ' ',
-            E.xref({'ref-type': 'fig'}, CITATION_2),
-            ' ',
-            E.xref({'ref-type': 'table'}, CITATION_3),
-            ' ',
-            E.xref({'ref-type': 'disp-formula'}, CITATION_4),
-            ' ',
-            TEXT_2
-        ]
+        target_paragraph_content_nodes = [TEXT_1, ' ']
+        for key, value in CITATION_TEXT_BY_JATS_REF_TYPE_MAP.items():
+            target_paragraph_content_nodes.append(E.xref({'ref-type': key}, value))
+            target_paragraph_content_nodes.append(' ')
+        target_paragraph_content_nodes.append(TEXT_2)
         target_body_content_nodes = [E.sec(E.p(*target_paragraph_content_nodes)), ' Other']
         paragraph_text = get_nodes_text(target_paragraph_content_nodes)
         tei_text = get_nodes_text(target_body_content_nodes)
@@ -276,10 +276,10 @@ class TestEndToEnd(object):
         }), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
-        assert get_xpath_text_list(tei_auto_root, '//p/ref[@type="biblio"]') == [CITATION_1]
-        assert get_xpath_text_list(tei_auto_root, '//p/ref[@type="figure"]') == [CITATION_2]
-        assert get_xpath_text_list(tei_auto_root, '//p/ref[@type="table"]') == [CITATION_3]
-        assert get_xpath_text_list(tei_auto_root, '//p/ref[@type="formula"]') == [CITATION_4]
+        for key, tei_type_value in TEI_BY_JATS_REF_TYPE_MAP.items():
+            assert get_xpath_text_list(
+                tei_auto_root, '//p/ref[@type="%s"]' % tei_type_value
+            ) == [CITATION_TEXT_BY_JATS_REF_TYPE_MAP[key]]
         assert get_xpath_text_list(tei_auto_root, '//p') == [paragraph_text]
 
     def test_should_auto_annotate_single_figure_label_description(
