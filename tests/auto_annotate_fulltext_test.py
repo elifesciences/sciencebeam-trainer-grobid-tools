@@ -96,8 +96,8 @@ class TestEndToEnd(object):
         main(dict_to_args({
             **test_helper.main_args_dict,
             'fields': ','.join([
-                'section_titles',
-                'section_paragraphs'
+                'section_title',
+                'section_paragraph'
             ])
         }), save_main_session=False)
 
@@ -125,7 +125,7 @@ class TestEndToEnd(object):
         ))
         main(dict_to_args({
             **test_helper.main_args_dict,
-            'fields': 'section_titles'
+            'fields': 'section_title'
         }), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
@@ -152,8 +152,8 @@ class TestEndToEnd(object):
         main(dict_to_args({
             **test_helper.main_args_dict,
             'fields': ','.join([
-                'section_titles',
-                'section_paragraphs'
+                'section_title',
+                'section_paragraph'
             ])
         }), save_main_session=False)
 
@@ -180,8 +180,8 @@ class TestEndToEnd(object):
         main(dict_to_args({
             **test_helper.main_args_dict,
             'fields': ','.join([
-                'section_titles',
-                'section_paragraphs'
+                'section_title',
+                'section_paragraph'
             ])
         }), save_main_session=False)
 
@@ -208,14 +208,14 @@ class TestEndToEnd(object):
         main(dict_to_args({
             **test_helper.main_args_dict,
             'fields': ','.join([
-                'section_titles'
+                'section_title'
             ])
         }), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text_list(tei_auto_root, '//note[@type="other"]') == ['References']
 
-    def test_should_auto_annotate_multiple_section_titles_and_paragraphs(
+    def test_should_auto_annotate_multiple_section_title_and_paragraphs(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_body_content_nodes = [
             E.sec(
@@ -240,8 +240,8 @@ class TestEndToEnd(object):
         main(dict_to_args({
             **test_helper.main_args_dict,
             'fields': ','.join([
-                'section_titles',
-                'section_paragraphs'
+                'section_title',
+                'section_paragraph'
             ])
         }), save_main_session=False)
 
@@ -249,7 +249,7 @@ class TestEndToEnd(object):
         assert get_xpath_text_list(tei_auto_root, '//head') == [SECTION_TITLE_1, SECTION_TITLE_2]
         assert get_xpath_text_list(tei_auto_root, '//p') == [TEXT_1, TEXT_2]
 
-    def test_should_auto_annotate_nested_section_titles_and_paragraphs(
+    def test_should_auto_annotate_nested_section_title_and_paragraphs(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_body_content_nodes = [
             E.sec(
@@ -274,8 +274,8 @@ class TestEndToEnd(object):
         main(dict_to_args({
             **test_helper.main_args_dict,
             'fields': ','.join([
-                'section_titles',
-                'section_paragraphs'
+                'section_title',
+                'section_paragraph'
             ])
         }), save_main_session=False)
 
@@ -302,7 +302,7 @@ class TestEndToEnd(object):
         main(dict_to_args({
             **test_helper.main_args_dict,
             'fields': ','.join([
-                'section_paragraphs'
+                'section_paragraph'
             ])
         }), save_main_session=False)
 
@@ -334,7 +334,7 @@ class TestEndToEnd(object):
         main(dict_to_args({
             **test_helper.main_args_dict,
             'fields': ','.join([
-                'section_paragraphs'
+                'section_paragraph'
             ])
         }), save_main_session=False)
 
@@ -377,8 +377,8 @@ class TestEndToEnd(object):
         main(dict_to_args({
             **test_helper.main_args_dict,
             'fields': ','.join([
-                'section_titles',
-                'section_paragraphs',
+                'section_title',
+                'section_paragraph',
                 'figure',
                 'table'
             ])
@@ -465,8 +465,8 @@ class TestEndToEnd(object):
         main(dict_to_args({
             **test_helper.main_args_dict,
             'fields': ','.join([
-                'section_titles',
-                'section_paragraphs',
+                'section_title',
+                'section_paragraph',
                 'table'
             ])
         }), save_main_session=False)
@@ -540,8 +540,8 @@ class TestEndToEnd(object):
         main(dict_to_args({
             **test_helper.main_args_dict,
             'fields': ','.join([
-                'section_titles',
-                'section_paragraphs'
+                'section_title',
+                'section_paragraph'
             ])
         }), save_main_session=False)
 

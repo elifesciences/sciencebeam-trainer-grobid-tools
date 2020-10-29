@@ -47,14 +47,14 @@ FULLTEXT_CONTAINER_NODE_PATH = 'text'
 
 FULLTEXT_TAG_TO_TEI_PATH_MAPPING = {
     DEFAULT_TAG_KEY: 'note[type="other"]',
-    'section_titles': 'head',
-    'section_paragraphs': 'p',
-    'section_paragraphs-xref-bib': 'p/ref[@type="biblio"]',
-    'section_paragraphs-xref-figure': 'p/ref[@type="figure"]',
-    'section_paragraphs-xref-table': 'p/ref[@type="table"]',
-    'section_paragraphs-xref-formula': 'p/ref[@type="formula"]',
-    'section_paragraphs-xref-section': 'p/ref[@type="section"]',
-    'section_paragraphs-xref-box': 'p/ref[@type="box"]',
+    'section_title': 'head',
+    'section_paragraph': 'p',
+    'section_paragraph-xref-bib': 'p/ref[@type="biblio"]',
+    'section_paragraph-xref-figure': 'p/ref[@type="figure"]',
+    'section_paragraph-xref-table': 'p/ref[@type="table"]',
+    'section_paragraph-xref-formula': 'p/ref[@type="formula"]',
+    'section_paragraph-xref-section': 'p/ref[@type="section"]',
+    'section_paragraph-xref-box': 'p/ref[@type="box"]',
     'figure': 'figure',
     'table': 'figure[type="table"]',
 }
@@ -135,8 +135,8 @@ def add_main_args(parser):
         '--fields',
         type=comma_separated_str_to_list,
         default=','.join([
-            'section_titles',
-            'section_paragraphs',
+            'section_title',
+            'section_paragraph',
             'figure',
             'table'
         ]),
