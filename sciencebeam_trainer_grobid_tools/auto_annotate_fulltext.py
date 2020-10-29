@@ -22,6 +22,11 @@ from .annotation.simple_matching_annotator import (
     SimpleMatchingAnnotator
 )
 
+from .annotation.replace_tags_annotator import (
+    ReplaceTagsAnnotatorConfig,
+    ReplaceTagsPostProcessingAnnotator
+)
+
 from .annotation.expand_to_untagged_lines_annotator import (
     ExpandToUntaggedLinesAnnotatorConfig,
     ExpandToUntaggedLinesPostProcessingAnnotator
@@ -46,7 +51,8 @@ FULLTEXT_CONTAINER_NODE_PATH = 'text'
 
 
 FULLTEXT_TAG_TO_TEI_PATH_MAPPING = {
-    DEFAULT_TAG_KEY: 'note[type="other"]',
+    DEFAULT_TAG_KEY: 'other',
+    'note_other': 'note[type="other"]',
     'section_title': 'head',
     'section_paragraph': 'p',
     'section_paragraph-xref-bib': 'p/ref[@type="biblio"]',
@@ -57,6 +63,12 @@ FULLTEXT_TAG_TO_TEI_PATH_MAPPING = {
     'section_paragraph-xref-box': 'p/ref[@type="box"]',
     'figure': 'figure',
     'table': 'figure[type="table"]',
+}
+
+
+REPLACED_TAG_BY_TAG_MAP = {
+    'note_other': None,
+    'note[@type="other"]': None
 }
 
 
@@ -85,6 +97,11 @@ def _get_annotator(
         SimpleMatchingAnnotator(
             target_annotations,
             config=simple_annotator_config
+        ),
+        ReplaceTagsPostProcessingAnnotator(
+            config=ReplaceTagsAnnotatorConfig(
+                replaced_tag_by_tag=REPLACED_TAG_BY_TAG_MAP
+            )
         ),
         ExpandToUntaggedLinesPostProcessingAnnotator(
             config=ExpandToUntaggedLinesAnnotatorConfig(
