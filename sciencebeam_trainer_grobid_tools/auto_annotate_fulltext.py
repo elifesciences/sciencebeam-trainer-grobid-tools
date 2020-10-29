@@ -8,7 +8,6 @@ from sciencebeam_gym.preprocess.annotation.annotator import Annotator
 from .utils.string import comma_separated_str_to_list
 
 from .structured_document.grobid_training_tei import (
-    # ContainerNodePaths,
     DEFAULT_TAG_KEY
 )
 
@@ -29,7 +28,8 @@ from .annotation.replace_tags_annotator import (
 
 from .annotation.expand_to_untagged_lines_annotator import (
     ExpandToUntaggedLinesAnnotatorConfig,
-    ExpandToUntaggedLinesPostProcessingAnnotator
+    ExpandToPreviousUntaggedLinesPostProcessingAnnotator,
+    ExpandToFollowingUntaggedLinesPostProcessingAnnotator
 )
 
 from .auto_annotate_utils import (
@@ -118,7 +118,12 @@ def _get_annotator(
                 replaced_tag_by_tag=REPLACED_TAG_BY_TAG_MAP
             )
         ),
-        ExpandToUntaggedLinesPostProcessingAnnotator(
+        ExpandToPreviousUntaggedLinesPostProcessingAnnotator(
+            config=ExpandToUntaggedLinesAnnotatorConfig(
+                enabled_tags=EXPAND_TO_UNTAGGED_LINES_ENABLED_TAGS
+            )
+        ),
+        ExpandToFollowingUntaggedLinesPostProcessingAnnotator(
             config=ExpandToUntaggedLinesAnnotatorConfig(
                 enabled_tags=EXPAND_TO_UNTAGGED_LINES_ENABLED_TAGS
             )

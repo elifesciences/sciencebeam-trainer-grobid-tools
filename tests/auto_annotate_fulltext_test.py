@@ -42,7 +42,7 @@ CAPTION_TITLE_1 = 'Caption Title 1'
 CAPTION_PARAGRAPH_1 = 'Caption Paragraph 1'
 CAPTION_PARAGRAPH_2 = 'Caption Paragraph 2'
 
-LONG_DATA_TEXT_1 = ' Some data ' * 10
+LONG_DATA_TEXT_1 = ('Some data ' * 10).strip()
 LONG_ATTRIB_TEXT_1 = 'Some long long attrib contents 1'
 
 
@@ -453,7 +453,48 @@ class TestEndToEnd(object):
         tei_text = (
             get_nodes_text(target_figure_label_caption_content_nodes)
             + LONG_DATA_TEXT_1
+            + ' '
             + LONG_ATTRIB_TEXT_1
+        )
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_training_tei_node([tei_text])
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(body_nodes=target_body_content_nodes)
+        ))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'fields': ','.join([
+                'figure',
+                'table'
+            ])
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text_list(tei_auto_root, '//figure[not(@type="table")]') == [
+            tei_text
+        ]
+
+    def test_should_auto_annotate_single_figure_data_before_label_description(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        target_figure_label_caption_content_nodes = [
+            E.label(LABEL_1),
+            ' ',
+            E.caption(
+                E.title(CAPTION_TITLE_1),
+                ' ',
+                E.p(CAPTION_PARAGRAPH_1)
+            )
+        ]
+        target_body_content_nodes = [
+            E.sec(
+                E.fig(*target_figure_label_caption_content_nodes)
+            )
+        ]
+        tei_text = (
+            LONG_DATA_TEXT_1
+            + ' '
+            + get_nodes_text(target_figure_label_caption_content_nodes)
         )
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
             get_training_tei_node([tei_text])
@@ -540,6 +581,7 @@ class TestEndToEnd(object):
         tei_text = (
             get_nodes_text(target_table_label_caption_content_nodes)
             + LONG_DATA_TEXT_1
+            + ' '
             + LONG_ATTRIB_TEXT_1
         )
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
