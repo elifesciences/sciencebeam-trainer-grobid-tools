@@ -50,22 +50,34 @@ LOGGER = logging.getLogger(__name__)
 FULLTEXT_CONTAINER_NODE_PATH = 'text'
 
 
+XREF_REL_TEI_PATH_MAPPING = {
+    'xref-bib': 'ref[@type="biblio"]',
+    'xref-figure': 'ref[@type="figure"]',
+    'xref-table': 'ref[@type="table"]',
+    'xref-formula': 'ref[@type="formula"]',
+    'xref-section': 'ref[@type="section"]',
+    'xref-box': 'ref[@type="box"]'
+}
+
+
 FULLTEXT_TAG_TO_TEI_PATH_MAPPING = {
     DEFAULT_TAG_KEY: 'other',
     'note_other': 'note[@type="other"]',
     'section_title': 'head',
     'section_paragraph': 'p',
-    'section_paragraph-xref-bib': 'p/ref[@type="biblio"]',
-    'section_paragraph-xref-figure': 'p/ref[@type="figure"]',
-    'section_paragraph-xref-table': 'p/ref[@type="table"]',
-    'section_paragraph-xref-formula': 'p/ref[@type="formula"]',
-    'section_paragraph-xref-section': 'p/ref[@type="section"]',
-    'section_paragraph-xref-box': 'p/ref[@type="box"]',
+    **{
+        'section_paragraph-%s' % key: 'p/%s' % value
+        for key, value in XREF_REL_TEI_PATH_MAPPING.items()
+    },
     'figure': 'figure',
     'table': 'figure[@type="table"]',
     # Note: we are not using `<figure type="box">` because that is not supported yet
     'boxed_text_title': 'head[@type="box"]',
-    'boxed_text_paragraph': 'p[@type="box"]'
+    'boxed_text_paragraph': 'p[@type="box"]',
+    **{
+        'boxed_text_paragraph-%s' % key: 'p[@type="box"]/%s' % value
+        for key, value in XREF_REL_TEI_PATH_MAPPING.items()
+    },
 }
 
 

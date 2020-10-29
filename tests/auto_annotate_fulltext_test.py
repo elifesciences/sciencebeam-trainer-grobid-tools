@@ -40,6 +40,7 @@ SECTION_TITLE_2 = 'Section Title 2'
 LABEL_1 = 'Label 1'
 CAPTION_TITLE_1 = 'Caption Title 1'
 CAPTION_PARAGRAPH_1 = 'Caption Paragraph 1'
+CAPTION_PARAGRAPH_2 = 'Caption Paragraph 2'
 
 LONG_DATA_TEXT_1 = ' Some data ' * 10
 LONG_ATTRIB_TEXT_1 = 'Some long long attrib contents 1'
@@ -345,6 +346,46 @@ class TestEndToEnd(object):
             ) == [CITATION_TEXT_BY_JATS_REF_TYPE_MAP[key]]
         assert get_xpath_text_list(tei_auto_root, '//p') == [paragraph_text]
 
+    def test_should_auto_annotate_single_paragraph_citations_in_boxed_text_inside_lists(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        target_paragraph_content_nodes = [TEXT_1, ' ']
+        for key, value in CITATION_TEXT_BY_JATS_REF_TYPE_MAP.items():
+            target_paragraph_content_nodes.append(E.xref({'ref-type': key}, value))
+            target_paragraph_content_nodes.append(' ')
+        target_paragraph_content_nodes.append(TEXT_2)
+        target_body_content_nodes = [E.sec(E('boxed-text', *[
+            E.label(LABEL_1),
+            ' ',
+            E.caption(SECTION_TITLE_1),
+            ' ',
+            E.p(
+                E.list(E('list-item', *target_paragraph_content_nodes))
+            )
+        ])), ' Other']
+        paragraph_text = get_nodes_text(target_paragraph_content_nodes)
+        tei_text = get_nodes_text(target_body_content_nodes)
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_training_tei_node([E.other(tei_text)])
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(body_nodes=target_body_content_nodes)
+        ))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'fields': ','.join([
+                'section_paragraph',
+                'boxed_text_title',
+                'boxed_text_paragraph'
+            ])
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        for key, tei_type_value in TEI_BY_JATS_REF_TYPE_MAP.items():
+            assert get_xpath_text_list(
+                tei_auto_root, '//p/ref[@type="%s"]' % tei_type_value
+            ) == [CITATION_TEXT_BY_JATS_REF_TYPE_MAP[key]]
+        assert get_xpath_text_list(tei_auto_root, '//p') == [paragraph_text]
+
     def test_should_auto_annotate_single_figure_label_description(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_figure_label_caption_content_nodes = [
@@ -559,6 +600,52 @@ class TestEndToEnd(object):
         ]
         assert get_xpath_text_list(tei_auto_root, '//p[@type="box"]') == [
             CAPTION_PARAGRAPH_1
+        ]
+
+    def test_should_ignore_nested_paragraphs_in_boxed_text(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        target_boxed_text_content_nodes = [
+            E.label(LABEL_1),
+            ' ',
+            E.caption(
+                E.title(CAPTION_TITLE_1),
+            ),
+            ' ',
+            # in `306415v1` the paragraph is outside the caption
+            E.p(
+                CAPTION_PARAGRAPH_1,
+                ' ',
+                E.p(CAPTION_PARAGRAPH_2)
+            )
+        ]
+        target_body_content_nodes = [
+            E.sec(
+                E('boxed-text', *target_boxed_text_content_nodes)
+            )
+        ]
+        tei_text = get_nodes_text(target_body_content_nodes)
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_training_tei_node([tei_text])
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(body_nodes=target_body_content_nodes)
+        ))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'fields': ','.join([
+                'section_title',
+                'section_paragraph',
+                'boxed_text_title',
+                'boxed_text_paragraph'
+            ])
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text_list(tei_auto_root, '//head[@type="box"]') == [
+            LABEL_1 + ' ' + CAPTION_TITLE_1
+        ]
+        assert get_xpath_text_list(tei_auto_root, '//p[@type="box"]') == [
+            CAPTION_PARAGRAPH_1 + ' ' + CAPTION_PARAGRAPH_2
         ]
 
     def test_should_convert_note_other_to_other(
