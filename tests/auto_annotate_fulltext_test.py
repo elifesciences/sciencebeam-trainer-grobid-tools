@@ -739,6 +739,37 @@ class TestEndToEnd(object):
             CAPTION_PARAGRAPH_1 + ' ' + CAPTION_PARAGRAPH_2
         ]
 
+    def test_should_annotate_references_title(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        target_back_content_nodes = [
+            E('ref-list', E.title(SECTION_TITLE_1))
+        ]
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_training_tei_node([
+                TEXT_1,
+                ' ',
+                SECTION_TITLE_1,
+                ' ',
+                TEXT_2
+            ])
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(back_nodes=target_back_content_nodes)
+        ))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'fields': ','.join([
+                'section_title',
+                'section_paragraph',
+                'reference_list_title'
+            ])
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text_list(tei_auto_root, '//other[@type="ref-list-title"]') == [
+            SECTION_TITLE_1
+        ]
+
     def test_should_convert_note_other_to_other(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_body_content_nodes = []
