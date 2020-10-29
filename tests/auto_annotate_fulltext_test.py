@@ -50,7 +50,8 @@ TEI_BY_JATS_REF_TYPE_MAP = {
     'fig': 'figure',
     'table': 'table',
     'disp-formula': 'formula',
-    'sec': 'section'
+    'sec': 'section',
+    'boxed-text': 'box'
 }
 
 

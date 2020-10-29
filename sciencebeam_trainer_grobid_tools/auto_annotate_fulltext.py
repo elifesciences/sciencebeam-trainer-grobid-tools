@@ -49,6 +49,7 @@ FULLTEXT_TAG_TO_TEI_PATH_MAPPING = {
     'section_paragraphs-xref-table': 'p/ref[@type="table"]',
     'section_paragraphs-xref-formula': 'p/ref[@type="formula"]',
     'section_paragraphs-xref-section': 'p/ref[@type="section"]',
+    'section_paragraphs-xref-box': 'p/ref[@type="box"]',
     'figure': 'figure',
     'table': 'figure[type="table"]',
 }
