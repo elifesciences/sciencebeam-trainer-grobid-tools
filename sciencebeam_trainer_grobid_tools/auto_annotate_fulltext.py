@@ -79,6 +79,11 @@ FULLTEXT_TAG_TO_TEI_PATH_MAPPING = {
         'boxed_text_paragraph-%s' % key: 'p[@type="box"]/%s' % value
         for key, value in XREF_REL_TEI_PATH_MAPPING.items()
     },
+    'list_item': 'list/item',
+    **{
+        'list_item-%s' % key: 'list/item/%s' % value
+        for key, value in XREF_REL_TEI_PATH_MAPPING.items()
+    },
 }
 
 
@@ -87,6 +92,7 @@ ALL_FIELDS = [
     'section_paragraph',
     'boxed_text_title',
     'boxed_text_paragraph',
+    'list_item',
     'figure',
     'table',
     'reference_list_title'
