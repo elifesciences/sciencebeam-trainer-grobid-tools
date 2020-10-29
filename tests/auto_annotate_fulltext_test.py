@@ -519,6 +519,48 @@ class TestEndToEnd(object):
             tei_text
         ]
 
+    def test_should_auto_annotate_single_boxed_text(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        target_boxed_text_content_nodes = [
+            E.label(LABEL_1),
+            ' ',
+            E.caption(
+                E.title(CAPTION_TITLE_1),
+            ),
+            ' ',
+            # in `306415v1` the paragraph is outside the caption
+            E.p(CAPTION_PARAGRAPH_1)
+        ]
+        target_body_content_nodes = [
+            E.sec(
+                E('boxed-text', *target_boxed_text_content_nodes)
+            )
+        ]
+        tei_text = get_nodes_text(target_body_content_nodes)
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_training_tei_node([tei_text])
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(body_nodes=target_body_content_nodes)
+        ))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'fields': ','.join([
+                'section_title',
+                'section_paragraph',
+                'boxed_text_title',
+                'boxed_text_paragraph'
+            ])
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text_list(tei_auto_root, '//head[@type="box"]') == [
+            LABEL_1 + ' ' + CAPTION_TITLE_1
+        ]
+        assert get_xpath_text_list(tei_auto_root, '//p[@type="box"]') == [
+            CAPTION_PARAGRAPH_1
+        ]
+
     def test_should_convert_note_other_to_other(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_body_content_nodes = []

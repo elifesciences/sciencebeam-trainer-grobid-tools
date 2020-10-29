@@ -63,12 +63,15 @@ FULLTEXT_TAG_TO_TEI_PATH_MAPPING = {
     'section_paragraph-xref-box': 'p/ref[@type="box"]',
     'figure': 'figure',
     'table': 'figure[type="table"]',
+    # Note: we are not using `<figure type="box">` because that is not supported yet
+    'boxed_text_title': 'head[@type="box"]',
+    'boxed_text_paragraph': 'p[@type="box"]'
 }
 
 
 REPLACED_TAG_BY_TAG_MAP = {
     'note_other': None,
-    'note[@type="other"]': None
+    'note[@type="other"]': None,
 }
 
 
@@ -154,6 +157,8 @@ def add_main_args(parser):
         default=','.join([
             'section_title',
             'section_paragraph',
+            'boxed_text_title',
+            'boxed_text_paragraph',
             'figure',
             'table'
         ]),
