@@ -8,7 +8,6 @@ from sciencebeam_gym.preprocess.annotation.annotator import Annotator
 from .utils.string import comma_separated_str_to_list
 
 from .structured_document.grobid_training_tei import (
-    # ContainerNodePaths,
     DEFAULT_TAG_KEY
 )
 
@@ -29,7 +28,8 @@ from .annotation.replace_tags_annotator import (
 
 from .annotation.expand_to_untagged_lines_annotator import (
     ExpandToUntaggedLinesAnnotatorConfig,
-    ExpandToUntaggedLinesPostProcessingAnnotator
+    ExpandToPreviousUntaggedLinesPostProcessingAnnotator,
+    ExpandToFollowingUntaggedLinesPostProcessingAnnotator
 )
 
 from .auto_annotate_utils import (
@@ -71,6 +71,7 @@ FULLTEXT_TAG_TO_TEI_PATH_MAPPING = {
     },
     'figure': 'figure',
     'table': 'figure[@type="table"]',
+    'reference_list_title': 'other[@type="ref-list-title"]',
     # Note: we are not using `<figure type="box">` because that is not supported yet
     'boxed_text_title': 'head[@type="box"]',
     'boxed_text_paragraph': 'p[@type="box"]',
@@ -79,6 +80,17 @@ FULLTEXT_TAG_TO_TEI_PATH_MAPPING = {
         for key, value in XREF_REL_TEI_PATH_MAPPING.items()
     },
 }
+
+
+ALL_FIELDS = [
+    'section_title',
+    'section_paragraph',
+    'boxed_text_title',
+    'boxed_text_paragraph',
+    'figure',
+    'table',
+    'reference_list_title'
+]
 
 
 REPLACED_TAG_BY_TAG_MAP = {
@@ -118,7 +130,12 @@ def _get_annotator(
                 replaced_tag_by_tag=REPLACED_TAG_BY_TAG_MAP
             )
         ),
-        ExpandToUntaggedLinesPostProcessingAnnotator(
+        ExpandToPreviousUntaggedLinesPostProcessingAnnotator(
+            config=ExpandToUntaggedLinesAnnotatorConfig(
+                enabled_tags=EXPAND_TO_UNTAGGED_LINES_ENABLED_TAGS
+            )
+        ),
+        ExpandToFollowingUntaggedLinesPostProcessingAnnotator(
             config=ExpandToUntaggedLinesAnnotatorConfig(
                 enabled_tags=EXPAND_TO_UNTAGGED_LINES_ENABLED_TAGS
             )
@@ -166,14 +183,7 @@ def add_main_args(parser):
     parser.add_argument(
         '--fields',
         type=comma_separated_str_to_list,
-        default=','.join([
-            'section_title',
-            'section_paragraph',
-            'boxed_text_title',
-            'boxed_text_paragraph',
-            'figure',
-            'table'
-        ]),
+        default=','.join(ALL_FIELDS),
         help='comma separated list of fields to annotate'
     )
 

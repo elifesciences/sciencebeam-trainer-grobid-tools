@@ -2,6 +2,7 @@ import logging
 from typing import Any, List, Set
 
 from sciencebeam_gym.structured_document import (
+    B_TAG_PREFIX,
     I_TAG_PREFIX
 )
 
@@ -29,6 +30,48 @@ class ExpandToUntaggedLinesAnnotatorConfig:
         self.enabled_tags = enabled_tags
 
 
+class ExpandToPreviousUntaggedLinesPostProcessingAnnotator(AbstractAnnotator):
+    def __init__(self, config: ExpandToUntaggedLinesAnnotatorConfig):
+        self.config = config
+        super().__init__()
+
+    def annotate(self, structured_document: GrobidTrainingTeiStructuredDocument):
+        all_tokens_iterable = iter_all_tokens_excluding_space(structured_document)
+        previous_untagged_tokens = []
+        ignored_token_tag_values = set()
+        for token in all_tokens_iterable:
+            tag_value = structured_document.get_tag_or_preserved_tag_value(token)
+            if not tag_value:
+                previous_untagged_tokens.append(token)
+                continue
+            if not previous_untagged_tokens:
+                continue
+            if tag_value not in self.config.enabled_tags:
+                LOGGER.debug(
+                    'ignoring untagged tokens (before %r): %s',
+                    tag_value, previous_untagged_tokens
+                )
+                ignored_token_tag_values.add(tag_value)
+                previous_untagged_tokens.clear()
+                continue
+            LOGGER.debug(
+                'updated untagged tokens (before %r): %s',
+                tag_value, previous_untagged_tokens
+            )
+            for index, previous_untagged_token in enumerate(previous_untagged_tokens):
+                structured_document.set_tag_only(
+                    previous_untagged_token,
+                    add_tag_prefix(tag_value, B_TAG_PREFIX if index == 0 else I_TAG_PREFIX)
+                )
+            structured_document.set_tag_only(
+                token,
+                add_tag_prefix(tag_value, I_TAG_PREFIX)
+            )
+            previous_untagged_tokens.clear()
+        LOGGER.debug('ignore not enabled tag values: %s', ignored_token_tag_values)
+        return structured_document
+
+
 def _log_previous_included_tokens(
         previous_enabled_tag_value: str,
         previous_included_tokens: List[Any]):
@@ -39,7 +82,7 @@ def _log_previous_included_tokens(
         )
 
 
-class ExpandToUntaggedLinesPostProcessingAnnotator(AbstractAnnotator):
+class ExpandToFollowingUntaggedLinesPostProcessingAnnotator(AbstractAnnotator):
     def __init__(self, config: ExpandToUntaggedLinesAnnotatorConfig):
         self.config = config
         super().__init__()
@@ -66,7 +109,7 @@ class ExpandToUntaggedLinesPostProcessingAnnotator(AbstractAnnotator):
                 continue
             if not previous_enabled_tag_value:
                 continue
-            structured_document.set_tag(
+            structured_document.set_tag_only(
                 token,
                 add_tag_prefix(previous_enabled_tag_value, I_TAG_PREFIX)
             )
