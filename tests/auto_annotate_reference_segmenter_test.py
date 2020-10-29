@@ -7,7 +7,7 @@ import pytest
 from lxml import etree
 from lxml.builder import E
 
-from sciencebeam_trainer_grobid_tools.utils.xml import get_text_content, get_xpath_text
+from sciencebeam_trainer_grobid_tools.utils.xml import get_xpath_text
 
 from sciencebeam_trainer_grobid_tools.auto_annotate_reference_segmenter import (
     main
@@ -16,6 +16,7 @@ from sciencebeam_trainer_grobid_tools.auto_annotate_reference_segmenter import (
 from .test_utils import log_on_exception, dict_to_args
 from .auto_annotate_test_utils import (
     get_target_xml_node,
+    get_nodes_text,
     SingleFileAutoAnnotateEndToEndTestHelper
 )
 
@@ -62,15 +63,6 @@ def get_jats_reference_node(
         ref.append(E.label(label))
     ref.append(E('mixed-citation', *children))
     return ref
-
-
-def get_nodes_text(nodes: List[Union[str, etree.Element]]) -> str:
-    return ''.join([
-        str(node)
-        if isinstance(node, str)
-        else get_text_content(node)
-        for node in nodes
-    ])
 
 
 @log_on_exception

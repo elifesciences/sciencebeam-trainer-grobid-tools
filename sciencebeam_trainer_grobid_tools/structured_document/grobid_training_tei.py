@@ -51,9 +51,9 @@ DEFAULT_TAG_KEY = ''
 
 
 DEFAULT_TAG_TO_TEI_PATH_MAPPING = {
-    DEFAULT_TAG_KEY: 'note[type="other"]',
+    DEFAULT_TAG_KEY: 'note[@type="other"]',
     'title': 'docTitle/titlePart',
-    'abstract': 'div[type="abstract"]'
+    'abstract': 'div[@type="abstract"]'
 }
 
 
@@ -263,7 +263,7 @@ def _node_to_tag_expression(node):
     if len(node.attrib) > 1:
         raise ValueError('only supporting up to one attribute')
     key, value = list(node.attrib.items())[0]
-    return '{tag}[{key}="{value}"]'.format(tag=node.tag, key=key, value=value)
+    return '{tag}[@{key}="{value}"]'.format(tag=node.tag, key=key, value=value)
 
 
 def has_direct_text(element: etree.Element) -> bool:

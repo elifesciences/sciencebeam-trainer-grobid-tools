@@ -186,7 +186,7 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
         self.tag_to_tei_path_mapping = self.tag_to_tei_path_mapping.copy()
         for field in self.fields:
             if field not in self.tag_to_tei_path_mapping:
-                self.tag_to_tei_path_mapping[field] = 'note[type="%s"]' % field
+                self.tag_to_tei_path_mapping[field] = 'note[@type="%s"]' % field
         self.annotator_config.use_sub_annotations = True
         self.reference_annotator_config = _get_default_reference_annotator_config()
         if opt.include_idno_prefix:

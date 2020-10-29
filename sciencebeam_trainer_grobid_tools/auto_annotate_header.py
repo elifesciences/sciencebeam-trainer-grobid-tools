@@ -31,12 +31,12 @@ HEADER_CONTAINER_NODE_PATH = ContainerNodePaths.HEADER_CONTAINER_NODE_PATH
 
 
 HEADER_TAG_TO_TEI_PATH_MAPPING = {
-    DEFAULT_TAG_KEY: 'note[type="other"]',
+    DEFAULT_TAG_KEY: 'note[@type="other"]',
     'title': 'docTitle/titlePart',
-    'abstract': 'div[type="abstract"]',
+    'abstract': 'div[@type="abstract"]',
     'author': 'byline/docAuthor',
     'author_aff': 'byline/affiliation',
-    'line_no': 'note[type="line_no"]'
+    'line_no': 'note[@type="line_no"]'
 }
 
 
@@ -69,7 +69,7 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
         self.tag_to_tei_path_mapping = self.tag_to_tei_path_mapping.copy()
         for field in self.fields:
             if field not in self.tag_to_tei_path_mapping:
-                self.tag_to_tei_path_mapping[field] = 'note[type="%s"]' % field
+                self.tag_to_tei_path_mapping[field] = 'note[@type="%s"]' % field
 
     def get_annotator(self, source_url: str):
         target_xml_path = self.get_target_xml_for_source_file(source_url)

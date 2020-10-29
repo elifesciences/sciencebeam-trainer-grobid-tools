@@ -20,6 +20,7 @@ from sciencebeam_trainer_grobid_tools.auto_annotate_affiliation_address import m
 from .test_utils import log_on_exception, dict_to_args
 from .auto_annotate_test_utils import (
     get_target_xml_node,
+    get_nodes_text,
     SingleFileAutoAnnotateEndToEndTestHelper
 )
 
@@ -65,15 +66,6 @@ def _test_helper(temp_dir: Path) -> SingleFileAutoAnnotateEndToEndTestHelper:
         tei_filename=TEI_FILENAME_1,
         tei_filename_regex=TEI_FILENAME_REGEX
     )
-
-
-def get_nodes_text(nodes: List[Union[str, etree.Element]]) -> str:
-    return ''.join([
-        str(node)
-        if isinstance(node, str)
-        else get_text_content(node)
-        for node in nodes
-    ])
 
 
 def get_all_affiliations(root: etree.Element, **kwargs) -> List[etree.Element]:

@@ -29,7 +29,7 @@ REFERENCE_SEGMENTER_CONTAINER_NODE_PATH = 'text'
 
 
 REFERENCE_SEGMENTER_TAG_TO_TEI_PATH_MAPPING = {
-    DEFAULT_TAG_KEY: 'note[type="other"]',
+    DEFAULT_TAG_KEY: 'note[@type="other"]',
     'reference': 'listBibl/bibl',
     'reference-label': 'listBibl/bibl/label'
 }
@@ -62,7 +62,7 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
         self.tag_to_tei_path_mapping = self.tag_to_tei_path_mapping.copy()
         for field in self.fields:
             if field not in self.tag_to_tei_path_mapping:
-                self.tag_to_tei_path_mapping[field] = 'note[type="%s"]' % field
+                self.tag_to_tei_path_mapping[field] = 'note[@type="%s"]' % field
         self.annotator_config.use_sub_annotations = True
 
     def get_annotator(self, source_url: str):

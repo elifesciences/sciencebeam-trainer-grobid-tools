@@ -7,7 +7,8 @@ from sciencebeam_alignment.align import (
 )
 
 from sciencebeam_gym.preprocess.annotation.fuzzy_match import (
-    FuzzyMatchResult,
+    FuzzyMatchResult as _FuzzyMatchResult,
+    len_index_range,
     DEFAULT_SCORING
 )
 
@@ -37,6 +38,26 @@ def default_is_junk(s, i):
 
 def space_is_junk(s: str, i: int) -> bool:
     return s[i] in {' ', '\t', '\n'}
+
+
+class FuzzyMatchResult(_FuzzyMatchResult):
+    # Note: fixing calculation
+    def b_gap_ratio(self):
+        """
+        Calculates the ratio of matches vs the length of b,
+        but also adds any gaps / mismatches within a.
+        """
+        a_index_range = self.a_index_range()
+        a_match_len = len_index_range(a_index_range)
+        match_count = self.match_count()
+        a_junk_match_count = self.a_non_matching_junk_count(a_index_range)
+        b_junk_count = self.b_non_matching_junk_count()
+        a_gaps = max(0, a_match_len - match_count)
+        # LOGGER.debug(
+        #     'len b: %d, a gaps: %d, a junk: %d, b junk: %d, a_index_range: %s',
+        #     len(self.b), a_gaps, a_junk_match_count, b_junk_count, a_index_range
+        # )
+        return self.ratio_to(len(self.b) + a_gaps - a_junk_match_count - b_junk_count)
 
 
 class StringView:
@@ -124,6 +145,112 @@ class WordSequenceMatcher(object):
         return matching_blocks
 
 
+def get_str_matching_blocks_using_sequence_matcher(
+        haystack: str, needle: str) -> List[Tuple[int, int, int]]:
+    sm = LocalSequenceMatcher(a=haystack, b=needle, scoring=DEFAULT_SCORING)
+    return sm.get_matching_blocks()
+
+
+# def get_str_matching_blocks_using_fuzzy_search(
+#         haystack: str, needle: str, threshold: float) -> List[Tuple[int, int, int]]:
+#     max_l_dist = round(min(len(haystack), len(needle)) * (1 - threshold))
+#     matches = find_near_matches(needle, haystack, max_l_dist=max_l_dist)
+#     if not matches:
+#         return []
+#     # pretend there is just one matching block
+#     match = matches[0]
+#     return [(
+#         match.start,
+#         0,
+#         match.end - match.start
+#     )]
+
+
+# def get_str_matching_blocks(
+#         haystack: str, needle: str) -> List[Tuple[int, int, int]]:
+#     return get_str_matching_blocks_using_sequence_matcher(
+#         haystack, needle
+#     )
+
+
+def get_matching_blocks_b_gap_ratio(
+        haystack: str,
+        needle: str,
+        matching_blocks,
+        isjunk: callable) -> float:
+    fm = FuzzyMatchResult(
+        haystack,
+        needle,
+        matching_blocks,
+        isjunk=isjunk
+    )
+    LOGGER.debug('temp fm: %s', fm)
+    return fm.b_gap_ratio()
+
+
+def get_str_left_strided_matching_blocks(
+        haystack: str, needle: str,
+        max_length: int,
+        stride: int,
+        threshold: float,
+        isjunk: callable = None,
+        start_index: int = 0) -> List[Tuple[int, int, int]]:
+    """
+    LocalSequenceMatcher scales quadratically (O(n*m) with n=haystack length and m=needle length)
+    By using a window, we are limiting the memory usage and stop early if we found a match.
+    """
+    max_offset = stride
+    while start_index < len(haystack):
+        LOGGER.debug('start_index: %d, threshold: %.3f', start_index, threshold)
+        matching_blocks = get_str_matching_blocks_using_sequence_matcher(
+            haystack[start_index:(start_index + max_length)],
+            needle
+        )
+        if (
+            not matching_blocks
+            or matching_blocks[0][0] > max_offset
+            or get_matching_blocks_b_gap_ratio(
+                haystack, needle, matching_blocks, isjunk=isjunk
+            ) < threshold
+        ):
+            start_index += stride
+            continue
+        if not start_index:
+            return matching_blocks
+        return [
+            (ai + start_index, bi, size)
+            for ai, bi, size in matching_blocks
+        ]
+    return []
+
+
+def get_default_max_length_and_stride(
+        haystack_length: int,
+        needle_length: int,
+        threshold: float,
+        min_max_length: int = 1000) -> Tuple[int]:
+    if haystack_length <= min_max_length:
+        return haystack_length, haystack_length
+    max_l_dist = round(min(haystack_length, needle_length) * (1 - threshold))
+    max_matched_needle_length = needle_length + max_l_dist
+    max_length = max(min_max_length, max_matched_needle_length * 4)
+    stride = max_length - max_matched_needle_length
+    return max_length, stride
+
+
+def get_str_auto_left_strided_matching_blocks(
+        haystack: str, needle: str,
+        threshold: float,
+        isjunk: callable) -> List[Tuple[int, int, int]]:
+    max_length, stride = get_default_max_length_and_stride(
+        len(haystack), len(needle), threshold=threshold
+    )
+    return get_str_left_strided_matching_blocks(
+        haystack, needle,
+        max_length=max_length, stride=stride, threshold=threshold, isjunk=isjunk
+    )
+
+
 def fuzzy_search(
         haystack: str, needle: str,
         threshold: float,
@@ -134,21 +261,25 @@ def fuzzy_search(
     if start_index:
         haystack = haystack[start_index:]
     if min(len(haystack), len(needle)) < exact_word_match_threshold:
+        mode = 'word'
         sm = WordSequenceMatcher(None, haystack, needle, sep=DEFAULT_WORD_SEPARATORS)
         matching_blocks = sm.get_matching_blocks()
     else:
+        mode = 'char'
         matcher_is_junk_fn = space_is_junk
         haystack_string_view = get_no_junk_string_view(haystack, isjunk=matcher_is_junk_fn)
         needle_string_view = get_no_junk_string_view(needle, isjunk=matcher_is_junk_fn)
         LOGGER.debug('haystack_string_view: %r', str(haystack_string_view))
         LOGGER.debug('needle_string_view: %r', str(needle_string_view))
-        sm = LocalSequenceMatcher(
-            a=str(haystack_string_view),
-            b=str(needle_string_view),
-            scoring=DEFAULT_SCORING
+        raw_matching_blocks = get_str_auto_left_strided_matching_blocks(
+            haystack=str(haystack_string_view),
+            needle=str(needle_string_view),
+            threshold=threshold,
+            isjunk=isjunk or default_is_junk
         )
-        raw_matching_blocks = sm.get_matching_blocks()
         LOGGER.debug('raw_matching_blocks: %s', raw_matching_blocks)
+        # if str(needle_string_view) == 'pmc1000001':
+        #     raise RuntimeError('dummy')
         matching_blocks = [
             (
                 haystack_string_view.original_index_at[ai],
@@ -173,7 +304,7 @@ def fuzzy_search(
         matching_blocks,
         isjunk=isjunk or default_is_junk
     )
-    LOGGER.debug('fm (sm=%s, threshold=%.2f): %s', type(sm).__name__, threshold, fm)
+    LOGGER.debug('fm (mode=%s, threshold=%.2f): %s', mode, threshold, fm)
     if fm.b_gap_ratio() >= threshold:
         return fm
     return None

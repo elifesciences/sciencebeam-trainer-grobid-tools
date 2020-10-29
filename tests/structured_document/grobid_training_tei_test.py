@@ -287,7 +287,7 @@ class TestGrobidTrainingStructuredDocument(object):
             _tei(front_items=[
                 E.note(TOKEN_1)
             ]),
-            tag_to_tei_path_mapping={TAG_1: 'div[tag="tag1"]'}
+            tag_to_tei_path_mapping={TAG_1: 'div[@tag="tag1"]'}
         )
         lines = _get_all_lines(doc)
         tokens = list(doc.get_tokens_of_line(lines[0]))
@@ -300,7 +300,7 @@ class TestGrobidTrainingStructuredDocument(object):
             _tei(front_items=[
                 E.note(TOKEN_1)
             ]),
-            tag_to_tei_path_mapping={TAG_1: 'div[tag="tag1"]'}
+            tag_to_tei_path_mapping={TAG_1: 'div[@tag="tag1"]'}
         )
         lines = _get_all_lines(doc)
         tokens = list(doc.get_tokens_of_line(lines[0]))
@@ -494,7 +494,7 @@ class TestGrobidTrainingStructuredDocument(object):
         doc = GrobidTrainingTeiStructuredDocument(
             original_tei_xml,
             preserve_tags=True,
-            tag_to_tei_path_mapping={TAG_1: 'div[tag="tag1"]'}
+            tag_to_tei_path_mapping={TAG_1: 'div[@tag="tag1"]'}
         )
         LOGGER.debug('doc: %s', doc)
 
