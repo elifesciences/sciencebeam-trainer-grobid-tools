@@ -51,6 +51,7 @@ class ExpandToPreviousUntaggedLinesPostProcessingAnnotator(AbstractAnnotator):
                     'ignoring untagged tokens (before %r): %s',
                     tag_value, previous_untagged_tokens
                 )
+                ignored_token_tag_values.add(tag_value)
                 previous_untagged_tokens.clear()
                 continue
             LOGGER.debug(
@@ -67,6 +68,7 @@ class ExpandToPreviousUntaggedLinesPostProcessingAnnotator(AbstractAnnotator):
                 add_tag_prefix(tag_value, I_TAG_PREFIX)
             )
             previous_untagged_tokens.clear()
+        LOGGER.debug('ignore not enabled tag values: %s', ignored_token_tag_values)
         return structured_document
 
 
