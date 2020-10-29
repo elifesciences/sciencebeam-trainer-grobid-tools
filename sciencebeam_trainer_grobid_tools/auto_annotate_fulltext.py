@@ -22,6 +22,11 @@ from .annotation.simple_matching_annotator import (
     SimpleMatchingAnnotator
 )
 
+from .annotation.expand_to_untagged_lines_annotator import (
+    ExpandToUntaggedLinesAnnotatorConfig,
+    ExpandToUntaggedLinesPostProcessingAnnotator
+)
+
 from .auto_annotate_utils import (
     add_debug_argument,
     process_debug_argument,
@@ -55,6 +60,14 @@ FULLTEXT_TAG_TO_TEI_PATH_MAPPING = {
 }
 
 
+# Where the reference XML might just contain an image, we are assuming that all
+# untagged lines after the label and caption also belong to the same element
+EXPAND_TO_UNTAGGED_LINES_ENABLED_TAGS = {
+    'figure',
+    'table'
+}
+
+
 def _get_annotator(
         xml_path,
         xml_mapping,
@@ -68,12 +81,17 @@ def _get_annotator(
         preserve_sub_annotations=True,
         extend_to_line_enabled=False
     )
-    annotators = []
-    annotators.append(SimpleMatchingAnnotator(
-        target_annotations,
-        config=simple_annotator_config
-    ))
-    # annotators = get_default_annotators(*args, **kwargs)
+    annotators = [
+        SimpleMatchingAnnotator(
+            target_annotations,
+            config=simple_annotator_config
+        ),
+        ExpandToUntaggedLinesPostProcessingAnnotator(
+            config=ExpandToUntaggedLinesAnnotatorConfig(
+                enabled_tags=EXPAND_TO_UNTAGGED_LINES_ENABLED_TAGS
+            )
+        )
+    ]
     annotator = Annotator(annotators)
     return annotator
 

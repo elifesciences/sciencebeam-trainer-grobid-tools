@@ -369,7 +369,7 @@ class TestEndToEnd(object):
         ]
         tei_text = get_nodes_text(target_body_content_nodes)
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
-            get_training_tei_node([E.note(tei_text)])
+            get_training_tei_node([tei_text])
         ))
         test_helper.xml_file_path.write_bytes(etree.tostring(
             get_target_xml_node(body_nodes=target_body_content_nodes)
@@ -378,6 +378,7 @@ class TestEndToEnd(object):
             **test_helper.main_args_dict,
             'fields': ','.join([
                 'section_titles',
+                'section_paragraphs',
                 'figure',
                 'table'
             ])
@@ -414,7 +415,7 @@ class TestEndToEnd(object):
             + LONG_ATTRIB_TEXT_1
         )
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
-            get_training_tei_node([E.note(tei_text)])
+            get_training_tei_node([tei_text])
         ))
         test_helper.xml_file_path.write_bytes(etree.tostring(
             get_target_xml_node(body_nodes=target_body_content_nodes)
@@ -429,7 +430,7 @@ class TestEndToEnd(object):
 
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text_list(tei_auto_root, '//figure[not(@type="table")]') == [
-            get_nodes_text(target_figure_label_caption_content_nodes)
+            tei_text
         ]
 
     def test_should_auto_annotate_single_table_label_description(
@@ -456,7 +457,7 @@ class TestEndToEnd(object):
         ]
         tei_text = get_nodes_text(target_body_content_nodes)
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
-            get_training_tei_node([E.note(tei_text)])
+            get_training_tei_node([tei_text])
         ))
         test_helper.xml_file_path.write_bytes(etree.tostring(
             get_target_xml_node(body_nodes=target_body_content_nodes)
@@ -465,6 +466,7 @@ class TestEndToEnd(object):
             **test_helper.main_args_dict,
             'fields': ','.join([
                 'section_titles',
+                'section_paragraphs',
                 'table'
             ])
         }), save_main_session=False)
@@ -500,7 +502,7 @@ class TestEndToEnd(object):
             + LONG_ATTRIB_TEXT_1
         )
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
-            get_training_tei_node([E.note(tei_text)])
+            get_training_tei_node([tei_text])
         ))
         test_helper.xml_file_path.write_bytes(etree.tostring(
             get_target_xml_node(body_nodes=target_body_content_nodes)
@@ -514,7 +516,7 @@ class TestEndToEnd(object):
 
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text_list(tei_auto_root, '//figure[@type="table"]') == [
-            get_nodes_text(target_table_label_caption_content_nodes)
+            tei_text
         ]
 
     def test_should_preserve_formula(
