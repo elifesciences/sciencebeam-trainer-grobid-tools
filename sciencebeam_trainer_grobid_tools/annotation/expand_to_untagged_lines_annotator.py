@@ -15,6 +15,10 @@ from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei im
     GrobidTrainingTeiStructuredDocument
 )
 
+from sciencebeam_trainer_grobid_tools.structured_document.utils import (
+    iter_all_tokens_excluding_space
+)
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -24,16 +28,6 @@ class ExpandToUntaggedLinesAnnotatorConfig:
             self,
             enabled_tags: Set[str]):
         self.enabled_tags = enabled_tags
-
-
-def _iter_all_tokens(
-        structured_document: AbstractStructuredDocument) -> Iterable[Any]:
-    return (
-        token
-        for page in structured_document.get_pages()
-        for line in structured_document.get_lines_of_page(page)
-        for token in structured_document.get_tokens_of_line(line)
-    )
 
 
 def _log_previous_included_tokens(
@@ -52,7 +46,7 @@ class ExpandToUntaggedLinesPostProcessingAnnotator(AbstractAnnotator):
         super().__init__()
 
     def annotate(self, structured_document: GrobidTrainingTeiStructuredDocument):
-        all_tokens_iterable = _iter_all_tokens(structured_document)
+        all_tokens_iterable = iter_all_tokens_excluding_space(structured_document)
         previous_enabled_tag_value = None
         previous_included_tokens = []
         ignored_token_tag_values = set()

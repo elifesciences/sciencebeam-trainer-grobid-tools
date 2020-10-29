@@ -14,6 +14,10 @@ from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei im
     GrobidTrainingTeiStructuredDocument
 )
 
+from sciencebeam_trainer_grobid_tools.structured_document.utils import (
+    iter_all_tokens_excluding_space
+)
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -27,16 +31,6 @@ class AffiliationAddressAnnotatorConfig:
         self.is_address_sub_tag_fn = is_address_sub_tag_fn
 
 
-def _iter_all_tokens(
-        structured_document: AbstractStructuredDocument) -> Iterable[Any]:
-    return (
-        token
-        for page in structured_document.get_pages()
-        for line in structured_document.get_lines_of_page(page)
-        for token in structured_document.get_tokens_of_line(line)
-    )
-
-
 class AffiliationAddressPostProcessingAnnotator(AbstractAnnotator):
     def __init__(self, config: AffiliationAddressAnnotatorConfig):
         self.config = config
@@ -48,7 +42,7 @@ class AffiliationAddressPostProcessingAnnotator(AbstractAnnotator):
         # which would allow the "address" level to be represented.
         # As a workaround we are adding the "address" sub tag, to the tokens without sub tag.
         # That way those tokens will share a common "address" element in the output.
-        all_tokens_iterable = _iter_all_tokens(structured_document)
+        all_tokens_iterable = iter_all_tokens_excluding_space(structured_document)
         is_in_address = False
         for token in all_tokens_iterable:
             tag = structured_document.get_tag_or_preserved_tag(token)

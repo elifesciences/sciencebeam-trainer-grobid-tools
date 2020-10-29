@@ -13,18 +13,12 @@ from sciencebeam_trainer_grobid_tools.annotation.simple_matching_annotator impor
     SimpleMatchingAnnotator
 )
 
+from sciencebeam_trainer_grobid_tools.structured_document.utils import (
+    iter_all_tokens_including_space
+)
+
 
 LOGGER = logging.getLogger(__name__)
-
-
-def _iter_all_tokens(
-        structured_document: AbstractStructuredDocument) -> Iterable[Any]:
-    return (
-        token
-        for page in structured_document.get_pages()
-        for line in structured_document.get_lines_of_page(page)
-        for token in structured_document.get_all_tokens_of_line(line)
-    )
 
 
 class SubTagOnlyAnnotator(SimpleMatchingAnnotator):
@@ -38,7 +32,7 @@ class SubTagOnlyAnnotator(SimpleMatchingAnnotator):
         LOGGER.debug('preserving tags')
         token_preserved_tags = [
             (token, structured_document.get_tag_or_preserved_tag(token))
-            for token in _iter_all_tokens(structured_document)
+            for token in iter_all_tokens_including_space(structured_document)
         ]
         # we need to clear the tag for now, otherwise they will be ignored for annotation
         for token, _ in token_preserved_tags:
