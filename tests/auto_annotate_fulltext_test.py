@@ -157,6 +157,27 @@ class TestEndToEnd(object):
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text_list(tei_auto_root, '//p') == [TEXT_1]
 
+    def test_should_auto_annotate_single_top_level_list_as_paragraph(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        # e.g. `214296v1` contains list as direct children of the body
+        target_body_content_nodes = [E.list(TEXT_1)]
+        tei_text = get_nodes_text(target_body_content_nodes)
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_training_tei_node([tei_text])
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(body_nodes=target_body_content_nodes)
+        ))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'fields': ','.join([
+                'section_paragraph'
+            ])
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text_list(tei_auto_root, '//p') == [TEXT_1]
+
     def test_should_auto_annotate_single_back_section_title_and_paragraph(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_back_content_nodes = [
@@ -353,6 +374,31 @@ class TestEndToEnd(object):
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text_list(tei_auto_root, '//head') == [SECTION_TITLE_1, SECTION_TITLE_2]
         assert get_xpath_text_list(tei_auto_root, '//p') == [TEXT_1, TEXT_2]
+
+    @pytest.mark.skip('not yet implemented')
+    def test_should_auto_annotate_single_paragraphs_split_by_figure(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        target_body_content_nodes = [
+            E.sec(
+                E.p(TEXT_1 + ' ' + TEXT_2)
+            )
+        ]
+        tei_text = TEXT_1 + ' ' + LONG_DATA_TEXT_1 + ' ' + TEXT_2
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_training_tei_node([tei_text])
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(body_nodes=target_body_content_nodes)
+        ))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'fields': ','.join([
+                'section_paragraph'
+            ])
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text_list(tei_auto_root, '//p') == [TEXT_1 + ' ' + TEXT_2]
 
     def test_should_auto_annotate_single_paragraph_citations(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
