@@ -52,7 +52,7 @@ FULLTEXT_CONTAINER_NODE_PATH = 'text'
 
 FULLTEXT_TAG_TO_TEI_PATH_MAPPING = {
     DEFAULT_TAG_KEY: 'other',
-    'note_other': 'note[type="other"]',
+    'note_other': 'note[@type="other"]',
     'section_title': 'head',
     'section_paragraph': 'p',
     'section_paragraph-xref-bib': 'p/ref[@type="biblio"]',
@@ -62,7 +62,7 @@ FULLTEXT_TAG_TO_TEI_PATH_MAPPING = {
     'section_paragraph-xref-section': 'p/ref[@type="section"]',
     'section_paragraph-xref-box': 'p/ref[@type="box"]',
     'figure': 'figure',
-    'table': 'figure[type="table"]',
+    'table': 'figure[@type="table"]',
     # Note: we are not using `<figure type="box">` because that is not supported yet
     'boxed_text_title': 'head[@type="box"]',
     'boxed_text_paragraph': 'p[@type="box"]'
@@ -135,7 +135,7 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
         self.tag_to_tei_path_mapping = self.tag_to_tei_path_mapping.copy()
         for field in self.fields:
             if field not in self.tag_to_tei_path_mapping:
-                self.tag_to_tei_path_mapping[field] = 'note[type="%s"]' % field
+                self.tag_to_tei_path_mapping[field] = 'note[@type="%s"]' % field
         self.annotator_config.use_sub_annotations = True
 
     def get_annotator(self, source_url: str):
