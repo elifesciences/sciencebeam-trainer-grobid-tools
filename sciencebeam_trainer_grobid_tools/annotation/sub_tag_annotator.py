@@ -1,9 +1,4 @@
 import logging
-from typing import Iterable, Any
-
-from sciencebeam_gym.structured_document import (
-    AbstractStructuredDocument
-)
 
 from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei import (
     GrobidTrainingTeiStructuredDocument

@@ -1,8 +1,7 @@
 import logging
-from typing import Any, Dict, Iterable
+from typing import Dict
 
 from sciencebeam_gym.structured_document import (
-    AbstractStructuredDocument,
     split_tag_prefix,
     add_tag_prefix
 )

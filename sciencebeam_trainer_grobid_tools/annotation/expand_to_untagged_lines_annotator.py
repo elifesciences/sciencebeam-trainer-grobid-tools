@@ -1,8 +1,7 @@
 import logging
-from typing import Any, Iterable, List, Set
+from typing import Any, List, Set
 
 from sciencebeam_gym.structured_document import (
-    AbstractStructuredDocument,
     I_TAG_PREFIX
 )
 

@@ -1,9 +1,5 @@
 import logging
-from typing import Callable, Any, Iterable
-
-from sciencebeam_gym.structured_document import (
-    AbstractStructuredDocument
-)
+from typing import Callable
 
 from sciencebeam_gym.preprocess.annotation.annotator import (
     AbstractAnnotator
