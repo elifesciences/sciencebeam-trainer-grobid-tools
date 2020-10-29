@@ -7,6 +7,8 @@ import pytest
 from lxml import etree
 from lxml.builder import E
 
+from sciencebeam_utils.utils.collection import flatten
+
 from sciencebeam_trainer_grobid_tools.utils.xml import get_xpath_text_list
 
 from sciencebeam_trainer_grobid_tools.auto_annotate_fulltext import (
@@ -249,6 +251,53 @@ class TestEndToEnd(object):
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text_list(tei_auto_root, '//head') == [SECTION_TITLE_1, SECTION_TITLE_2]
         assert get_xpath_text_list(tei_auto_root, '//p') == [TEXT_1, TEXT_2]
+
+    def test_should_auto_annotate_multiple_out_of_order_section_title_and_paragraphs(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        section_titles = ['First Title', 'Second Heading']
+        section_paragraphs = [TEXT_1, TEXT_2]
+        target_section_1_content_nodes = [
+            E.sec(
+                E.title(section_titles[0]),
+                ' ',
+                E.p(section_paragraphs[0]),
+            )
+        ]
+        target_section_2_content_nodes = [
+            E.sec(
+                E.title(section_titles[1]),
+                ' ',
+                E.p(section_paragraphs[1]),
+            )
+        ]
+        target_body_content_nodes = [
+            *target_section_1_content_nodes,
+            ' ',
+            *target_section_2_content_nodes
+        ]
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_training_tei_node([
+                get_nodes_text(target_section_2_content_nodes),
+                *flatten([(E.lb(), ' x ') for _ in range(100)]),
+                get_nodes_text(target_section_1_content_nodes),
+                E.lb()
+            ])
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(body_nodes=target_body_content_nodes)
+        ))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'matcher-lookahead-lines': 10,
+            'fields': ','.join([
+                'section_title',
+                'section_paragraph'
+            ])
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text_list(tei_auto_root, '//head') == list(reversed(section_titles))
+        assert get_xpath_text_list(tei_auto_root, '//p') == [TEXT_2, TEXT_1]
 
     def test_should_auto_annotate_nested_section_title_and_paragraphs(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):

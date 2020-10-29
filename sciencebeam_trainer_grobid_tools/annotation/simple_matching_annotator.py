@@ -610,14 +610,18 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                 structured_document.set_tag(token, token_tag)
         return structured_document
 
-    def annotate(self, structured_document: AbstractStructuredDocument):
+    def process_target_annotations(
+            self,
+            structured_document: AbstractStructuredDocument,
+            target_annotations: List[TargetAnnotation]):
+        untagged_target_annotations = []
         pending_sequences = PendingSequences.from_structured_document(
             structured_document,
             normalize_fn=normalise_and_remove_junk_str
         )
         current_pending_sequences = pending_sequences
         target_annotations_grouped_by_tag = groupby(
-            self.target_annotations,
+            target_annotations,
             key=lambda target_annotation: target_annotation.name
         )
         current_block_name = None
@@ -650,6 +654,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                         [target_annotation]
                     ))
                     if not index_ranges:
+                        untagged_target_annotations.append(target_annotation)
                         continue
                     index_range = merge_index_ranges(index_ranges)
                     block_index_range = (index_range[0], text.end_index)
@@ -664,6 +669,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                     )
                     current_block_name = tag_block_name
                 if not index_ranges:
+                    untagged_target_annotations.append(target_annotation)
                     continue
                 index_range = merge_index_ranges(index_ranges)
                 LOGGER.debug('merged index ranges: %s -> %s', index_ranges, index_range)
@@ -683,6 +689,21 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                         index_range,
                         sub_annotations=target_annotation.sub_annotations
                     )
+        return untagged_target_annotations
+
+    def annotate(self, structured_document: AbstractStructuredDocument):
+        untagged_target_annotations = self.target_annotations
+        while untagged_target_annotations:
+            remaing_untagged_target_annotations = self.process_target_annotations(
+                structured_document,
+                untagged_target_annotations
+            )
+            LOGGER.debug(
+                'remaing_untagged_target_annotations: %s', remaing_untagged_target_annotations
+            )
+            if len(remaing_untagged_target_annotations) == len(untagged_target_annotations):
+                break
+            untagged_target_annotations = remaing_untagged_target_annotations
         if self.config.extend_to_line_enabled:
             self.extend_annotations_to_whole_line(structured_document)
         return structured_document
