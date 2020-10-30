@@ -464,7 +464,6 @@ class TestEndToEnd(object):
         assert get_xpath_text_list(tei_auto_root, '//head') == [SECTION_TITLE_1, SECTION_TITLE_2]
         assert get_xpath_text_list(tei_auto_root, '//p') == [TEXT_1, TEXT_2]
 
-    @pytest.mark.skip('not yet implemented')
     def test_should_auto_annotate_single_paragraphs_split_by_figure(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_body_content_nodes = [
@@ -487,7 +486,7 @@ class TestEndToEnd(object):
         }), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
-        assert get_xpath_text_list(tei_auto_root, '//p') == [TEXT_1 + ' ' + TEXT_2]
+        assert get_xpath_text_list(tei_auto_root, '//p') == [TEXT_1, TEXT_2]
 
     def test_should_auto_annotate_single_paragraph_citations(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):

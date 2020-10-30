@@ -27,7 +27,8 @@ from sciencebeam_trainer_grobid_tools.annotation.simple_matching_annotator impor
     get_simple_tag_config_map,
     select_index_ranges,
     DEFAULT_MERGE_ENABLED,
-    DEFAULT_EXTEND_TO_LINE_ENABLED
+    DEFAULT_EXTEND_TO_LINE_ENABLED,
+    DEFAULT_MAX_CHUNKS
 )
 
 from tests.test_utils import log_on_exception
@@ -795,3 +796,15 @@ class TestGetSimpleTagConfigMap:
         assert set(tag_config_map.keys()) == {'tag1', 'tag2'}
         assert tag_config_map['tag1'].block_name == 'block1'
         assert tag_config_map['tag2'].block_name is None
+
+    def test_should_parse_max_chunks(self):
+        tag_config_map = get_simple_tag_config_map({
+            'any': {
+                'tag1': 'xpath1',
+                'tag1.max_chunks': '2',
+                'tag2': 'xpath2'
+            }
+        })
+        assert set(tag_config_map.keys()) == {'tag1', 'tag2'}
+        assert tag_config_map['tag1'].max_chunks == 2
+        assert tag_config_map['tag2'].max_chunks == DEFAULT_MAX_CHUNKS

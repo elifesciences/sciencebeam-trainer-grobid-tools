@@ -2,7 +2,7 @@ import logging
 import re
 from distutils.util import strtobool
 from itertools import groupby
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from sciencebeam_gym.structured_document import (
     AbstractStructuredDocument
@@ -27,7 +27,7 @@ from sciencebeam_gym.structured_document import (
 from sciencebeam_trainer_grobid_tools.utils.misc import get_safe
 
 from sciencebeam_trainer_grobid_tools.utils.fuzzy import (
-    fuzzy_search_index_range,
+    fuzzy_search_index_range_chunks,
     iter_fuzzy_search_all_index_ranges
 )
 
@@ -58,6 +58,7 @@ def split_and_join_with_space(text: str) -> str:
 
 DEFAULT_MERGE_ENABLED = True
 DEFAULT_EXTEND_TO_LINE_ENABLED = True
+DEFAULT_MAX_CHUNKS = 1
 
 
 class SimpleTagConfig:
@@ -67,21 +68,25 @@ class SimpleTagConfig:
             alternative_spellings: Dict[str, List[str]] = None,
             merge_enabled: bool = DEFAULT_MERGE_ENABLED,
             extend_to_line_enabled: bool = DEFAULT_EXTEND_TO_LINE_ENABLED,
+            max_chunks: int = DEFAULT_MAX_CHUNKS,
             block_name: str = None):
         self.match_prefix_regex = match_prefix_regex
         self.alternative_spellings = alternative_spellings
         self.merge_enabled = merge_enabled
         self.extend_to_line_enabled = extend_to_line_enabled
+        self.max_chunks = max_chunks
         self.block_name = block_name
 
     def __repr__(self):
         return (
             '%s(match_prefix_regex=%s, alternative_spellings=%s,'
             + ' merge_enabled%s, extend_to_line_enabled=%s,'
+            + ' max_chunks=%r,'
             + ' block_name=%s)'
         ) % (
             type(self).__name__, self.match_prefix_regex, self.alternative_spellings,
             self.merge_enabled, self.extend_to_line_enabled,
+            self.max_chunks,
             self.block_name
         )
 
@@ -364,8 +369,8 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             for tag, tag_confg in self.config.tag_config_map.items()
         }
 
-    def get_fuzzy_matching_index_range(
-            self, haystack: str, needle, **kwargs):
+    def get_fuzzy_matching_index_range_chunks(
+            self, haystack: str, needle, **kwargs) -> Optional[List[Tuple[int]]]:
         if len(needle) < self.config.min_token_length:
             return None
         target_value = normalise_str_or_list(needle)
@@ -373,32 +378,32 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
         if len(target_value) < self.config.exact_word_match_threshold:
             # line feeds are currently not default separators for WordSequenceMatcher
             haystack = haystack.replace('\n', ' ')
-        index_range = fuzzy_search_index_range(
+        index_range_chunks = fuzzy_search_index_range_chunks(
             haystack, target_value,
             threshold=self.config.threshold,
             exact_word_match_threshold=self.config.exact_word_match_threshold,
             **kwargs
         )
-        if index_range:
-            return index_range
+        if index_range_chunks:
+            return index_range_chunks
         target_value_reduced = split_and_join_with_space(
             normalise_and_remove_junk_str_or_list(needle)
         )
         LOGGER.debug('target_value_reduced: %s', target_value_reduced)
-        return fuzzy_search_index_range(
+        return fuzzy_search_index_range_chunks(
             haystack, target_value_reduced,
             threshold=self.config.threshold,
             exact_word_match_threshold=self.config.exact_word_match_threshold,
             **kwargs
         )
 
-    def get_fuzzy_matching_index_range_with_alternative_spellings(
+    def get_fuzzy_matching_index_range_with_alternative_spellings_chunks(
             self,
             haystack: str,
             needle,
             alternative_spellings: Dict[str, List[str]],
             **kwargs):
-        index_range = self.get_fuzzy_matching_index_range(haystack, needle, **kwargs)
+        index_range = self.get_fuzzy_matching_index_range_chunks(haystack, needle, **kwargs)
         if index_range or not alternative_spellings:
             return index_range
         LOGGER.debug('alternative_spellings: %s', alternative_spellings)
@@ -406,13 +411,22 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
         matching_alternative_spellings = alternative_spellings.get(needle, [])
         LOGGER.debug('matching_alternative_spellings: %s', matching_alternative_spellings)
         for alternative_needle in matching_alternative_spellings:
-            index_range = self.get_fuzzy_matching_index_range(
+            index_range = self.get_fuzzy_matching_index_range_chunks(
                 haystack, alternative_needle, **kwargs
             )
             if index_range:
                 LOGGER.debug('found alternative_needle: %s', alternative_needle)
                 return index_range
         return None
+
+    def get_fuzzy_matching_index_range_with_alternative_spellings(
+            self, *args, **kwargs) -> Optional[Tuple[int]]:
+        index_range_chunks = self.get_fuzzy_matching_index_range_with_alternative_spellings_chunks(
+            *args, **kwargs
+        )
+        if not index_range_chunks:
+            return None
+        return index_range_chunks[0][0], index_range_chunks[-1][1]
 
     def get_sub_tag_placeholders(self, sub_annotations: List[TargetAnnotation]) -> Dict[str, str]:
         placeholders = {}
@@ -548,12 +562,14 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
         for target_annotation in target_annotations:
             LOGGER.debug('target_annotation: %s', target_annotation)
             LOGGER.debug('target_annotation.value: %s', target_annotation.value)
-            tag_config = self.config.tag_config_map.get(target_annotation.name)
+            tag_config = self.config.tag_config_map.get(
+                target_annotation.name, DEFAULT_SIMPLE_TAG_CONFIG
+            )
             alternative_spellings = tag_config and tag_config.alternative_spellings
             LOGGER.debug('alternative_spellings: %s', alternative_spellings)
             text_str = str(text)
             LOGGER.debug('text: %s', text)
-            index_range = None
+            index_range_chunks = None
             if isinstance(target_annotation.value, list):
                 index_ranges = [
                     self.get_fuzzy_matching_index_range_with_alternative_spellings(
@@ -581,15 +597,19 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                         'merged multi-value unselected index ranges: %s',
                         text.get_index_ranges_with_text(unselected_index_ranges)
                     )
+                    index_range_chunks = [index_range]
             else:
-                index_range = self.get_fuzzy_matching_index_range_with_alternative_spellings(
-                    text_str,
-                    target_annotation.value,
-                    alternative_spellings=alternative_spellings
+                index_range_chunks = (
+                    self.get_fuzzy_matching_index_range_with_alternative_spellings_chunks(
+                        text_str,
+                        target_annotation.value,
+                        alternative_spellings=alternative_spellings,
+                        max_chunks=tag_config.max_chunks
+                    )
                 )
-            LOGGER.debug('index_range: %s', index_range)
-            if index_range:
-                yield index_range
+            LOGGER.debug('index_range_chunks: %s', index_range_chunks)
+            if index_range_chunks:
+                yield from index_range_chunks
 
     def extend_annotations_to_whole_line(self, structured_document: AbstractStructuredDocument):
         for line in _iter_all_lines(structured_document):
@@ -656,8 +676,8 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                     if not index_ranges:
                         untagged_target_annotations.append(target_annotation)
                         continue
-                    index_range = merge_index_ranges(index_ranges)
-                    block_index_range = (index_range[0], text.end_index)
+                    _index_range = merge_index_ranges(index_ranges)
+                    block_index_range = (_index_range[0], text.end_index)
                     current_pending_sequences = PendingSequences(
                         list(text.iter_sequences_between(block_index_range))
                     )
@@ -671,24 +691,25 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                 if not index_ranges:
                     untagged_target_annotations.append(target_annotation)
                     continue
-                index_range = merge_index_ranges(index_ranges)
-                LOGGER.debug('merged index ranges: %s -> %s', index_ranges, index_range)
-                index_range = self.apply_match_prefix_regex_to_index_range(
-                    text, index_range, tag_name, target_annotation=target_annotation
-                )
-                self.update_annotation_for_index_range(
-                    structured_document,
-                    text,
-                    index_range,
-                    tag_name
-                )
-                if self.config.use_sub_annotations:
-                    self.process_sub_annotations(
+                # index_range = merge_index_ranges(index_ranges)
+                # LOGGER.debug('merged index ranges: %s -> %s', index_ranges, index_range)
+                for index_range in index_ranges:
+                    index_range = self.apply_match_prefix_regex_to_index_range(
+                        text, index_range, tag_name, target_annotation=target_annotation
+                    )
+                    self.update_annotation_for_index_range(
                         structured_document,
                         text,
                         index_range,
-                        sub_annotations=target_annotation.sub_annotations
+                        tag_name
                     )
+                    if self.config.use_sub_annotations:
+                        self.process_sub_annotations(
+                            structured_document,
+                            text,
+                            index_range,
+                            sub_annotations=target_annotation.sub_annotations
+                        )
         return untagged_target_annotations
 
     def annotate(self, structured_document: AbstractStructuredDocument):
@@ -715,6 +736,7 @@ class SimpleTagConfigProps:
     MERGE = 'merge'
     EXTEND_TO_LINE = 'extend-to-line'
     BLOCK = 'block'
+    MAX_CHUNKS = 'max_chunks'
 
 
 def parse_regex(regex_str: str) -> str:
@@ -761,6 +783,10 @@ def get_simple_tag_config(config_map: Dict[str, str], field: str) -> SimpleTagCo
             '%s.%s' % (field, SimpleTagConfigProps.EXTEND_TO_LINE),
             str(DEFAULT_EXTEND_TO_LINE_ENABLED)
         )) == 1,
+        max_chunks=int(config_map.get(
+            '%s.%s' % (field, SimpleTagConfigProps.MAX_CHUNKS),
+            str(DEFAULT_MAX_CHUNKS)
+        )),
         block_name=config_map.get(
             '%s.%s' % (field, SimpleTagConfigProps.BLOCK)
         )
