@@ -215,7 +215,7 @@ def get_first_chunk_matching_blocks(
     return []
 
 
-def get_str_left_strided_matching_blocks(
+def get_str_left_strided_matching_blocks_chunks(
         haystack: str, needle: str,
         max_length: int,
         stride: int,
@@ -261,7 +261,7 @@ def get_str_left_strided_matching_blocks(
                 start_index += stride
                 continue
             remaining_needle = needle[first_chunk_match_count:]
-            remaining_matching_blocks = get_str_left_strided_matching_blocks(
+            remaining_matching_blocks_chunks = get_str_left_strided_matching_blocks_chunks(
                 haystack=haystack,
                 needle=remaining_needle,
                 max_length=max_length,
@@ -271,20 +271,32 @@ def get_str_left_strided_matching_blocks(
                 max_chunks=max_chunks - 1,
                 start_index=start_index + first_chunk_match_count
             )
-            if not remaining_matching_blocks:
+            if not remaining_matching_blocks_chunks:
                 start_index += stride
                 continue
-            return first_chunk_matching_blocks + [
-                (ai, bi + first_chunk_match_count, size)
-                for ai, bi, size in remaining_matching_blocks
+            return [first_chunk_matching_blocks] + [
+                [
+                    (ai, bi + first_chunk_match_count, size)
+                    for ai, bi, size in remaining_matching_blocks
+                ]
+                for remaining_matching_blocks in remaining_matching_blocks_chunks
             ]
         if not start_index:
-            return matching_blocks
-        return [
+            return [matching_blocks]
+        return [[
             (ai + start_index, bi, size)
             for ai, bi, size in matching_blocks
-        ]
+        ]]
     return []
+
+
+def get_str_left_strided_matching_blocks(*args, **kwargs) -> List[Tuple[int, int, int]]:
+    matching_blocks_chunks = get_str_left_strided_matching_blocks_chunks(*args, **kwargs)
+    return [
+        matching_block
+        for matching_blocks in matching_blocks_chunks
+        for matching_block in matching_blocks
+    ]
 
 
 def get_default_max_length_and_stride(

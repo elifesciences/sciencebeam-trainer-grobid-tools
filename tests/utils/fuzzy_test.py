@@ -1,6 +1,7 @@
 from typing import List, Tuple
 
 from sciencebeam_trainer_grobid_tools.utils.fuzzy import (
+    get_str_left_strided_matching_blocks_chunks,
     get_str_left_strided_matching_blocks,
     get_default_max_length_and_stride,
     fuzzy_search_index_range,
@@ -10,6 +11,22 @@ from sciencebeam_trainer_grobid_tools.utils.fuzzy import (
 
 def _ignore_zero_length_blocks(matching_blocks: List[Tuple[int]]) -> List[Tuple[int]]:
     return [t for t in matching_blocks if t[-1]]
+
+
+def _ignore_zero_length_blocks_in_chunks(
+        matching_blocks_chunks: List[List[Tuple[int]]]) -> List[Tuple[int]]:
+    return [[t for t in matching_blocks if t[-1]] for matching_blocks in matching_blocks_chunks]
+
+
+class TestGetStrLeftStridedMatchingBlocksChunks:
+    def test_should_return_two_chunks(self):
+        needle = 'abc def'
+        haystack = 'abc 123456789 def'
+        assert _ignore_zero_length_blocks_in_chunks(get_str_left_strided_matching_blocks_chunks(
+            haystack, needle,
+            max_length=30, stride=30, threshold=0.8,
+            max_chunks=2
+        )) == [[(0, 0, 4)], [(14, 4, 3)]]
 
 
 class TestGetStrLeftStridedMatchingBlocks:
