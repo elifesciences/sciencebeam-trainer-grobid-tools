@@ -16,6 +16,21 @@ from sciencebeam_trainer_grobid_tools.utils.io import auto_download_input_file
 LOGGER = logging.getLogger(__name__)
 
 
+def iter_text_content_and_exclude(
+        node: etree.Element,
+        exclude: List[etree.Element] = None) -> Iterable[str]:
+    if not exclude:
+        yield from node.itertext()
+        return
+    if node.text is not None:
+        yield node.text
+    for child in node.iterchildren():
+        if child not in exclude:
+            yield from iter_text_content_and_exclude(child, exclude=exclude)
+        if child.tail:
+            yield child.tail
+
+
 class XMLSyntaxErrorWithErrorLine(ValueError):
     def __init__(self, *args, error_line: str, **kwargs):
         super().__init__(*args, **kwargs)

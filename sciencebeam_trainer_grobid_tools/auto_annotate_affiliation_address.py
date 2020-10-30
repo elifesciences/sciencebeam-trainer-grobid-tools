@@ -10,7 +10,8 @@ from .utils.xml import parse_xml
 from .utils.tei_xml import TEI_NS_MAP
 
 from .structured_document.grobid_training_tei import (
-    DEFAULT_TAG_KEY
+    DEFAULT_TAG_KEY,
+    SUB_LEVEL
 )
 
 from .annotation.target_annotation import (
@@ -34,9 +35,9 @@ from .annotation.simple_matching_annotator import (
     SimpleMatchingAnnotator
 )
 
-from .annotation.affiliation_address_annotator import (
-    AffiliationAddressAnnotatorConfig,
-    AffiliationAddressPostProcessingAnnotator
+from .annotation.merge_group_tags_annotator import (
+    MergeGroupTagsAnnotatorConfig,
+    MergeGroupTagsPostProcessingAnnotator
 )
 
 
@@ -68,6 +69,12 @@ def is_address_sub_tag(sub_tag: str) -> bool:
     return 'address' in sub_tag
 
 
+def get_address_group_tag_for_sub_tag(sub_tag: str) -> bool:
+    if is_address_sub_tag(sub_tag):
+        return 'author_aff-address'
+    return None
+
+
 def _get_annotator(
         xml_path,
         xml_mapping,
@@ -96,10 +103,16 @@ def _get_annotator(
         ))
     if remove_untagged_enabled:
         annotators.append(RemoveUntaggedPostProcessingAnnotator())
-    annotators.append(AffiliationAddressPostProcessingAnnotator(AffiliationAddressAnnotatorConfig(
-        address_sub_tag='author_aff-address',
-        is_address_sub_tag_fn=is_address_sub_tag
-    )))
+    annotators.append(MergeGroupTagsPostProcessingAnnotator(
+        config=MergeGroupTagsAnnotatorConfig(
+            get_group_tag_for_tag_fn=get_address_group_tag_for_sub_tag,
+            tag_level=SUB_LEVEL
+        )
+    ))
+    # annotators.append(AffiliationAddressPostProcessingAnnotator(AffiliationAddressAnnotatorConfig(
+    #     address_sub_tag='author_aff-address',
+    #     is_address_sub_tag_fn=is_address_sub_tag
+    # )))
     annotator = Annotator(annotators)
     return annotator
 

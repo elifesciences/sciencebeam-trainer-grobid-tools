@@ -2,7 +2,8 @@ from lxml.builder import E
 
 from sciencebeam_trainer_grobid_tools.annotation.target_annotation import (
     contains_raw_text,
-    get_raw_text_content
+    get_raw_text_content,
+    xml_root_to_target_annotations
 )
 
 
@@ -35,3 +36,57 @@ class TestGetRawTextContent:
         assert get_raw_text_content(
             E.node(E.label('1'), ', raw text 1')
         ) == '1, raw text 1'
+
+
+class TestXmlRootToTargetAnnotations:
+    def test_should_select_mapping_based_on_root(self):
+        target_annotations = xml_root_to_target_annotations(
+            E.root2(E.item1('text 1'), E.item2('text 2')),
+            {
+                'root1': {
+                    'item': '//item1'
+                },
+                'root2': {
+                    'item': '//item2'
+                }
+            }
+        )
+        assert [t.value for t in target_annotations] == ['text 2']
+
+    def test_should_extract_simple_text(self):
+        target_annotations = xml_root_to_target_annotations(
+            E.root(E.item('text 1')),
+            {'root': {
+                'item': '//item'
+            }}
+        )
+        assert [t.value for t in target_annotations] == ['text 1']
+
+    def test_should_extract_text_including_children(self):
+        target_annotations = xml_root_to_target_annotations(
+            E.root(E.item('text 1 ', E.child('child text'))),
+            {'root': {
+                'item': '//item'
+            }}
+        )
+        assert [t.value for t in target_annotations] == ['text 1 child text']
+
+    def test_should_ignore_selected_children(self):
+        target_annotations = xml_root_to_target_annotations(
+            E.root(E.item('text 1 ', E.other('other text '), E.child('child text'))),
+            {'root': {
+                'item': '//item',
+                'item.ignore': './/other'
+            }}
+        )
+        assert [t.value for t in target_annotations] == ['text 1 child text']
+
+    def test_should_ignore_selected_nested_children(self):
+        target_annotations = xml_root_to_target_annotations(
+            E.root(E.item(E.p('text 1 ', E.other('other text '), E.child('child text')))),
+            {'root': {
+                'item': '//item',
+                'item.ignore': './/other'
+            }}
+        )
+        assert [t.value for t in target_annotations] == ['text 1 child text']

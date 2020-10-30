@@ -32,6 +32,11 @@ from .annotation.expand_to_untagged_lines_annotator import (
     ExpandToFollowingUntaggedLinesPostProcessingAnnotator
 )
 
+from .annotation.merge_group_tags_annotator import (
+    MergeGroupTagsAnnotatorConfig,
+    MergeGroupTagsPostProcessingAnnotator
+)
+
 from .auto_annotate_utils import (
     add_debug_argument,
     process_debug_argument,
@@ -79,6 +84,12 @@ FULLTEXT_TAG_TO_TEI_PATH_MAPPING = {
         'boxed_text_paragraph-%s' % key: 'p[@type="box"]/%s' % value
         for key, value in XREF_REL_TEI_PATH_MAPPING.items()
     },
+    'list': 'list',
+    'list_item': 'list/item',
+    **{
+        'list_item-%s' % key: 'list/item/%s' % value
+        for key, value in XREF_REL_TEI_PATH_MAPPING.items()
+    },
 }
 
 
@@ -87,6 +98,8 @@ ALL_FIELDS = [
     'section_paragraph',
     'boxed_text_title',
     'boxed_text_paragraph',
+    'list',
+    'list_item',
     'figure',
     'table',
     'reference_list_title'
@@ -96,6 +109,11 @@ ALL_FIELDS = [
 REPLACED_TAG_BY_TAG_MAP = {
     'note_other': None,
     'note[@type="other"]': None,
+}
+
+
+GROUP_TAG_BY_TAG_MAP = {
+    'list_item': 'list'
 }
 
 
@@ -128,6 +146,11 @@ def _get_annotator(
         ReplaceTagsPostProcessingAnnotator(
             config=ReplaceTagsAnnotatorConfig(
                 replaced_tag_by_tag=REPLACED_TAG_BY_TAG_MAP
+            )
+        ),
+        MergeGroupTagsPostProcessingAnnotator(
+            config=MergeGroupTagsAnnotatorConfig(
+                get_group_tag_for_tag_fn=GROUP_TAG_BY_TAG_MAP.get
             )
         ),
         ExpandToPreviousUntaggedLinesPostProcessingAnnotator(

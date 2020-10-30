@@ -1,6 +1,7 @@
 import logging
 import re
 from distutils.util import strtobool
+from itertools import chain
 from typing import List
 
 from lxml import etree
@@ -18,7 +19,6 @@ from sciencebeam_gym.preprocess.annotation.target_annotation import (
     re_compile_or_none,
     get_sub_mapping,
     extract_sub_annotations,
-    match_xpaths,
     extract_children,
     apply_pattern,
     extract_using_regex,
@@ -26,6 +26,7 @@ from sciencebeam_gym.preprocess.annotation.target_annotation import (
 )
 
 from sciencebeam_trainer_grobid_tools.utils.string import is_blank
+from sciencebeam_trainer_grobid_tools.utils.xml import iter_text_content_and_exclude
 
 
 LOGGER = logging.getLogger(__name__)
@@ -33,6 +34,7 @@ LOGGER = logging.getLogger(__name__)
 
 class XmlMappingSuffix(_XmlMappingSuffix):
     USE_RAW_TEXT = '.use-raw-text'
+    IGNORE = '.ignore'
 
 
 def contains_raw_text(element: etree.Element) -> bool:
@@ -54,9 +56,15 @@ def is_starts_with_word(text: str) -> bool:
     return re.match(r'^\w.*', text)
 
 
-def get_raw_text_content(element: etree.Element) -> str:
+def match_xpaths(parent, xpaths):
+    if not xpaths:
+        return []
+    return chain(*[parent.xpath(s) for s in xpaths])
+
+
+def get_raw_text_content(element: etree.Element, exclude_childrens: List[str] = None) -> str:
     text_list = []
-    for text in element.itertext():
+    for text in iter_text_content_and_exclude(element, exclude=exclude_childrens):
         if text_list and is_ends_with_word(text_list[-1]) and is_starts_with_word(text):
             text_list.append(' ')
         text_list.append(text)
@@ -102,6 +110,10 @@ def xml_root_to_target_annotations(xml_root, xml_mapping):
         bonding = get_bonding_flag(k)
         require_next = get_require_next_flag(k)
         unmatched_parent_text = get_unmatched_parent_text_flag(k)
+
+        exclude_children_xpaths = parse_xpaths(mapping.get(k + XmlMappingSuffix.IGNORE))
+        LOGGER.debug('exclude_children_xpaths (%s): %s', k, exclude_children_xpaths)
+
         children_xpaths = parse_xpaths(mapping.get(k + XmlMappingSuffix.CHILDREN))
         children_concat = parse_json_with_default(
             mapping.get(k + XmlMappingSuffix.CHILDREN_CONCAT), []
@@ -129,6 +141,9 @@ def xml_root_to_target_annotations(xml_root, xml_mapping):
         for e in match_xpaths(xml_root, xpaths):
             e_pos = xml_pos_by_node.get(e)
 
+            exclude_childrens = list(match_xpaths(e, exclude_children_xpaths))
+            LOGGER.debug('exclude_childrens (%s, %s): %s', k, e, exclude_childrens)
+
             sub_annotations = extract_sub_annotations(e, sub_xpaths, mapping, k)
             LOGGER.debug('sub_annotations (%s): %s', k, sub_annotations)
 
@@ -148,7 +163,9 @@ def xml_root_to_target_annotations(xml_root, xml_mapping):
                     e, children_xpaths, children_concat, children_range, unmatched_parent_text
                 )
             else:
-                text_content_list = filter_truthy(strip_all([get_raw_text_content(e)]))
+                text_content_list = filter_truthy(strip_all([get_raw_text_content(
+                    e, exclude_childrens=exclude_childrens
+                )]))
                 standalone_values = []
             LOGGER.debug(
                 'text_content_list: %s, standalone_values: %s,'
