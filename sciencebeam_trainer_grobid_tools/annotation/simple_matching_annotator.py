@@ -392,20 +392,13 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             **kwargs
         )
 
-    def get_fuzzy_matching_index_range(
-            self, *args, **kwargs) -> Optional[Tuple[int]]:
-        index_range_chunks = self.get_fuzzy_matching_index_range_chunks(*args, **kwargs)
-        if not index_range_chunks:
-            return None
-        return index_range_chunks[0][0], index_range_chunks[-1][1]
-
-    def get_fuzzy_matching_index_range_with_alternative_spellings(
+    def get_fuzzy_matching_index_range_with_alternative_spellings_chunks(
             self,
             haystack: str,
             needle,
             alternative_spellings: Dict[str, List[str]],
             **kwargs):
-        index_range = self.get_fuzzy_matching_index_range(haystack, needle, **kwargs)
+        index_range = self.get_fuzzy_matching_index_range_chunks(haystack, needle, **kwargs)
         if index_range or not alternative_spellings:
             return index_range
         LOGGER.debug('alternative_spellings: %s', alternative_spellings)
@@ -413,13 +406,22 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
         matching_alternative_spellings = alternative_spellings.get(needle, [])
         LOGGER.debug('matching_alternative_spellings: %s', matching_alternative_spellings)
         for alternative_needle in matching_alternative_spellings:
-            index_range = self.get_fuzzy_matching_index_range(
+            index_range = self.get_fuzzy_matching_index_range_chunks(
                 haystack, alternative_needle, **kwargs
             )
             if index_range:
                 LOGGER.debug('found alternative_needle: %s', alternative_needle)
                 return index_range
         return None
+
+    def get_fuzzy_matching_index_range_with_alternative_spellings(
+            self, *args, **kwargs) -> Optional[Tuple[int]]:
+        index_range_chunks = self.get_fuzzy_matching_index_range_with_alternative_spellings_chunks(
+            *args, **kwargs
+        )
+        if not index_range_chunks:
+            return None
+        return index_range_chunks[0][0], index_range_chunks[-1][1]
 
     def get_sub_tag_placeholders(self, sub_annotations: List[TargetAnnotation]) -> Dict[str, str]:
         placeholders = {}
