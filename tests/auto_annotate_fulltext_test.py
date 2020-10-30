@@ -40,6 +40,7 @@ SECTION_TITLE_1 = 'Section Title 1'
 SECTION_TITLE_2 = 'Section Title 2'
 
 LABEL_1 = 'Label 1'
+LABEL_2 = 'Label 2'
 CAPTION_TITLE_1 = 'Caption Title 1'
 CAPTION_PARAGRAPH_1 = 'Caption Paragraph 1'
 CAPTION_PARAGRAPH_2 = 'Caption Paragraph 2'
@@ -897,6 +898,49 @@ class TestEndToEnd(object):
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text_list(tei_auto_root, '//figure[@type="table"]') == [
             tei_text
+        ]
+
+    def test_should_auto_annotate_single_app_group_and_app(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        target_app_nodes = [
+            E.label(LABEL_2),
+            ' ',
+            E.title(SECTION_TITLE_2),
+            '\n',
+            E.p(TEXT_1)
+        ]
+        target_app_group_nodes = [
+            E('app-group', *[
+                E.label(LABEL_1),
+                ' ',
+                E.title(SECTION_TITLE_1),
+                '\n',
+                E.app(*target_app_nodes)
+            ])
+        ]
+        tei_text = get_nodes_text(target_app_group_nodes)
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_training_tei_node(get_tei_nodes_for_text(tei_text))
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(back_nodes=target_app_group_nodes)
+        ))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'fields': ','.join([
+                'section_title',
+                'section_paragraph',
+                'appendix_group_title',
+                'appendix'
+            ])
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text_list(tei_auto_root, '//head[@type="appendix-group"]') == [
+            LABEL_1 + ' ' + SECTION_TITLE_1
+        ]
+        assert get_xpath_text_list(tei_auto_root, '//figure[@xtype="appendix"]') == [
+            get_nodes_text(target_app_nodes)
         ]
 
     def test_should_auto_annotate_single_boxed_text(

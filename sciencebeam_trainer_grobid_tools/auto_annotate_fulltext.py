@@ -78,6 +78,8 @@ FULLTEXT_TAG_TO_TEI_PATH_MAPPING = {
     'figure': 'figure',
     'table': 'figure[@type="table"]',
     'reference_list_title': 'other[@type="ref-list-title"]',
+    'appendix_group_title': 'head[@type="appendix-group"]',
+    'appendix': 'figure[@xtype="appendix"]',
     # Note: we are not using `<figure type="box">` because that is not supported yet
     'boxed_text_title': 'head[@type="box"]',
     'boxed_text_paragraph': 'p[@type="box"]',
@@ -102,6 +104,8 @@ ALL_FIELDS = [
     'boxed_text_paragraph',
     'list',
     'list_item',
+    'appendix_group_title',
+    'appendix',
     'figure',
     'table',
     'reference_list_title'
