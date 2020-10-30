@@ -33,6 +33,7 @@ TEI_FILENAME_REGEX = r'/(.*).fulltext.tei.xml/\1.xml/'
 
 TEXT_1 = 'text 1'
 TEXT_2 = 'text 2'
+TEXT_3 = 'text 3'
 
 SECTION_LABEL_1 = '1.1'
 
@@ -224,6 +225,46 @@ class TestEndToEnd(object):
         ]
         assert get_xpath_text_list(tei_auto_root, '//figure') == [
             CAPTION_TITLE_1
+        ]
+
+    def test_should_auto_annotate_single_list_within_paragraph_as_list_and_items(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        # e.g. `005587v1` contains list within a paragraph
+        target_body_content_nodes = [E.p(
+            TEXT_3,
+            ' ',
+            E.list(
+                E.label(LABEL_1),
+                ' ',
+                E.title(SECTION_TITLE_1),
+                ' ',
+                E('list-item', TEXT_1),
+                ' list-text ',
+                E('list-item', TEXT_2)
+            )
+        )]
+        tei_text = get_nodes_text(target_body_content_nodes)
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_training_tei_node([tei_text])
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(body_nodes=target_body_content_nodes)
+        ))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'fields': ','.join([
+                'section_paragraph',
+                'list',
+                'list_item'
+            ])
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text_list(tei_auto_root, '//list/item') == [
+            TEXT_1, TEXT_2
+        ]
+        assert get_xpath_text_list(tei_auto_root, '//list') == [
+            LABEL_1 + ' ' + SECTION_TITLE_1 + ' ' + TEXT_1 + ' list-text ' + TEXT_2
         ]
 
     def test_should_auto_annotate_single_back_section_title_and_paragraph(
@@ -499,16 +540,18 @@ class TestEndToEnd(object):
         main(dict_to_args({
             **test_helper.main_args_dict,
             'fields': ','.join([
-                'section_paragraph'
+                'section_paragraph',
+                'list',
+                'list_item'
             ])
         }), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
         for key, tei_type_value in TEI_BY_JATS_REF_TYPE_MAP.items():
             assert get_xpath_text_list(
-                tei_auto_root, '//p/ref[@type="%s"]' % tei_type_value
+                tei_auto_root, '//list/item/ref[@type="%s"]' % tei_type_value
             ) == [CITATION_TEXT_BY_JATS_REF_TYPE_MAP[key]]
-        assert get_xpath_text_list(tei_auto_root, '//p') == [paragraph_text]
+        assert get_xpath_text_list(tei_auto_root, '//list/item') == [paragraph_text]
 
     def test_should_auto_annotate_single_paragraph_citations_in_list_items_outside_paragraphs(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
@@ -571,6 +614,8 @@ class TestEndToEnd(object):
             **test_helper.main_args_dict,
             'fields': ','.join([
                 'section_paragraph',
+                'list',
+                'list_item',
                 'boxed_text_title',
                 'boxed_text_paragraph'
             ])
@@ -579,9 +624,9 @@ class TestEndToEnd(object):
         tei_auto_root = test_helper.get_tei_auto_root()
         for key, tei_type_value in TEI_BY_JATS_REF_TYPE_MAP.items():
             assert get_xpath_text_list(
-                tei_auto_root, '//p/ref[@type="%s"]' % tei_type_value
+                tei_auto_root, '//list/item/ref[@type="%s"]' % tei_type_value
             ) == [CITATION_TEXT_BY_JATS_REF_TYPE_MAP[key]]
-        assert get_xpath_text_list(tei_auto_root, '//p') == [paragraph_text]
+        assert get_xpath_text_list(tei_auto_root, '//list/item') == [paragraph_text]
 
     def test_should_auto_annotate_single_figure_label_description(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
