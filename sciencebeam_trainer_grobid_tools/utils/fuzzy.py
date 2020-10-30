@@ -73,6 +73,9 @@ class ChunkedFuzzyMatchResult:
     def __init__(self, matches: List[FuzzyMatchResult]):
         self.matches = matches
 
+    def __repr__(self):
+        return '%s(%r)' % (type(self).__name__, self.matches)
+
     def merge(self):
         return FuzzyMatchResult(
             self.matches[0].a,
@@ -346,6 +349,19 @@ def get_default_max_length_and_stride(
     return max_length, stride
 
 
+def get_str_auto_left_strided_matching_blocks_chunks(
+        haystack: str, needle: str,
+        threshold: float,
+        isjunk: callable) -> List[List[Tuple[int, int, int]]]:
+    max_length, stride = get_default_max_length_and_stride(
+        len(haystack), len(needle), threshold=threshold
+    )
+    return get_str_left_strided_matching_blocks_chunks(
+        haystack, needle,
+        max_length=max_length, stride=stride, threshold=threshold, isjunk=isjunk
+    )
+
+
 def get_str_auto_left_strided_matching_blocks(
         haystack: str, needle: str,
         threshold: float,
@@ -381,7 +397,7 @@ def fuzzy_search_chunks(
         )
         LOGGER.debug('fm (mode=%s, threshold=%.2f): %s', mode, threshold, fm)
         if fm.b_gap_ratio() < threshold:
-            return
+            return None
         return ChunkedFuzzyMatchResult([fm])
     mode = 'char'
     matcher_is_junk_fn = space_is_junk
@@ -389,38 +405,49 @@ def fuzzy_search_chunks(
     needle_string_view = get_no_junk_string_view(needle, isjunk=matcher_is_junk_fn)
     LOGGER.debug('haystack_string_view: %r', str(haystack_string_view))
     LOGGER.debug('needle_string_view: %r', str(needle_string_view))
-    raw_matching_blocks = get_str_auto_left_strided_matching_blocks(
+    raw_matching_blocks_chunks = get_str_auto_left_strided_matching_blocks_chunks(
         haystack=str(haystack_string_view),
         needle=str(needle_string_view),
         threshold=threshold,
         isjunk=isjunk or default_is_junk
     )
-    LOGGER.debug('raw_matching_blocks: %s', raw_matching_blocks)
-    matching_blocks = [
-        (
-            haystack_string_view.original_index_at[ai],
-            needle_string_view.original_index_at[bi],
+    LOGGER.debug('raw_matching_blocks_chunks: %s', raw_matching_blocks_chunks)
+    if not raw_matching_blocks_chunks:
+        return None
+    matching_blocks_chunks = [
+        [
             (
-                haystack_string_view.original_index_at[ai + size - 1]
-                - haystack_string_view.original_index_at[ai]
-                + 1
+                haystack_string_view.original_index_at[ai],
+                needle_string_view.original_index_at[bi],
+                (
+                    haystack_string_view.original_index_at[ai + size - 1]
+                    - haystack_string_view.original_index_at[ai]
+                    + 1
+                )
             )
-        )
-        for ai, bi, size in raw_matching_blocks
-        if size
+            for ai, bi, size in raw_matching_blocks
+            if size
+        ]
+        for raw_matching_blocks in raw_matching_blocks_chunks
     ]
-    matching_blocks = get_offset_matching_blocks(
-        matching_blocks,
-        a_offset=start_index
-    )
-    fm = FuzzyMatchResult(
-        original_haystack,
-        needle,
-        matching_blocks,
-        isjunk=isjunk or default_is_junk
-    )
-    LOGGER.debug('fm (mode=%s, threshold=%.2f): %s', mode, threshold, fm)
-    return ChunkedFuzzyMatchResult([fm])
+    matching_blocks_chunks = [
+        get_offset_matching_blocks(
+            matching_blocks,
+            a_offset=start_index
+        )
+        for matching_blocks in matching_blocks_chunks
+    ]
+    fm_chunks = ChunkedFuzzyMatchResult([
+        FuzzyMatchResult(
+            original_haystack,
+            needle,
+            matching_blocks,
+            isjunk=isjunk or default_is_junk
+        )
+        for matching_blocks in matching_blocks_chunks
+    ])
+    LOGGER.debug('fm_chunks (mode=%s, threshold=%.2f): %s', mode, threshold, fm_chunks)
+    return fm_chunks
 
 
 def fuzzy_search(*args, **kwargs) -> FuzzyMatchResult:
