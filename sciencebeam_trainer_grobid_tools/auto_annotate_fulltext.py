@@ -98,6 +98,7 @@ ALL_FIELDS = [
     'section_paragraph',
     'boxed_text_title',
     'boxed_text_paragraph',
+    'list',
     'list_item',
     'figure',
     'table',
