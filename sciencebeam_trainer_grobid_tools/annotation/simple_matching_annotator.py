@@ -58,6 +58,7 @@ def split_and_join_with_space(text: str) -> str:
 
 DEFAULT_MERGE_ENABLED = True
 DEFAULT_EXTEND_TO_LINE_ENABLED = True
+DEFAULT_MAX_CHUNKS = 1
 
 
 class SimpleTagConfig:
@@ -67,21 +68,25 @@ class SimpleTagConfig:
             alternative_spellings: Dict[str, List[str]] = None,
             merge_enabled: bool = DEFAULT_MERGE_ENABLED,
             extend_to_line_enabled: bool = DEFAULT_EXTEND_TO_LINE_ENABLED,
+            max_chunks: int = DEFAULT_MAX_CHUNKS,
             block_name: str = None):
         self.match_prefix_regex = match_prefix_regex
         self.alternative_spellings = alternative_spellings
         self.merge_enabled = merge_enabled
         self.extend_to_line_enabled = extend_to_line_enabled
+        self.max_chunks = max_chunks
         self.block_name = block_name
 
     def __repr__(self):
         return (
             '%s(match_prefix_regex=%s, alternative_spellings=%s,'
             + ' merge_enabled%s, extend_to_line_enabled=%s,'
+            + ' max_chunks=%r,'
             + ' block_name=%s)'
         ) % (
             type(self).__name__, self.match_prefix_regex, self.alternative_spellings,
             self.merge_enabled, self.extend_to_line_enabled,
+            self.max_chunks,
             self.block_name
         )
 
@@ -557,7 +562,9 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
         for target_annotation in target_annotations:
             LOGGER.debug('target_annotation: %s', target_annotation)
             LOGGER.debug('target_annotation.value: %s', target_annotation.value)
-            tag_config = self.config.tag_config_map.get(target_annotation.name)
+            tag_config = self.config.tag_config_map.get(
+                target_annotation.name, DEFAULT_SIMPLE_TAG_CONFIG
+            )
             alternative_spellings = tag_config and tag_config.alternative_spellings
             LOGGER.debug('alternative_spellings: %s', alternative_spellings)
             text_str = str(text)
@@ -597,7 +604,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                         text_str,
                         target_annotation.value,
                         alternative_spellings=alternative_spellings,
-                        max_chunks=2
+                        max_chunks=tag_config.max_chunks
                     )
                 )
             LOGGER.debug('index_range_chunks: %s', index_range_chunks)
@@ -729,6 +736,7 @@ class SimpleTagConfigProps:
     MERGE = 'merge'
     EXTEND_TO_LINE = 'extend-to-line'
     BLOCK = 'block'
+    MAX_CHUNKS = 'max_chunks'
 
 
 def parse_regex(regex_str: str) -> str:
@@ -775,6 +783,10 @@ def get_simple_tag_config(config_map: Dict[str, str], field: str) -> SimpleTagCo
             '%s.%s' % (field, SimpleTagConfigProps.EXTEND_TO_LINE),
             str(DEFAULT_EXTEND_TO_LINE_ENABLED)
         )) == 1,
+        max_chunks=int(config_map.get(
+            '%s.%s' % (field, SimpleTagConfigProps.MAX_CHUNKS),
+            str(DEFAULT_MAX_CHUNKS)
+        )),
         block_name=config_map.get(
             '%s.%s' % (field, SimpleTagConfigProps.BLOCK)
         )
