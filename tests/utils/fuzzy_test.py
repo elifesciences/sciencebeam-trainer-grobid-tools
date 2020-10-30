@@ -28,6 +28,15 @@ class TestGetStrLeftStridedMatchingBlocksChunks:
             max_chunks=2
         )) == [[(0, 0, 4)], [(14, 4, 3)]]
 
+    def test_should_return_two_chunks_right_heavy(self):
+        needle = 'abc defghi'
+        haystack = 'abc 123456789 defghi'
+        assert _ignore_zero_length_blocks_in_chunks(get_str_left_strided_matching_blocks_chunks(
+            haystack, needle,
+            max_length=30, stride=30, threshold=0.8,
+            max_chunks=2
+        )) == [[(0, 0, 3)], [(13, 3, 7)]]
+
 
 class TestGetStrLeftStridedMatchingBlocks:
     def test_should_return_simple_exact_match_with_large_max_length(self):

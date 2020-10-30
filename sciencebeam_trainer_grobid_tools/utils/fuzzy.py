@@ -22,7 +22,10 @@ NOT_SET = 'NOT_SET'
 
 
 def default_is_junk(s, i):
-    ch = s[i]
+    try:
+        ch = s[i]
+    except IndexError as exc:
+        raise IndexError('index out of range: %s (len: %d, s: %r)' % (i, len(s), s)) from exc
     if ch in {'*', ' '}:
         return True
     prev_non_space_index = i - 1
@@ -220,17 +223,40 @@ def get_matching_blocks_size(matching_blocks: List[Tuple[int]]) -> int:
     return sum(size for _, _, size in matching_blocks)
 
 
+def get_matching_blocks_end_offset(matching_blocks: List[Tuple[int]], seq_index: int) -> int:
+    if not matching_blocks:
+        return 0
+    last_block = matching_blocks[-1]
+    last_block_size = last_block[2]
+    if not last_block_size:
+        return 0
+    return last_block[seq_index] + last_block_size
+
+
+def get_matching_blocks_start_offset(matching_blocks: List[Tuple[int]], seq_index: int) -> int:
+    if not matching_blocks:
+        return None
+    first_block = matching_blocks[0]
+    first_block_size = first_block[2]
+    if not first_block_size:
+        return None
+    return first_block[seq_index]
+
+
 def get_first_chunk_matching_blocks(
         haystack: str,
         needle: str,
         matching_blocks,
         threshold: float,
-        isjunk: callable) -> float:
+        isjunk: callable) -> List[Tuple[int]]:
     block_count = len(matching_blocks) - 1
     while block_count:
         chunk_matching_blocks = matching_blocks[:block_count]
-        chunk_match_count = get_matching_blocks_size(chunk_matching_blocks)
-        chunk_needle = needle[:chunk_match_count]
+        chunk_needle_end = get_matching_blocks_end_offset(chunk_matching_blocks, 1)
+        LOGGER.debug('chunk_needle_end: %s', chunk_needle_end)
+        if not chunk_needle_end:
+            break
+        chunk_needle = needle[:chunk_needle_end]
         fm = FuzzyMatchResult(
             haystack,
             chunk_needle,
@@ -239,8 +265,49 @@ def get_first_chunk_matching_blocks(
         )
         LOGGER.debug('temp fm: %s', fm)
         if fm.b_gap_ratio() >= threshold:
+            LOGGER.debug('chunk_needle: %s', chunk_needle)
             return chunk_matching_blocks
+        block_count -= 1
     return []
+
+
+def get_last_chunk_matching_blocks(
+        haystack: str,
+        needle: str,
+        matching_blocks,
+        threshold: float,
+        isjunk: callable) -> List[Tuple[int]]:
+    block_start = 0
+    while block_start < len(matching_blocks):
+        chunk_matching_blocks = matching_blocks[block_start:]
+        chunk_needle_start = get_matching_blocks_start_offset(chunk_matching_blocks, 1)
+        LOGGER.debug('chunk_needle_start: %s', chunk_needle_start)
+        if chunk_needle_start is None:
+            break
+        chunk_needle = needle[chunk_needle_start:]
+        offset_chunk_matching_blocks = get_offset_matching_blocks(
+            chunk_matching_blocks,
+            b_offset=(0 - chunk_needle_start)
+        )
+        fm = FuzzyMatchResult(
+            haystack,
+            chunk_needle,
+            offset_chunk_matching_blocks,
+            isjunk=isjunk
+        )
+        LOGGER.debug('temp fm: %s', fm)
+        if fm.b_gap_ratio() >= threshold:
+            LOGGER.debug('chunk_needle: %s', chunk_needle)
+            return chunk_matching_blocks
+        block_start += 1
+    return []
+
+
+def get_first_or_last_chunk_matching_blocks(*args, **kwargs) -> List[Tuple[int]]:
+    first_chunk_matching_blocks = get_first_chunk_matching_blocks(*args, **kwargs)
+    if first_chunk_matching_blocks:
+        return first_chunk_matching_blocks, None
+    return None, get_last_chunk_matching_blocks(*args, **kwargs)
 
 
 def get_offset_matching_blocks(
@@ -289,18 +356,37 @@ def get_str_left_strided_matching_blocks_chunks(
             if max_chunks <= 1:
                 start_index += stride
                 continue
-            first_chunk_matching_blocks = get_first_chunk_matching_blocks(
+            (
+                first_chunk_matching_blocks,
+                last_chunk_matching_blocks
+            ) = get_first_or_last_chunk_matching_blocks(
                 haystack=haystack,
                 needle=needle,
                 matching_blocks=matching_blocks,
                 threshold=threshold,
                 isjunk=isjunk
             )
-            first_chunk_match_count = get_matching_blocks_size(first_chunk_matching_blocks)
-            if not first_chunk_match_count:
+            LOGGER.debug(
+                'first_chunk_matching_blocks: %s, last_chunk_matching_blocks: %s',
+                first_chunk_matching_blocks, last_chunk_matching_blocks
+            )
+            if not first_chunk_matching_blocks and not last_chunk_matching_blocks:
                 start_index += stride
                 continue
-            remaining_needle = needle[first_chunk_match_count:]
+            if first_chunk_matching_blocks:
+                first_chunk_needle_start = 0
+                first_chunk_needle_end = get_matching_blocks_end_offset(
+                    first_chunk_matching_blocks, 1
+                )
+                remaining_needle = needle[first_chunk_needle_end:]
+                remaining_start_index = start_index + first_chunk_needle_end
+            else:
+                first_chunk_needle_start = get_matching_blocks_start_offset(
+                    last_chunk_matching_blocks, 1
+                )
+                first_chunk_needle_end = len(needle)
+                remaining_needle = needle[:first_chunk_needle_start]
+                remaining_start_index = 0
             remaining_matching_blocks_chunks = get_str_left_strided_matching_blocks_chunks(
                 haystack=haystack,
                 needle=remaining_needle,
@@ -309,15 +395,18 @@ def get_str_left_strided_matching_blocks_chunks(
                 threshold=threshold,
                 isjunk=isjunk,
                 max_chunks=max_chunks - 1,
-                start_index=start_index + first_chunk_match_count
+                start_index=remaining_start_index
             )
+            LOGGER.debug('remaining_matching_blocks_chunks: %s', remaining_matching_blocks_chunks)
             if not remaining_matching_blocks_chunks:
                 start_index += stride
                 continue
+            if last_chunk_matching_blocks:
+                return remaining_matching_blocks_chunks + [last_chunk_matching_blocks]
             return [first_chunk_matching_blocks] + [
                 get_offset_matching_blocks(
                     remaining_matching_blocks,
-                    b_offset=first_chunk_match_count
+                    b_offset=first_chunk_needle_end
                 )
                 for remaining_matching_blocks in remaining_matching_blocks_chunks
             ]

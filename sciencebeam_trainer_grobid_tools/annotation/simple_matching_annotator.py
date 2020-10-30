@@ -669,8 +669,8 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                     if not index_ranges:
                         untagged_target_annotations.append(target_annotation)
                         continue
-                    index_range = merge_index_ranges(index_ranges)
-                    block_index_range = (index_range[0], text.end_index)
+                    _index_range = merge_index_ranges(index_ranges)
+                    block_index_range = (_index_range[0], text.end_index)
                     current_pending_sequences = PendingSequences(
                         list(text.iter_sequences_between(block_index_range))
                     )
