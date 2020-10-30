@@ -562,7 +562,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             LOGGER.debug('alternative_spellings: %s', alternative_spellings)
             text_str = str(text)
             LOGGER.debug('text: %s', text)
-            index_range = None
+            index_range_chunks = None
             if isinstance(target_annotation.value, list):
                 index_ranges = [
                     self.get_fuzzy_matching_index_range_with_alternative_spellings(
@@ -590,15 +590,19 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                         'merged multi-value unselected index ranges: %s',
                         text.get_index_ranges_with_text(unselected_index_ranges)
                     )
+                    index_range_chunks = [index_range]
             else:
-                index_range = self.get_fuzzy_matching_index_range_with_alternative_spellings(
-                    text_str,
-                    target_annotation.value,
-                    alternative_spellings=alternative_spellings
+                index_range_chunks = (
+                    self.get_fuzzy_matching_index_range_with_alternative_spellings_chunks(
+                        text_str,
+                        target_annotation.value,
+                        alternative_spellings=alternative_spellings,
+                        max_chunks=2
+                    )
                 )
-            LOGGER.debug('index_range: %s', index_range)
-            if index_range:
-                yield index_range
+            LOGGER.debug('index_range_chunks: %s', index_range_chunks)
+            if index_range_chunks:
+                yield from index_range_chunks
 
     def extend_annotations_to_whole_line(self, structured_document: AbstractStructuredDocument):
         for line in _iter_all_lines(structured_document):
@@ -680,24 +684,25 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                 if not index_ranges:
                     untagged_target_annotations.append(target_annotation)
                     continue
-                index_range = merge_index_ranges(index_ranges)
-                LOGGER.debug('merged index ranges: %s -> %s', index_ranges, index_range)
-                index_range = self.apply_match_prefix_regex_to_index_range(
-                    text, index_range, tag_name, target_annotation=target_annotation
-                )
-                self.update_annotation_for_index_range(
-                    structured_document,
-                    text,
-                    index_range,
-                    tag_name
-                )
-                if self.config.use_sub_annotations:
-                    self.process_sub_annotations(
+                # index_range = merge_index_ranges(index_ranges)
+                # LOGGER.debug('merged index ranges: %s -> %s', index_ranges, index_range)
+                for index_range in index_ranges:
+                    index_range = self.apply_match_prefix_regex_to_index_range(
+                        text, index_range, tag_name, target_annotation=target_annotation
+                    )
+                    self.update_annotation_for_index_range(
                         structured_document,
                         text,
                         index_range,
-                        sub_annotations=target_annotation.sub_annotations
+                        tag_name
                     )
+                    if self.config.use_sub_annotations:
+                        self.process_sub_annotations(
+                            structured_document,
+                            text,
+                            index_range,
+                            sub_annotations=target_annotation.sub_annotations
+                        )
         return untagged_target_annotations
 
     def annotate(self, structured_document: AbstractStructuredDocument):

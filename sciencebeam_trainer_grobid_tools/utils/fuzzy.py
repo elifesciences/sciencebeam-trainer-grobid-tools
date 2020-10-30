@@ -352,13 +352,14 @@ def get_default_max_length_and_stride(
 def get_str_auto_left_strided_matching_blocks_chunks(
         haystack: str, needle: str,
         threshold: float,
-        isjunk: callable) -> List[List[Tuple[int, int, int]]]:
+        **kwargs) -> List[List[Tuple[int, int, int]]]:
     max_length, stride = get_default_max_length_and_stride(
         len(haystack), len(needle), threshold=threshold
     )
     return get_str_left_strided_matching_blocks_chunks(
         haystack, needle,
-        max_length=max_length, stride=stride, threshold=threshold, isjunk=isjunk
+        max_length=max_length, stride=stride, threshold=threshold,
+        **kwargs
     )
 
 
@@ -379,6 +380,7 @@ def fuzzy_search_chunks(
         haystack: str, needle: str,
         threshold: float,
         exact_word_match_threshold: int = 5,
+        max_chunks: int = 1,
         start_index: int = 0,
         isjunk: callable = None) -> ChunkedFuzzyMatchResult:
     original_haystack = haystack
@@ -409,6 +411,7 @@ def fuzzy_search_chunks(
         haystack=str(haystack_string_view),
         needle=str(needle_string_view),
         threshold=threshold,
+        max_chunks=max_chunks,
         isjunk=isjunk or default_is_junk
     )
     LOGGER.debug('raw_matching_blocks_chunks: %s', raw_matching_blocks_chunks)
