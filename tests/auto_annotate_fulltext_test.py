@@ -162,7 +162,7 @@ class TestEndToEnd(object):
         # e.g. `214296v1` contains list as direct children of the body
         target_body_content_nodes = [E.list(
             E('list-item', TEXT_1),
-            ' ',
+            ' list-text ',
             E('list-item', TEXT_2)
         )]
         tei_text = get_nodes_text(target_body_content_nodes)
@@ -183,6 +183,9 @@ class TestEndToEnd(object):
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text_list(tei_auto_root, '//list/item') == [
             TEXT_1, TEXT_2
+        ]
+        assert get_xpath_text_list(tei_auto_root, '//list') == [
+            TEXT_1 + ' list-text ' + TEXT_2
         ]
 
     def test_should_auto_annotate_single_back_section_title_and_paragraph(
@@ -500,7 +503,7 @@ class TestEndToEnd(object):
             assert get_xpath_text_list(
                 tei_auto_root, '//item/ref[@type="%s"]' % tei_type_value
             ) == [CITATION_TEXT_BY_JATS_REF_TYPE_MAP[key]]
-        assert get_xpath_text_list(tei_auto_root, '//item') == [paragraph_text]
+        assert get_xpath_text_list(tei_auto_root, '//list/item') == [paragraph_text]
 
     def test_should_auto_annotate_single_paragraph_citations_in_boxed_text_inside_lists(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):

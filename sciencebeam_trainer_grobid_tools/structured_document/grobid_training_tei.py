@@ -484,8 +484,12 @@ def _lines_to_tei(
             )
 
             if main_prefix == B_TAG_PREFIX:
-                LOGGER.debug('found begin prefix, resetting path: %s', main_full_tag)
-                writer.require_path([], token=token)
+                main_parent_path = main_required_path[:-1]
+                LOGGER.debug(
+                    'found begin prefix, resetting path to parent %s, for %s',
+                    main_parent_path, main_full_tag
+                )
+                writer.require_path(main_parent_path, token=token)
             elif main_tag in pending_reset_tag_values:
                 LOGGER.debug(
                     'found begin prefix via preceding space, resetting path: %s',
