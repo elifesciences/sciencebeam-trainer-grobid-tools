@@ -60,6 +60,31 @@ class FuzzyMatchResult(_FuzzyMatchResult):
         return self.ratio_to(len(self.b) + a_gaps - a_junk_match_count - b_junk_count)
 
 
+def get_merged_matching_blocks_chunks(
+        matching_blocks_chunks: List[List[Tuple[int]]]) -> List[Tuple[int, int, int]]:
+    return [
+        matching_block
+        for matching_blocks in matching_blocks_chunks
+        for matching_block in matching_blocks
+    ]
+
+
+class ChunkedFuzzyMatchResult:
+    def __init__(self, matches: List[FuzzyMatchResult]):
+        self.matches = matches
+
+    def merge(self):
+        return FuzzyMatchResult(
+            self.matches[0].a,
+            self.matches[0].b,
+            get_merged_matching_blocks_chunks([
+                fm.matching_blocks
+                for fm in self.matches
+            ]),
+            isjunk=self.matches[0].isjunk
+        )
+
+
 class StringView:
     def __init__(self, original_string: str, in_view: List[bool]):
         self.original_string = original_string
@@ -222,7 +247,7 @@ def get_str_left_strided_matching_blocks_chunks(
         threshold: float,
         isjunk: callable = None,
         max_chunks: int = 1,
-        start_index: int = 0) -> List[Tuple[int, int, int]]:
+        start_index: int = 0) -> List[List[Tuple[int, int, int]]]:
     """
     LocalSequenceMatcher scales quadratically (O(n*m) with n=haystack length and m=needle length)
     By using a window, we are limiting the memory usage and stop early if we found a match.
@@ -292,11 +317,7 @@ def get_str_left_strided_matching_blocks_chunks(
 
 def get_str_left_strided_matching_blocks(*args, **kwargs) -> List[Tuple[int, int, int]]:
     matching_blocks_chunks = get_str_left_strided_matching_blocks_chunks(*args, **kwargs)
-    return [
-        matching_block
-        for matching_blocks in matching_blocks_chunks
-        for matching_block in matching_blocks
-    ]
+    return get_merged_matching_blocks_chunks(matching_blocks_chunks)
 
 
 def get_default_max_length_and_stride(
@@ -326,12 +347,12 @@ def get_str_auto_left_strided_matching_blocks(
     )
 
 
-def fuzzy_search(
+def fuzzy_search_chunks(
         haystack: str, needle: str,
         threshold: float,
         exact_word_match_threshold: int = 5,
         start_index: int = 0,
-        isjunk: callable = None) -> FuzzyMatchResult:
+        isjunk: callable = None) -> ChunkedFuzzyMatchResult:
     original_haystack = haystack
     if start_index:
         haystack = haystack[start_index:]
@@ -381,8 +402,15 @@ def fuzzy_search(
     )
     LOGGER.debug('fm (mode=%s, threshold=%.2f): %s', mode, threshold, fm)
     if fm.b_gap_ratio() >= threshold:
-        return fm
+        return ChunkedFuzzyMatchResult([fm])
     return None
+
+
+def fuzzy_search(*args, **kwargs) -> FuzzyMatchResult:
+    fms = fuzzy_search_chunks(*args, **kwargs)
+    if not fms:
+        return None
+    return fms.merge()
 
 
 def iter_fuzzy_search_all(haystack: str, *args, start_index: int = 0, **kwargs) -> FuzzyMatchResult:
