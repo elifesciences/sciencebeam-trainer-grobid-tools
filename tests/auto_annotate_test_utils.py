@@ -53,7 +53,10 @@ def _add_all(parent: etree.Element, children: List[Union[str, etree.Element]]):
     previous_child = None
     for child in children:
         if isinstance(child, str):
-            previous_child.tail = (previous_child.tail or '') + child
+            if previous_child is not None:
+                previous_child.tail = (previous_child.tail or '') + child
+            else:
+                parent.text = (parent.text or '') + child
         else:
             parent.append(child)
             previous_child = child
@@ -78,6 +81,7 @@ def get_target_xml_node(
         author_nodes: List[etree.Element] = None,
         affiliation_nodes: List[etree.Element] = None,
         abstract_node: etree.Element = None,
+        article_meta_nodes: List[etree.Element] = None,
         body_nodes: List[etree.Element] = None,
         back_nodes: List[etree.Element] = None,
         reference_nodes: List[etree.Element] = None) -> etree.Element:
@@ -90,6 +94,7 @@ def get_target_xml_node(
         article_meta_node.append(E('title-group', E('article-title', title)))
     _add_all(contrib_group, author_nodes)
     _add_all(contrib_group, affiliation_nodes)
+    _add_all(article_meta_node, article_meta_nodes)
     _add_all(body_node, body_nodes)
     _add_all(back_node, back_nodes)
     if abstract_node is not None:
