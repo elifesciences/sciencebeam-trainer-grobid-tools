@@ -7,8 +7,6 @@ import pytest
 from lxml import etree
 from lxml.builder import E
 
-from sciencebeam_utils.utils.collection import flatten
-
 from sciencebeam_trainer_grobid_tools.utils.xml import get_xpath_text_list
 
 from sciencebeam_trainer_grobid_tools.auto_annotate_fulltext import (
@@ -19,6 +17,7 @@ from .test_utils import log_on_exception, dict_to_args
 from .auto_annotate_test_utils import (
     get_target_xml_node,
     get_nodes_text,
+    get_tei_nodes_for_text,
     SingleFileAutoAnnotateEndToEndTestHelper
 )
 
@@ -114,15 +113,15 @@ class TestEndToEnd(object):
         target_body_content_nodes = [
             E.sec(
                 E.label(SECTION_LABEL_1),
-                ' ',
+                '\n',
                 E.title(SECTION_TITLE_1),
-                ' ',
+                '\n',
                 E.p(TEXT_1)
             )
         ]
         tei_text = get_nodes_text(target_body_content_nodes)
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
-            get_training_tei_node([E.note(tei_text)])
+            get_training_tei_node(get_tei_nodes_for_text(tei_text))
         ))
         test_helper.xml_file_path.write_bytes(etree.tostring(
             get_target_xml_node(body_nodes=target_body_content_nodes)
@@ -134,7 +133,7 @@ class TestEndToEnd(object):
 
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text_list(tei_auto_root, '//head') == [
-            SECTION_LABEL_1 + ' ' + SECTION_TITLE_1
+            SECTION_LABEL_1 + '\n' + SECTION_TITLE_1
         ]
 
     def test_should_auto_annotate_single_top_level_body_paragraphs(
@@ -163,16 +162,16 @@ class TestEndToEnd(object):
         # e.g. `214296v1` contains list as direct children of the body
         target_body_content_nodes = [E.list(
             E.label(LABEL_1),
-            ' ',
+            '\n',
             E.title(SECTION_TITLE_1),
-            ' ',
+            '\n',
             E('list-item', TEXT_1),
-            ' list-text ',
+            '\nlist-text\n',
             E('list-item', TEXT_2)
         )]
         tei_text = get_nodes_text(target_body_content_nodes)
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
-            get_training_tei_node([tei_text])
+            get_training_tei_node(get_tei_nodes_for_text(tei_text))
         ))
         test_helper.xml_file_path.write_bytes(etree.tostring(
             get_target_xml_node(body_nodes=target_body_content_nodes)
@@ -191,7 +190,7 @@ class TestEndToEnd(object):
             TEXT_1, TEXT_2
         ]
         assert get_xpath_text_list(tei_auto_root, '//list') == [
-            LABEL_1 + ' ' + SECTION_TITLE_1 + ' ' + TEXT_1 + ' list-text ' + TEXT_2
+            LABEL_1 + '\n' + SECTION_TITLE_1 + '\n' + TEXT_1 + '\nlist-text\n' + TEXT_2
         ]
 
     def test_should_ignore_fig_within_list_items(
@@ -235,17 +234,17 @@ class TestEndToEnd(object):
             ' ',
             E.list(
                 E.label(LABEL_1),
-                ' ',
+                '\n',
                 E.title(SECTION_TITLE_1),
-                ' ',
+                '\n',
                 E('list-item', TEXT_1),
-                ' list-text ',
+                '\nlist-text\n',
                 E('list-item', TEXT_2)
             )
         )]
         tei_text = get_nodes_text(target_body_content_nodes)
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
-            get_training_tei_node([tei_text])
+            get_training_tei_node(get_tei_nodes_for_text(tei_text))
         ))
         test_helper.xml_file_path.write_bytes(etree.tostring(
             get_target_xml_node(body_nodes=target_body_content_nodes)
@@ -264,7 +263,7 @@ class TestEndToEnd(object):
             TEXT_1, TEXT_2
         ]
         assert get_xpath_text_list(tei_auto_root, '//list') == [
-            LABEL_1 + ' ' + SECTION_TITLE_1 + ' ' + TEXT_1 + ' list-text ' + TEXT_2
+            LABEL_1 + '\n' + SECTION_TITLE_1 + '\n' + TEXT_1 + '\nlist-text\n' + TEXT_2
         ]
 
     def test_should_auto_annotate_single_back_section_title_and_paragraph(
@@ -327,14 +326,14 @@ class TestEndToEnd(object):
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_back_content_nodes = [
             E.sec(E.title(SECTION_TITLE_1)),
-            ' ',
+            '\n',
             E('ref-list', *[
                 E.title('References'),
             ])
         ]
         tei_text = get_nodes_text(target_back_content_nodes)
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
-            get_training_tei_node([tei_text])
+            get_training_tei_node(get_tei_nodes_for_text(tei_text))
         ))
         test_helper.xml_file_path.write_bytes(etree.tostring(
             get_target_xml_node(back_nodes=target_back_content_nodes)
@@ -409,7 +408,9 @@ class TestEndToEnd(object):
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
             get_training_tei_node([
                 get_nodes_text(target_section_2_content_nodes),
-                *flatten([(E.lb(), ' x ') for _ in range(100)]),
+                E.lb(),
+                *get_tei_nodes_for_text('x\n' * 100),
+                E.lb(),
                 get_nodes_text(target_section_1_content_nodes),
                 E.lb()
             ])
@@ -471,9 +472,9 @@ class TestEndToEnd(object):
                 E.p(TEXT_1 + ' ' + TEXT_2)
             )
         ]
-        tei_text = TEXT_1 + ' ' + LONG_DATA_TEXT_1 + ' ' + TEXT_2
+        tei_text = TEXT_1 + '\n' + LONG_DATA_TEXT_1 + '\n' + TEXT_2
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
-            get_training_tei_node([tei_text])
+            get_training_tei_node(get_tei_nodes_for_text(tei_text))
         ))
         test_helper.xml_file_path.write_bytes(etree.tostring(
             get_target_xml_node(body_nodes=target_body_content_nodes)
@@ -495,11 +496,11 @@ class TestEndToEnd(object):
             target_paragraph_content_nodes.append(E.xref({'ref-type': key}, value))
             target_paragraph_content_nodes.append(' ')
         target_paragraph_content_nodes.append(TEXT_2)
-        target_body_content_nodes = [E.sec(E.p(*target_paragraph_content_nodes)), ' Other']
+        target_body_content_nodes = [E.sec(E.p(*target_paragraph_content_nodes)), '\nOther']
         paragraph_text = get_nodes_text(target_paragraph_content_nodes)
         tei_text = get_nodes_text(target_body_content_nodes)
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
-            get_training_tei_node([E.note(tei_text)])
+            get_training_tei_node(get_tei_nodes_for_text(tei_text))
         ))
         test_helper.xml_file_path.write_bytes(etree.tostring(
             get_target_xml_node(body_nodes=target_body_content_nodes)
@@ -527,11 +528,11 @@ class TestEndToEnd(object):
         target_paragraph_content_nodes.append(TEXT_2)
         target_body_content_nodes = [E.sec(E.p(
             E.list(E('list-item', *target_paragraph_content_nodes))
-        )), ' Other']
+        )), '\nOther']
         paragraph_text = get_nodes_text(target_paragraph_content_nodes)
         tei_text = get_nodes_text(target_body_content_nodes)
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
-            get_training_tei_node([E.note(tei_text)])
+            get_training_tei_node(get_tei_nodes_for_text(tei_text))
         ))
         test_helper.xml_file_path.write_bytes(etree.tostring(
             get_target_xml_node(body_nodes=target_body_content_nodes)
@@ -561,11 +562,11 @@ class TestEndToEnd(object):
         target_paragraph_content_nodes.append(TEXT_2)
         target_body_content_nodes = [E.sec(
             E.list(E('list-item', *target_paragraph_content_nodes))
-        ), ' Other']
+        ), '\nOther']
         paragraph_text = get_nodes_text(target_paragraph_content_nodes)
         tei_text = get_nodes_text(target_body_content_nodes)
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
-            get_training_tei_node([E.note(tei_text)])
+            get_training_tei_node(get_tei_nodes_for_text(tei_text))
         ))
         test_helper.xml_file_path.write_bytes(etree.tostring(
             get_target_xml_node(body_nodes=target_body_content_nodes)
@@ -592,19 +593,23 @@ class TestEndToEnd(object):
             target_paragraph_content_nodes.append(E.xref({'ref-type': key}, value))
             target_paragraph_content_nodes.append(' ')
         target_paragraph_content_nodes.append(TEXT_2)
-        target_body_content_nodes = [E.sec(E('boxed-text', *[
-            E.label(LABEL_1),
-            ' ',
-            E.caption(SECTION_TITLE_1),
-            ' ',
-            E.p(
-                E.list(E('list-item', *target_paragraph_content_nodes))
-            )
-        ])), ' Other']
+        target_body_content_nodes = [
+            E.sec(E('boxed-text', *[
+                E.label(LABEL_1),
+                '\n',
+                E.caption(SECTION_TITLE_1),
+                '\n',
+                E.p(
+                    E.list(E('list-item', *target_paragraph_content_nodes))
+                )
+            ])),
+            '\n',
+            'Other'
+        ]
         paragraph_text = get_nodes_text(target_paragraph_content_nodes)
         tei_text = get_nodes_text(target_body_content_nodes)
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
-            get_training_tei_node([E.other(tei_text)])
+            get_training_tei_node(get_tei_nodes_for_text(tei_text))
         ))
         test_helper.xml_file_path.write_bytes(etree.tostring(
             get_target_xml_node(body_nodes=target_body_content_nodes)
@@ -939,9 +944,9 @@ class TestEndToEnd(object):
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
             get_training_tei_node([
                 TEXT_1,
-                ' ',
+                E.lb(),
                 SECTION_TITLE_1,
-                ' ',
+                E.lb(),
                 TEXT_2
             ])
         ))
@@ -995,7 +1000,7 @@ class TestEndToEnd(object):
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
             get_training_tei_node([
                 E.note(SECTION_TITLE_1),
-                ' ',
+                E.lb(),
                 E.formula(TEXT_1)
             ])
         ))

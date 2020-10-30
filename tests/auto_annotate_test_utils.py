@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import List, Union
 
 from lxml import etree
-from lxml.builder import E
+from lxml.builder import E, ElementMaker
 
 from sciencebeam_utils.utils.xml import get_text_content
 
@@ -57,6 +57,20 @@ def _add_all(parent: etree.Element, children: List[Union[str, etree.Element]]):
         else:
             parent.append(child)
             previous_child = child
+
+
+def get_tei_nodes_for_text(
+        text: str,
+        element_maker: ElementMaker = None) -> List[Union[str, etree.Element]]:
+    if element_maker is None:
+        element_maker = E
+    result = []
+    for index, line in enumerate(text.splitlines()):
+        if index:
+            result.append(element_maker.lb)
+            result.append('\n')
+        result.append(line)
+    return result
 
 
 def get_target_xml_node(

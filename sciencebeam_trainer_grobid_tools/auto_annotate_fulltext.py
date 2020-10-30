@@ -136,7 +136,7 @@ def _get_annotator(
     simple_annotator_config = annotator_config.get_simple_annotator_config(
         xml_mapping=xml_mapping,
         preserve_sub_annotations=True,
-        extend_to_line_enabled=False
+        extend_to_line_enabled=True
     )
     annotators = [
         SimpleMatchingAnnotator(
