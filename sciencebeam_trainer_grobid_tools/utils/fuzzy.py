@@ -476,6 +476,16 @@ def fuzzy_search_index_range(*args, **kwargs) -> Tuple[int, int]:
     return None
 
 
+def fuzzy_search_index_range_chunks(*args, **kwargs) -> Tuple[int, int]:
+    fm_chunks = fuzzy_search_chunks(*args, **kwargs)
+    if not fm_chunks:
+        return None
+    return [
+        fm.a_index_range()
+        for fm in fm_chunks.matches
+    ]
+
+
 def iter_fuzzy_search_all_index_ranges(*args, **kwargs) -> Tuple[int, int]:
     return (
         fm.a_index_range()

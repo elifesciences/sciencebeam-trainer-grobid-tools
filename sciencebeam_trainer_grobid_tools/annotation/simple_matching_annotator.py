@@ -2,7 +2,7 @@ import logging
 import re
 from distutils.util import strtobool
 from itertools import groupby
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from sciencebeam_gym.structured_document import (
     AbstractStructuredDocument
@@ -27,7 +27,7 @@ from sciencebeam_gym.structured_document import (
 from sciencebeam_trainer_grobid_tools.utils.misc import get_safe
 
 from sciencebeam_trainer_grobid_tools.utils.fuzzy import (
-    fuzzy_search_index_range,
+    fuzzy_search_index_range_chunks,
     iter_fuzzy_search_all_index_ranges
 )
 
@@ -364,8 +364,8 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             for tag, tag_confg in self.config.tag_config_map.items()
         }
 
-    def get_fuzzy_matching_index_range(
-            self, haystack: str, needle, **kwargs):
+    def get_fuzzy_matching_index_range_chunks(
+            self, haystack: str, needle, **kwargs) -> Optional[List[Tuple[int]]]:
         if len(needle) < self.config.min_token_length:
             return None
         target_value = normalise_str_or_list(needle)
@@ -373,24 +373,31 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
         if len(target_value) < self.config.exact_word_match_threshold:
             # line feeds are currently not default separators for WordSequenceMatcher
             haystack = haystack.replace('\n', ' ')
-        index_range = fuzzy_search_index_range(
+        index_range_chunks = fuzzy_search_index_range_chunks(
             haystack, target_value,
             threshold=self.config.threshold,
             exact_word_match_threshold=self.config.exact_word_match_threshold,
             **kwargs
         )
-        if index_range:
-            return index_range
+        if index_range_chunks:
+            return index_range_chunks
         target_value_reduced = split_and_join_with_space(
             normalise_and_remove_junk_str_or_list(needle)
         )
         LOGGER.debug('target_value_reduced: %s', target_value_reduced)
-        return fuzzy_search_index_range(
+        return fuzzy_search_index_range_chunks(
             haystack, target_value_reduced,
             threshold=self.config.threshold,
             exact_word_match_threshold=self.config.exact_word_match_threshold,
             **kwargs
         )
+
+    def get_fuzzy_matching_index_range(
+            self, *args, **kwargs) -> Optional[Tuple[int]]:
+        index_range_chunks = self.get_fuzzy_matching_index_range_chunks(*args, **kwargs)
+        if not index_range_chunks:
+            return None
+        return index_range_chunks[0][0], index_range_chunks[-1][1]
 
     def get_fuzzy_matching_index_range_with_alternative_spellings(
             self,
