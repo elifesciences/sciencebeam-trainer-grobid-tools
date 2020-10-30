@@ -240,6 +240,16 @@ def get_first_chunk_matching_blocks(
     return []
 
 
+def get_offset_matching_blocks(
+        matching_blocks: List[Tuple[int]],
+        a_offset: int = 0,
+        b_offset: int = 0) -> List[Tuple[int]]:
+    return [
+        (ai + a_offset, bi + b_offset, size)
+        for ai, bi, size in matching_blocks
+    ]
+
+
 def get_str_left_strided_matching_blocks_chunks(
         haystack: str, needle: str,
         max_length: int,
@@ -300,10 +310,10 @@ def get_str_left_strided_matching_blocks_chunks(
                 start_index += stride
                 continue
             return [first_chunk_matching_blocks] + [
-                [
-                    (ai, bi + first_chunk_match_count, size)
-                    for ai, bi, size in remaining_matching_blocks
-                ]
+                get_offset_matching_blocks(
+                    remaining_matching_blocks,
+                    b_offset=first_chunk_match_count
+                )
                 for remaining_matching_blocks in remaining_matching_blocks_chunks
             ]
         if not start_index:
@@ -390,10 +400,10 @@ def fuzzy_search_chunks(
             if size
         ]
     if start_index:
-        matching_blocks = [
-            (ai + start_index, bi, size)
-            for ai, bi, size in matching_blocks
-        ]
+        matching_blocks = get_offset_matching_blocks(
+            matching_blocks,
+            a_offset=start_index
+        )
     fm = FuzzyMatchResult(
         original_haystack,
         needle,
