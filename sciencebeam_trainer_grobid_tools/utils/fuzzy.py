@@ -244,6 +244,8 @@ def get_offset_matching_blocks(
         matching_blocks: List[Tuple[int]],
         a_offset: int = 0,
         b_offset: int = 0) -> List[Tuple[int]]:
+    if not a_offset and not b_offset:
+        return matching_blocks
     return [
         (ai + a_offset, bi + b_offset, size)
         for ai, bi, size in matching_blocks
@@ -370,40 +372,47 @@ def fuzzy_search_chunks(
         mode = 'word'
         sm = WordSequenceMatcher(None, haystack, needle, sep=DEFAULT_WORD_SEPARATORS)
         matching_blocks = sm.get_matching_blocks()
-    else:
-        mode = 'char'
-        matcher_is_junk_fn = space_is_junk
-        haystack_string_view = get_no_junk_string_view(haystack, isjunk=matcher_is_junk_fn)
-        needle_string_view = get_no_junk_string_view(needle, isjunk=matcher_is_junk_fn)
-        LOGGER.debug('haystack_string_view: %r', str(haystack_string_view))
-        LOGGER.debug('needle_string_view: %r', str(needle_string_view))
-        raw_matching_blocks = get_str_auto_left_strided_matching_blocks(
-            haystack=str(haystack_string_view),
-            needle=str(needle_string_view),
-            threshold=threshold,
+        matching_blocks = get_offset_matching_blocks(matching_blocks, a_offset=start_index)
+        fm = FuzzyMatchResult(
+            original_haystack,
+            needle,
+            matching_blocks,
             isjunk=isjunk or default_is_junk
         )
-        LOGGER.debug('raw_matching_blocks: %s', raw_matching_blocks)
-        # if str(needle_string_view) == 'pmc1000001':
-        #     raise RuntimeError('dummy')
-        matching_blocks = [
+        LOGGER.debug('fm (mode=%s, threshold=%.2f): %s', mode, threshold, fm)
+        if fm.b_gap_ratio() < threshold:
+            return
+        return ChunkedFuzzyMatchResult([fm])
+    mode = 'char'
+    matcher_is_junk_fn = space_is_junk
+    haystack_string_view = get_no_junk_string_view(haystack, isjunk=matcher_is_junk_fn)
+    needle_string_view = get_no_junk_string_view(needle, isjunk=matcher_is_junk_fn)
+    LOGGER.debug('haystack_string_view: %r', str(haystack_string_view))
+    LOGGER.debug('needle_string_view: %r', str(needle_string_view))
+    raw_matching_blocks = get_str_auto_left_strided_matching_blocks(
+        haystack=str(haystack_string_view),
+        needle=str(needle_string_view),
+        threshold=threshold,
+        isjunk=isjunk or default_is_junk
+    )
+    LOGGER.debug('raw_matching_blocks: %s', raw_matching_blocks)
+    matching_blocks = [
+        (
+            haystack_string_view.original_index_at[ai],
+            needle_string_view.original_index_at[bi],
             (
-                haystack_string_view.original_index_at[ai],
-                needle_string_view.original_index_at[bi],
-                (
-                    haystack_string_view.original_index_at[ai + size - 1]
-                    - haystack_string_view.original_index_at[ai]
-                    + 1
-                )
+                haystack_string_view.original_index_at[ai + size - 1]
+                - haystack_string_view.original_index_at[ai]
+                + 1
             )
-            for ai, bi, size in raw_matching_blocks
-            if size
-        ]
-    if start_index:
-        matching_blocks = get_offset_matching_blocks(
-            matching_blocks,
-            a_offset=start_index
         )
+        for ai, bi, size in raw_matching_blocks
+        if size
+    ]
+    matching_blocks = get_offset_matching_blocks(
+        matching_blocks,
+        a_offset=start_index
+    )
     fm = FuzzyMatchResult(
         original_haystack,
         needle,
@@ -411,9 +420,7 @@ def fuzzy_search_chunks(
         isjunk=isjunk or default_is_junk
     )
     LOGGER.debug('fm (mode=%s, threshold=%.2f): %s', mode, threshold, fm)
-    if fm.b_gap_ratio() >= threshold:
-        return ChunkedFuzzyMatchResult([fm])
-    return None
+    return ChunkedFuzzyMatchResult([fm])
 
 
 def fuzzy_search(*args, **kwargs) -> FuzzyMatchResult:
