@@ -108,6 +108,57 @@ class TestEndToEnd(object):
         assert get_xpath_text_list(tei_auto_root, '//head') == [SECTION_TITLE_1]
         assert get_xpath_text_list(tei_auto_root, '//p') == [TEXT_1]
 
+    def test_should_extend_to_line_by_default(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        target_body_content_nodes = [
+            E.sec(
+                'x ',
+                E.title(SECTION_TITLE_1),
+            )
+        ]
+        tei_text = get_nodes_text(target_body_content_nodes)
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_training_tei_node([tei_text])
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(body_nodes=target_body_content_nodes)
+        ))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'fields': ','.join([
+                'section_title'
+            ])
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text_list(tei_auto_root, '//head') == ['x ' + SECTION_TITLE_1]
+
+    def test_should_not_extend_to_line_if_disabled(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        target_body_content_nodes = [
+            E.sec(
+                'x ',
+                E.title(SECTION_TITLE_1),
+            )
+        ]
+        tei_text = get_nodes_text(target_body_content_nodes)
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_training_tei_node([tei_text])
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(body_nodes=target_body_content_nodes)
+        ))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'no-extend-to-line': True,
+            'fields': ','.join([
+                'section_title'
+            ])
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text_list(tei_auto_root, '//head') == [SECTION_TITLE_1]
+
     def test_should_auto_annotate_single_section_title_with_label(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_body_content_nodes = [

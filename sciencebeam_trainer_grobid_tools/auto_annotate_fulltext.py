@@ -128,6 +128,7 @@ EXPAND_TO_UNTAGGED_LINES_ENABLED_TAGS = {
 def _get_annotator(
         xml_path,
         xml_mapping,
+        no_extend_to_line: bool,
         annotator_config: AnnotatorConfig):
     target_annotations = xml_root_to_target_annotations(
         parse_xml(xml_path).getroot(),
@@ -136,7 +137,7 @@ def _get_annotator(
     simple_annotator_config = annotator_config.get_simple_annotator_config(
         xml_mapping=xml_mapping,
         preserve_sub_annotations=True,
-        extend_to_line_enabled=True
+        extend_to_line_enabled=not no_extend_to_line
     )
     annotators = [
         SimpleMatchingAnnotator(
@@ -189,13 +190,15 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
             if field not in self.tag_to_tei_path_mapping:
                 self.tag_to_tei_path_mapping[field] = 'note[@type="%s"]' % field
         self.annotator_config.use_sub_annotations = True
+        self.no_extend_to_line = opt.no_extend_to_line
 
     def get_annotator(self, source_url: str):
         target_xml_path = self.get_target_xml_for_source_file(source_url)
         return _get_annotator(
             target_xml_path,
             self.xml_mapping,
-            annotator_config=self.get_annotator_config()
+            no_extend_to_line=self.no_extend_to_line,
+            annotator_config=self.get_annotator_config(),
         )
 
 
@@ -208,6 +211,11 @@ def add_main_args(parser):
         type=comma_separated_str_to_list,
         default=','.join(ALL_FIELDS),
         help='comma separated list of fields to annotate'
+    )
+
+    parser.add_argument(
+        '--no-extend-to-line', action='store_true', required=False,
+        help='disable extend tags to line'
     )
 
     add_debug_argument(parser)
