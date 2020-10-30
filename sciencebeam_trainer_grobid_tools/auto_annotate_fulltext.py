@@ -68,6 +68,7 @@ XREF_REL_TEI_PATH_MAPPING = {
 FULLTEXT_TAG_TO_TEI_PATH_MAPPING = {
     DEFAULT_TAG_KEY: 'other',
     'note_other': 'note[@type="other"]',
+    'keywords': 'other[@type="keywords"]',
     'section_title': 'head',
     'section_paragraph': 'p',
     **{
@@ -94,6 +95,7 @@ FULLTEXT_TAG_TO_TEI_PATH_MAPPING = {
 
 
 ALL_FIELDS = [
+    'keywords',
     'section_title',
     'section_paragraph',
     'boxed_text_title',

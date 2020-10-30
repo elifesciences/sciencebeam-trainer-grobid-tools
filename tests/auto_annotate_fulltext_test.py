@@ -1018,6 +1018,43 @@ class TestEndToEnd(object):
             SECTION_TITLE_1
         ]
 
+    def test_should_auto_annotate_keywords(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        target_keywords_nodes = [
+            E('kwd-group', *[
+                E.title('Keywords'),
+                ': ',
+                E.kwd('Keyword 1'),
+                ', ',
+                E.kwd('Keyword 2'),
+                ', ',
+                E.kwd('Keyword 3')
+            ])
+        ]
+        target_article_meta_nodes = [
+            'Heading\n',
+            *target_keywords_nodes,
+            '\nMore text'
+        ]
+        tei_text = get_nodes_text(target_article_meta_nodes)
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_training_tei_node(get_tei_nodes_for_text(tei_text))
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(article_meta_nodes=target_article_meta_nodes)
+        ))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'fields': ','.join([
+                'keywords'
+            ])
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text_list(tei_auto_root, '//other[@type="keywords"]') == [
+            get_nodes_text(target_keywords_nodes)
+        ]
+
     def test_should_convert_note_other_to_other(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_body_content_nodes = []
