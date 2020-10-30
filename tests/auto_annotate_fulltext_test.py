@@ -32,7 +32,7 @@ TEI_FILENAME_1 = 'document1.fulltext.tei.xml'
 TEI_FILENAME_REGEX = r'/(.*).fulltext.tei.xml/\1.xml/'
 
 TEXT_1 = 'text 1'
-TEXT_2 = 'text 1'
+TEXT_2 = 'text 2'
 
 SECTION_LABEL_1 = '1.1'
 
@@ -191,6 +191,39 @@ class TestEndToEnd(object):
         ]
         assert get_xpath_text_list(tei_auto_root, '//list') == [
             LABEL_1 + ' ' + SECTION_TITLE_1 + ' ' + TEXT_1 + ' list-text ' + TEXT_2
+        ]
+
+    def test_should_ignore_fig_within_list_items(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        # e.g. `214296v1` contains a figure within a list-item
+        target_body_content_nodes = [E.list(
+            E('list-item', E.p(TEXT_1, ' ', E.fig(E.caption(CAPTION_TITLE_1)))),
+            ' ',
+            E('list-item', E.p(TEXT_2))
+        )]
+        tei_text = get_nodes_text(target_body_content_nodes)
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_training_tei_node([tei_text])
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(body_nodes=target_body_content_nodes)
+        ))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'fields': ','.join([
+                'section_paragraph',
+                'figure',
+                'list',
+                'list_item'
+            ])
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text_list(tei_auto_root, '//list/item') == [
+            TEXT_1, TEXT_2
+        ]
+        assert get_xpath_text_list(tei_auto_root, '//figure') == [
+            CAPTION_TITLE_1
         ]
 
     def test_should_auto_annotate_single_back_section_title_and_paragraph(
