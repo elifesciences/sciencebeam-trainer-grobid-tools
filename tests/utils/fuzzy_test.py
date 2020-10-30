@@ -53,6 +53,24 @@ class TestGetStrLeftStridedMatchingBlocks:
             max_length=5, stride=5, threshold=0.8
         )) == [(10, 0, 3)]
 
+    def test_should_return_no_chunks_if_below_max_chunks(self):
+        needle = 'abc def'
+        haystack = 'abc 123456789 def'
+        assert _ignore_zero_length_blocks(get_str_left_strided_matching_blocks(
+            haystack, needle,
+            max_length=30, stride=30, threshold=0.8,
+            max_chunks=1
+        )) == []
+
+    def test_should_return_two_chunks(self):
+        needle = 'abc def'
+        haystack = 'abc 123456789 def'
+        assert _ignore_zero_length_blocks(get_str_left_strided_matching_blocks(
+            haystack, needle,
+            max_length=30, stride=30, threshold=0.8,
+            max_chunks=2
+        )) == [(0, 0, 4), (14, 4, 3)]
+
 
 class TestGetDefaultMaxLengthAndStride:
     def test_should_calculate_max_length_and_stride(self):
