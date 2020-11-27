@@ -26,6 +26,7 @@ from .auto_annotate_utils import (
     get_xml_mapping_and_fields,
     add_annotation_pipeline_arguments,
     process_annotation_pipeline_arguments,
+    add_fields_argument,
     AbstractAnnotatePipelineFactory,
     AnnotatorConfig
 )
@@ -70,6 +71,8 @@ REFERENCE_TAG_TO_TEI_PATH_MAPPING = {
     'reference-arxiv': 'tei:bibl/tei:idno[@type="arxiv"]',
     'ext-link': 'tei:bibl/tei:ptr[@type="web"]'
 }
+
+DEFAULT_REFERENCE_FIELDS = ['reference']
 
 DEFAULT_SUB_TAG_MAP = {
     'reference-fpage': 'reference-page',
@@ -207,13 +210,7 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
 
 def add_main_args(parser):
     add_annotation_pipeline_arguments(parser)
-
-    parser.add_argument(
-        '--fields',
-        type=comma_separated_str_to_list,
-        default='reference',
-        help='comma separated list of fields to annotate'
-    )
+    add_fields_argument(parser, default_fields=DEFAULT_REFERENCE_FIELDS)
 
     parser.add_argument(
         '--include-idno-prefix',

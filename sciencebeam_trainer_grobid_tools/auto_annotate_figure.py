@@ -22,6 +22,7 @@ from .annotation.sub_tag_annotator import SubTagOnlyAnnotator
 from .auto_annotate_utils import (
     add_debug_argument,
     process_debug_argument,
+    add_fields_argument,
     add_sub_fields_argument,
     get_xml_mapping_and_fields,
     add_annotation_pipeline_arguments,
@@ -47,6 +48,9 @@ FIGURE_TAG_TO_TEI_PATH_MAPPING = {
     'figure-label': 'figure/head/label',
     'figure-caption': 'figure/figDesc',
 }
+
+
+DEFAULT_FIGURE_FIELDS = ['figure']
 
 
 def _get_annotator(
@@ -117,14 +121,8 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
 
 def add_main_args(parser):
     add_annotation_pipeline_arguments(parser)
+    add_fields_argument(parser, default_fields=DEFAULT_FIGURE_FIELDS)
     add_sub_fields_argument(parser)
-
-    parser.add_argument(
-        '--fields',
-        type=comma_separated_str_to_list,
-        default='figure',
-        help='comma separated list of fields to annotate'
-    )
 
     parser.add_argument(
         '--preserve-sub-tags',

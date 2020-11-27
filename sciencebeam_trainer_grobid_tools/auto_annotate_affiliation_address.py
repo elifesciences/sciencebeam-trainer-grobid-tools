@@ -24,6 +24,7 @@ from .annotation.remove_untagged_annotator import RemoveUntaggedPostProcessingAn
 from .auto_annotate_utils import (
     add_debug_argument,
     process_debug_argument,
+    add_fields_argument,
     add_sub_fields_argument,
     get_xml_mapping_and_fields,
     add_annotation_pipeline_arguments,
@@ -62,6 +63,9 @@ AFFILIATION_TAG_TO_TEI_PATH_MAPPING = {
     'author_aff-address-state': 'tei:affiliation/tei:address/tei:region',
     'author_aff-address-country': 'tei:affiliation/tei:address/tei:country'
 }
+
+
+DEFAULT_AFFILIATION_FIELDS = ['author_aff']
 
 
 def is_address_sub_tag(sub_tag: str) -> bool:
@@ -159,14 +163,8 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
 
 def add_main_args(parser):
     add_annotation_pipeline_arguments(parser)
+    add_fields_argument(parser, default_fields=DEFAULT_AFFILIATION_FIELDS)
     add_sub_fields_argument(parser)
-
-    parser.add_argument(
-        '--fields',
-        type=comma_separated_str_to_list,
-        default='author_aff',
-        help='comma separated list of fields to annotate'
-    )
 
     parser.add_argument(
         '--preserve-sub-tags',

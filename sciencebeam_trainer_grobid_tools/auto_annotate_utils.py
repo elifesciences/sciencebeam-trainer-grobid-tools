@@ -270,6 +270,17 @@ def add_document_checks_arguments(parser: argparse.ArgumentParser):
     )
 
 
+def add_fields_argument(
+        parser: argparse.ArgumentParser,
+        default_fields: List[str] = None):
+    parser.add_argument(
+        '--fields',
+        type=comma_separated_str_to_list,
+        default=','.join(default_fields) if default_fields else None,
+        help='comma separated list of fields to annotate'
+    )
+
+
 def add_sub_fields_argument(
         parser: argparse.ArgumentParser,
         default_sub_fields: List[str] = None):

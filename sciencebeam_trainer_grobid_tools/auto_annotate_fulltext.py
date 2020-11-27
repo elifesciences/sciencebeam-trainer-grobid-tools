@@ -43,6 +43,7 @@ from .auto_annotate_utils import (
     get_xml_mapping_and_fields,
     add_annotation_pipeline_arguments,
     add_document_checks_arguments,
+    add_fields_argument,
     add_sub_fields_argument,
     process_annotation_pipeline_arguments,
     AnnotatorConfig,
@@ -216,14 +217,8 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
 def add_main_args(parser):
     add_annotation_pipeline_arguments(parser)
     add_document_checks_arguments(parser)
+    add_fields_argument(parser, default_fields=ALL_FIELDS)
     add_sub_fields_argument(parser, default_sub_fields=DEFAULT_FULLTEXT_SUB_FIELDS)
-
-    parser.add_argument(
-        '--fields',
-        type=comma_separated_str_to_list,
-        default=','.join(ALL_FIELDS),
-        help='comma separated list of fields to annotate'
-    )
 
     parser.add_argument(
         '--no-extend-to-line', action='store_true', required=False,

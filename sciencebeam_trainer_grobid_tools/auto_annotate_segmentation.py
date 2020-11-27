@@ -15,6 +15,7 @@ from .auto_annotate_utils import (
     add_annotation_pipeline_arguments,
     process_annotation_pipeline_arguments,
     add_document_checks_arguments,
+    add_fields_argument,
     get_default_annotators,
     get_default_config_path,
     AbstractAnnotatePipelineFactory
@@ -175,12 +176,7 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
 def add_main_args(parser):
     add_annotation_pipeline_arguments(parser)
     add_document_checks_arguments(parser)
-
-    parser.add_argument(
-        '--fields',
-        type=comma_separated_str_to_list,
-        help='comma separated list of fields to annotate'
-    )
+    add_fields_argument(parser)
 
     parser.add_argument(
         '--no-preserve-fields',
