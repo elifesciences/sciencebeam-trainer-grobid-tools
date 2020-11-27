@@ -295,6 +295,15 @@ def add_sub_fields_argument(
     )
 
 
+def add_preserve_sub_tags_argument(parser: argparse.ArgumentParser):
+    parser.add_argument(
+        '--preserve-sub-tags',
+        action='store_true',
+        default=False,
+        help='enable preserving sub tags.'
+    )
+
+
 def process_annotation_pipeline_arguments(
         parser: argparse.ArgumentParser, args: argparse.Namespace):
     if not (args.source_base_path or args.source_path):

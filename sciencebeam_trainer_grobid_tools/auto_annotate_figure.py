@@ -24,6 +24,7 @@ from .auto_annotate_utils import (
     process_debug_argument,
     add_fields_argument,
     add_sub_fields_argument,
+    add_preserve_sub_tags_argument,
     get_xml_mapping_and_fields,
     add_annotation_pipeline_arguments,
     process_annotation_pipeline_arguments,
@@ -123,13 +124,7 @@ def add_main_args(parser):
     add_annotation_pipeline_arguments(parser)
     add_fields_argument(parser, default_fields=DEFAULT_FIGURE_FIELDS)
     add_sub_fields_argument(parser)
-
-    parser.add_argument(
-        '--preserve-sub-tags',
-        action='store_true',
-        default=False,
-        help='enable preserving sub tags.'
-    )
+    add_preserve_sub_tags_argument(parser)
 
     parser.add_argument(
         '--no-preserve-sub-fields',
