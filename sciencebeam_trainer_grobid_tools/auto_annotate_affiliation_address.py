@@ -24,6 +24,7 @@ from .annotation.remove_untagged_annotator import RemoveUntaggedPostProcessingAn
 from .auto_annotate_utils import (
     add_debug_argument,
     process_debug_argument,
+    add_sub_fields_argument,
     get_xml_mapping_and_fields,
     add_annotation_pipeline_arguments,
     process_annotation_pipeline_arguments,
@@ -158,21 +159,13 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
 
 def add_main_args(parser):
     add_annotation_pipeline_arguments(parser)
+    add_sub_fields_argument(parser)
 
     parser.add_argument(
         '--fields',
         type=comma_separated_str_to_list,
         default='author_aff',
         help='comma separated list of fields to annotate'
-    )
-
-    parser.add_argument(
-        '--sub-fields',
-        type=comma_separated_str_to_list,
-        help=(
-            'comma separated list of sub fields to annotate.'
-            ' if blank, all available sub fields will be used.'
-        )
     )
 
     parser.add_argument(
