@@ -5,8 +5,6 @@ import logging
 
 from sciencebeam_gym.preprocess.annotation.annotator import Annotator
 
-from .utils.string import comma_separated_str_to_list
-
 from .structured_document.grobid_training_tei import (
     DEFAULT_TAG_KEY
 )

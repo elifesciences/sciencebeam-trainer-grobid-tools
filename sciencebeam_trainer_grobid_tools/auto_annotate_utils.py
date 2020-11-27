@@ -304,6 +304,14 @@ def add_preserve_sub_tags_argument(parser: argparse.ArgumentParser):
     )
 
 
+def add_no_preserve_sub_fields_argument(parser: argparse.ArgumentParser):
+    parser.add_argument(
+        '--no-preserve-sub-fields',
+        type=comma_separated_str_to_list,
+        help='comma separated list of sub fields that should not be preserved'
+    )
+
+
 def process_annotation_pipeline_arguments(
         parser: argparse.ArgumentParser, args: argparse.Namespace):
     if not (args.source_base_path or args.source_path):

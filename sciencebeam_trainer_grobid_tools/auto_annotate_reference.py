@@ -5,7 +5,6 @@ import logging
 
 from sciencebeam_gym.preprocess.annotation.annotator import Annotator
 
-from .utils.string import comma_separated_str_to_list
 from .utils.xml import parse_xml
 from .utils.tei_xml import TEI_NS_MAP
 

@@ -5,7 +5,6 @@ import logging
 
 from sciencebeam_gym.preprocess.annotation.annotator import Annotator
 
-from .utils.string import comma_separated_str_to_list
 from .utils.xml import parse_xml
 from .utils.tei_xml import TEI_NS_MAP
 
@@ -25,6 +24,7 @@ from .auto_annotate_utils import (
     add_fields_argument,
     add_sub_fields_argument,
     add_preserve_sub_tags_argument,
+    add_no_preserve_sub_fields_argument,
     get_xml_mapping_and_fields,
     add_annotation_pipeline_arguments,
     process_annotation_pipeline_arguments,
@@ -125,12 +125,7 @@ def add_main_args(parser):
     add_fields_argument(parser, default_fields=DEFAULT_FIGURE_FIELDS)
     add_sub_fields_argument(parser)
     add_preserve_sub_tags_argument(parser)
-
-    parser.add_argument(
-        '--no-preserve-sub-fields',
-        type=comma_separated_str_to_list,
-        help='comma separated list of sub fields that should not be preserved'
-    )
+    add_no_preserve_sub_fields_argument(parser)
 
     parser.add_argument(
         '--segment-figures',
