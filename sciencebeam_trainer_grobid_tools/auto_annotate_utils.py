@@ -270,6 +270,20 @@ def add_document_checks_arguments(parser: argparse.ArgumentParser):
     )
 
 
+def add_sub_fields_argument(
+        parser: argparse.ArgumentParser,
+        default_sub_fields: List[str] = None):
+    parser.add_argument(
+        '--sub-fields',
+        type=comma_separated_str_to_list,
+        default=','.join(default_sub_fields) if default_sub_fields else None,
+        help=(
+            'comma separated list of sub fields to annotate.'
+            ' if blank, all available sub fields will be used.'
+        )
+    )
+
+
 def process_annotation_pipeline_arguments(
         parser: argparse.ArgumentParser, args: argparse.Namespace):
     if not (args.source_base_path or args.source_path):

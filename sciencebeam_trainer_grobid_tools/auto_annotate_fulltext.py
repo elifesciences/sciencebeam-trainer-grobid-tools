@@ -43,6 +43,7 @@ from .auto_annotate_utils import (
     get_xml_mapping_and_fields,
     add_annotation_pipeline_arguments,
     add_document_checks_arguments,
+    add_sub_fields_argument,
     process_annotation_pipeline_arguments,
     AnnotatorConfig,
     AbstractAnnotatePipelineFactory
@@ -110,6 +111,9 @@ ALL_FIELDS = [
     'table',
     'reference_list_title'
 ]
+
+
+DEFAULT_FULLTEXT_SUB_FIELDS = list(FULLTEXT_TAG_TO_TEI_PATH_MAPPING.keys())
 
 
 REPLACED_TAG_BY_TAG_MAP = {
@@ -189,6 +193,7 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
         self.xml_mapping, self.fields = get_xml_mapping_and_fields(
             opt.xml_mapping_path,
             opt.fields,
+            sub_fields=opt.sub_fields,
             xml_mapping_overrides=opt.xml_mapping_overrides
         )
         self.tag_to_tei_path_mapping = self.tag_to_tei_path_mapping.copy()
@@ -211,6 +216,7 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
 def add_main_args(parser):
     add_annotation_pipeline_arguments(parser)
     add_document_checks_arguments(parser)
+    add_sub_fields_argument(parser, default_sub_fields=DEFAULT_FULLTEXT_SUB_FIELDS)
 
     parser.add_argument(
         '--fields',
