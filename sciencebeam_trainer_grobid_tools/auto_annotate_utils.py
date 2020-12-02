@@ -666,7 +666,12 @@ class AbstractAnnotatePipelineFactory(ABC):
 
     def get_source_file_list(self):
         if self.source_path:
+            LOGGER.debug('using source_path: %r', self.source_path)
             return [self.source_path]
+        LOGGER.debug(
+            'finding files: source_base_path=%r, pattern=%r, limit=%s',
+            self.source_base_path, self.tei_filename_pattern, self.limit
+        )
         return list(find_matching_filenames_with_limit(os.path.join(
             self.source_base_path,
             self.tei_filename_pattern
