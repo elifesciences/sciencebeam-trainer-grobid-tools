@@ -629,12 +629,16 @@ class AbstractAnnotatePipelineFactory(ABC):
             target_annotations=target_annotations
         )
 
+    def get_final_source_url(self, source_url: str) -> str:
+        return source_url
+
     def auto_annotate(self, source_url: str):
         try:
             output_xml_path = self.get_tei_xml_output_file_for_source_file(source_url)
-            annotator = self.get_annotator(source_url)
+            final_source_url = self.get_final_source_url(source_url)
+            annotator = self.get_annotator(final_source_url)
             annotate_structured_document(
-                source_url,
+                final_source_url,
                 output_xml_path,
                 annotator=annotator,
                 preserve_tags=self.preserve_tags,

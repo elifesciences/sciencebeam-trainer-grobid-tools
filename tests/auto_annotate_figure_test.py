@@ -140,6 +140,52 @@ class TestEndToEnd(object):
             TEXT_1, TEXT_2
         ]
 
+    def test_should_tolerate_invalid_closing_content_element(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        target_figure_content_nodes_1 = [
+            E.label(LABEL_1),
+            ' ',
+            E.caption(E.p(TEXT_1))
+        ]
+        target_figure_content_nodes_2 = [
+            E.label(LABEL_2),
+            ' ',
+            E.caption(E.p(TEXT_2))
+        ]
+        target_jats_xml = etree.tostring(
+            get_target_xml_node(body_nodes=[
+                E.fig(*target_figure_content_nodes_1),
+                E.fig(*target_figure_content_nodes_2)
+            ])
+        )
+        test_helper.tei_raw_file_path.write_text(''.join([
+            '<tei><text>',
+            '<figure>',
+            get_nodes_text(target_figure_content_nodes_1),
+            '</content>',
+            '</figure>',
+            '<figure>',
+            get_nodes_text(target_figure_content_nodes_2),
+            '</content>',
+            '</figure>',
+            '</text></tei>'
+        ]))
+        LOGGER.debug('target_jats_xml: %s', target_jats_xml)
+        test_helper.xml_file_path.write_bytes(target_jats_xml)
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'matcher': 'simple',
+            'fields': 'figure'
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_tei_xpath_text_list(tei_auto_root, './/figure//label') == [
+            LABEL_1, LABEL_2
+        ]
+        assert get_tei_xpath_text_list(tei_auto_root, './/figure/figDesc') == [
+            TEXT_1, TEXT_2
+        ]
+
     def test_should_not_segment_figures_if_disabled(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_figure_content_nodes_1 = [

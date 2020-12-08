@@ -2,6 +2,12 @@ from __future__ import absolute_import
 
 import argparse
 import logging
+import os
+from contextlib import contextmanager, ExitStack
+from tempfile import TemporaryDirectory
+from typing import ContextManager
+
+from sciencebeam_utils.beam_utils.io import read_all_from_path, save_file_content
 
 from sciencebeam_gym.preprocess.annotation.annotator import Annotator
 
@@ -83,6 +89,22 @@ def _get_annotator(
     return annotator
 
 
+def fix_source_file_to(source_url: str, target_url: str):
+    source_data = read_all_from_path(source_url)
+    data = source_data
+    if b'</content>' in data and b'<content>' not in data:
+        data = data.replace(b'</content>', b'')
+    save_file_content(target_url, data)
+
+
+@contextmanager
+def get_fixed_source_url(source_url: str) -> ContextManager[str]:
+    with TemporaryDirectory(suffix='-fixed') as temp_dir:
+        fixed_source_url = os.path.join(temp_dir, os.path.basename(source_url))
+        fix_source_file_to(source_url, fixed_source_url)
+        yield fixed_source_url
+
+
 class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
     def __init__(self, opt):
         super().__init__(
@@ -109,6 +131,12 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
             if field not in self.tag_to_tei_path_mapping:
                 self.tag_to_tei_path_mapping[field] = 'note[@type="%s"]' % field
         self.annotator_config.use_sub_annotations = True
+        self.exit_stack = ExitStack()
+
+    def get_final_source_url(self, source_url: str) -> str:
+        final_source_url_context = get_fixed_source_url(source_url)
+        self.exit_stack.push(final_source_url_context)
+        return final_source_url_context.__enter__()  # pylint: disable=no-member
 
     def get_annotator(self, source_url: str):
         target_xml_path = self.get_target_xml_for_source_file(source_url)
@@ -118,6 +146,10 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
             annotator_config=self.get_annotator_config(),
             segment_figures=self.segment_figures
         )
+
+    def auto_annotate(self, source_url: str):
+        with self.exit_stack:
+            super().auto_annotate(source_url)
 
 
 def add_main_args(parser):
