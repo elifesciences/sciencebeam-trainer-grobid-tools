@@ -270,6 +270,48 @@ def add_document_checks_arguments(parser: argparse.ArgumentParser):
     )
 
 
+def add_fields_argument(
+        parser: argparse.ArgumentParser,
+        default_fields: List[str] = None):
+    parser.add_argument(
+        '--fields',
+        type=comma_separated_str_to_list,
+        default=','.join(default_fields) if default_fields else None,
+        help='comma separated list of fields to annotate'
+    )
+
+
+def add_sub_fields_argument(
+        parser: argparse.ArgumentParser,
+        default_sub_fields: List[str] = None):
+    parser.add_argument(
+        '--sub-fields',
+        type=comma_separated_str_to_list,
+        default=','.join(default_sub_fields) if default_sub_fields else None,
+        help=(
+            'comma separated list of sub fields to annotate.'
+            ' if blank, all available sub fields will be used.'
+        )
+    )
+
+
+def add_preserve_sub_tags_argument(parser: argparse.ArgumentParser):
+    parser.add_argument(
+        '--preserve-sub-tags',
+        action='store_true',
+        default=False,
+        help='enable preserving sub tags.'
+    )
+
+
+def add_no_preserve_sub_fields_argument(parser: argparse.ArgumentParser):
+    parser.add_argument(
+        '--no-preserve-sub-fields',
+        type=comma_separated_str_to_list,
+        help='comma separated list of sub fields that should not be preserved'
+    )
+
+
 def process_annotation_pipeline_arguments(
         parser: argparse.ArgumentParser, args: argparse.Namespace):
     if not (args.source_base_path or args.source_path):
@@ -587,12 +629,16 @@ class AbstractAnnotatePipelineFactory(ABC):
             target_annotations=target_annotations
         )
 
+    def get_final_source_url(self, source_url: str) -> str:
+        return source_url
+
     def auto_annotate(self, source_url: str):
         try:
             output_xml_path = self.get_tei_xml_output_file_for_source_file(source_url)
-            annotator = self.get_annotator(source_url)
+            final_source_url = self.get_final_source_url(source_url)
+            annotator = self.get_annotator(final_source_url)
             annotate_structured_document(
-                source_url,
+                final_source_url,
                 output_xml_path,
                 annotator=annotator,
                 preserve_tags=self.preserve_tags,
@@ -624,7 +670,12 @@ class AbstractAnnotatePipelineFactory(ABC):
 
     def get_source_file_list(self):
         if self.source_path:
+            LOGGER.debug('using source_path: %r', self.source_path)
             return [self.source_path]
+        LOGGER.debug(
+            'finding files: source_base_path=%r, pattern=%r, limit=%s',
+            self.source_base_path, self.tei_filename_pattern, self.limit
+        )
         return list(find_matching_filenames_with_limit(os.path.join(
             self.source_base_path,
             self.tei_filename_pattern

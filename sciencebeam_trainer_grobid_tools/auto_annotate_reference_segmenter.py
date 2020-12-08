@@ -5,8 +5,6 @@ import logging
 
 from sciencebeam_gym.preprocess.annotation.annotator import Annotator
 
-from .utils.string import comma_separated_str_to_list
-
 from .structured_document.grobid_training_tei import (
     DEFAULT_TAG_KEY
 )
@@ -17,6 +15,7 @@ from .auto_annotate_utils import (
     get_xml_mapping_and_fields,
     add_annotation_pipeline_arguments,
     process_annotation_pipeline_arguments,
+    add_fields_argument,
     get_default_annotators,
     AbstractAnnotatePipelineFactory
 )
@@ -33,6 +32,9 @@ REFERENCE_SEGMENTER_TAG_TO_TEI_PATH_MAPPING = {
     'reference': 'listBibl/bibl',
     'reference-label': 'listBibl/bibl/label'
 }
+
+
+DEFAULT_REFERENCE_SEGMENTER_FIELDS = ['reference']
 
 
 def get_logger():
@@ -76,14 +78,7 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
 
 def add_main_args(parser):
     add_annotation_pipeline_arguments(parser)
-
-    parser.add_argument(
-        '--fields',
-        type=comma_separated_str_to_list,
-        default='reference',
-        help='comma separated list of fields to annotate'
-    )
-
+    add_fields_argument(parser, default_fields=DEFAULT_REFERENCE_SEGMENTER_FIELDS)
     add_debug_argument(parser)
 
 

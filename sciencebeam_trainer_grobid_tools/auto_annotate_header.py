@@ -5,8 +5,6 @@ import logging
 
 from sciencebeam_gym.preprocess.annotation.annotator import Annotator
 
-from .utils.string import comma_separated_str_to_list
-
 from .structured_document.grobid_training_tei import (
     ContainerNodePaths,
     DEFAULT_TAG_KEY
@@ -18,6 +16,7 @@ from .auto_annotate_utils import (
     get_xml_mapping_and_fields,
     add_annotation_pipeline_arguments,
     add_document_checks_arguments,
+    add_fields_argument,
     process_annotation_pipeline_arguments,
     get_default_annotators,
     AbstractAnnotatePipelineFactory
@@ -83,13 +82,7 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
 def add_main_args(parser):
     add_annotation_pipeline_arguments(parser)
     add_document_checks_arguments(parser)
-
-    parser.add_argument(
-        '--fields',
-        type=comma_separated_str_to_list,
-        help='comma separated list of fields to annotate'
-    )
-
+    add_fields_argument(parser)
     add_debug_argument(parser)
 
 

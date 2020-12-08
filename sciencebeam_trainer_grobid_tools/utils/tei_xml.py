@@ -7,6 +7,7 @@ from lxml.builder import ElementMaker
 from sciencebeam_trainer_grobid_tools.utils.xml import (
     get_xpath_matches,
     get_first_xpath_match,
+    get_xpath_text_list,
     get_xpath_text
 )
 
@@ -32,6 +33,10 @@ def get_first_tei_xpath_match(
         xpath: str,
         **kwargs) -> etree.Element:
     return get_first_xpath_match(parent, xpath, namespaces=TEI_NS_MAP, **kwargs)
+
+
+def get_tei_xpath_text_list(*args, **kwargs) -> str:
+    return get_xpath_text_list(*args, namespaces=TEI_NS_MAP, **kwargs)
 
 
 def get_tei_xpath_text(*args, **kwargs):
