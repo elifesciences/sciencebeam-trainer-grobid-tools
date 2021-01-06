@@ -138,6 +138,8 @@ def _get_annotator(
         xml_path,
         xml_mapping,
         no_extend_to_line: bool,
+        expand_to_previous_untagged_lines: bool,
+        expand_to_following_untagged_lines: bool,
         annotator_config: AnnotatorConfig):
     target_annotations = xml_root_to_target_annotations(
         parse_xml(xml_path).getroot(),
@@ -162,18 +164,24 @@ def _get_annotator(
             config=MergeGroupTagsAnnotatorConfig(
                 get_group_tag_for_tag_fn=GROUP_TAG_BY_TAG_MAP.get
             )
-        ),
-        ExpandToPreviousUntaggedLinesPostProcessingAnnotator(
-            config=ExpandToUntaggedLinesAnnotatorConfig(
-                enabled_tags=EXPAND_TO_UNTAGGED_LINES_ENABLED_TAGS
-            )
-        ),
-        ExpandToFollowingUntaggedLinesPostProcessingAnnotator(
-            config=ExpandToUntaggedLinesAnnotatorConfig(
-                enabled_tags=EXPAND_TO_UNTAGGED_LINES_ENABLED_TAGS
-            )
         )
     ]
+    if expand_to_previous_untagged_lines:
+        annotators.append(
+            ExpandToPreviousUntaggedLinesPostProcessingAnnotator(
+                config=ExpandToUntaggedLinesAnnotatorConfig(
+                    enabled_tags=EXPAND_TO_UNTAGGED_LINES_ENABLED_TAGS
+                )
+            )
+        )
+    if expand_to_following_untagged_lines:
+        annotators.append(
+            ExpandToFollowingUntaggedLinesPostProcessingAnnotator(
+                config=ExpandToUntaggedLinesAnnotatorConfig(
+                    enabled_tags=EXPAND_TO_UNTAGGED_LINES_ENABLED_TAGS
+                )
+            )
+        )
     annotator = Annotator(annotators)
     return annotator
 
@@ -201,6 +209,8 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
                 self.tag_to_tei_path_mapping[field] = 'note[@type="%s"]' % field
         self.annotator_config.use_sub_annotations = True
         self.no_extend_to_line = opt.no_extend_to_line
+        self.expand_to_previous_untagged_lines = opt.expand_to_previous_untagged_lines
+        self.expand_to_following_untagged_lines = opt.expand_to_following_untagged_lines
 
     def get_annotator(self, source_url: str):
         target_xml_path = self.get_target_xml_for_source_file(source_url)
@@ -208,6 +218,8 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
             target_xml_path,
             self.xml_mapping,
             no_extend_to_line=self.no_extend_to_line,
+            expand_to_previous_untagged_lines=self.expand_to_previous_untagged_lines,
+            expand_to_following_untagged_lines=self.expand_to_following_untagged_lines,
             annotator_config=self.get_annotator_config(),
         )
 
@@ -221,6 +233,16 @@ def add_main_args(parser):
     parser.add_argument(
         '--no-extend-to-line', action='store_true', required=False,
         help='disable extend tags to line'
+    )
+
+    parser.add_argument(
+        '--expand-to-previous-untagged-lines', action='store_true', required=False,
+        help='Expand Figures and Tables to previous untagged token lines'
+    )
+
+    parser.add_argument(
+        '--expand-to-following-untagged-lines', action='store_true', required=False,
+        help='Expand Figures and Tables to following untagged token lines'
     )
 
     add_debug_argument(parser)
