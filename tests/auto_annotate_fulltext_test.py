@@ -762,6 +762,7 @@ class TestEndToEnd(object):
         ))
         main(dict_to_args({
             **test_helper.main_args_dict,
+            'expand-to-following-untagged-lines': True,
             'fields': ','.join([
                 'figure',
                 'table'
@@ -773,8 +774,10 @@ class TestEndToEnd(object):
             tei_text
         ]
 
-    def test_should_auto_annotate_single_figure_data_before_label_description(
-            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+    @pytest.mark.parametrize("expand_to_untagged", [False, True])
+    def test_should_auto_annotate_single_figure_data_before_label_description_if_enabled(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper,
+            expand_to_untagged: bool):
         target_figure_label_caption_content_nodes = [
             E.label(LABEL_1),
             ' ',
@@ -794,6 +797,7 @@ class TestEndToEnd(object):
             + ' '
             + get_nodes_text(target_figure_label_caption_content_nodes)
         )
+        figure_label_caption_tei_text = get_nodes_text(target_figure_label_caption_content_nodes)
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
             get_training_tei_node([tei_text])
         ))
@@ -802,6 +806,7 @@ class TestEndToEnd(object):
         ))
         main(dict_to_args({
             **test_helper.main_args_dict,
+            'expand-to-previous-untagged-lines': expand_to_untagged,
             'fields': ','.join([
                 'figure',
                 'table'
@@ -810,7 +815,7 @@ class TestEndToEnd(object):
 
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text_list(tei_auto_root, '//figure[not(@type="table")]') == [
-            tei_text
+            tei_text if expand_to_untagged else figure_label_caption_tei_text
         ]
 
     def test_should_auto_annotate_single_table_label_description(
@@ -890,6 +895,7 @@ class TestEndToEnd(object):
         ))
         main(dict_to_args({
             **test_helper.main_args_dict,
+            'expand-to-following-untagged-lines': True,
             'fields': ','.join([
                 'table'
             ])
