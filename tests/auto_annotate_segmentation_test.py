@@ -131,7 +131,6 @@ class TestEndToEnd(object):
         target_body_content_nodes = [
             E.sec(
                 E.title(SECTION_TITLE_1),
-                E.lb(),
                 '\n',
                 E.p(TEXT_1)
             )
@@ -139,15 +138,13 @@ class TestEndToEnd(object):
         target_back_content_nodes = [
             E.sec(
                 E.title(SECTION_TITLE_2),
-                E.lb(),
                 '\n',
                 E.p(TEXT_2)
             )
         ]
-        tei_text = '\n'.join([
-            get_nodes_text(target_body_content_nodes),
-            get_nodes_text(target_back_content_nodes)
-        ])
+        body_tei_text = get_nodes_text(target_body_content_nodes)
+        back_tei_text = get_nodes_text(target_back_content_nodes)
+        tei_text = '\n'.join([body_tei_text, back_tei_text])
         LOGGER.debug('tei_text: %s', tei_text)
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
             get_training_tei_node(get_tei_nodes_for_text(tei_text))
@@ -169,18 +166,8 @@ class TestEndToEnd(object):
         }), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
-        assert get_xpath_text_list(tei_auto_root, '//body') == [
-            '\n'.join([
-                SECTION_TITLE_1,
-                TEXT_1
-            ])
-        ]
-        assert get_xpath_text_list(tei_auto_root, '//back') == [
-            '\n'.join([
-                SECTION_TITLE_2,
-                TEXT_2
-            ])
-        ]
+        assert get_xpath_text_list(tei_auto_root, '//body') == [body_tei_text]
+        assert get_xpath_text_list(tei_auto_root, '//back') == [back_tei_text]
 
     def test_should_auto_annotate_body_and_back_top_level_section_paragraphs(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
@@ -190,7 +177,6 @@ class TestEndToEnd(object):
             get_nodes_text(target_body_content_nodes),
             get_nodes_text(target_back_content_nodes)
         ])
-        LOGGER.debug('tei_text: %s', tei_text)
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
             get_training_tei_node(get_tei_nodes_for_text(tei_text))
         ))
@@ -220,7 +206,6 @@ class TestEndToEnd(object):
             get_nodes_text(target_body_content_nodes),
             get_nodes_text(target_back_content_nodes)
         ])
-        LOGGER.debug('tei_text: %s', tei_text)
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
             get_training_tei_node(get_tei_nodes_for_text(tei_text))
         ))
@@ -247,7 +232,6 @@ class TestEndToEnd(object):
         target_back_content_nodes = [
             E.ack(
                 E.title(SECTION_TITLE_2),
-                E.lb(),
                 '\n',
                 E.p(TEXT_2)
             )
@@ -353,7 +337,6 @@ class TestEndToEnd(object):
         body_tei_text = get_nodes_text(target_body_content_nodes)
         back_tei_text = get_nodes_text(target_back_content_nodes)
         tei_text = '\n'.join([body_tei_text, back_tei_text])
-        LOGGER.debug('tei_text: %s', tei_text)
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
             get_training_tei_node(get_tei_nodes_for_text(tei_text))
         ))
