@@ -111,8 +111,6 @@ def get_default_target_xml_node():
 def get_node_text(node: Union[str, etree.ElementBase]) -> str:
     if isinstance(node, str):
         return str(node)
-    if node.tag == 'lb':
-        return '\n'
     return get_text_content(node)
 
 
