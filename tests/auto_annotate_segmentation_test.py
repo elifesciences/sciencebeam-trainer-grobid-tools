@@ -256,7 +256,7 @@ class TestEndToEnd(object):
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text_list(tei_auto_root, '//back') == [tei_text]
 
-    def test_should_auto_annotate_appendix_section_as_back(
+    def test_should_auto_annotate_appendix_section_as_annex(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_back_content_nodes = [
             E.app(
@@ -278,12 +278,14 @@ class TestEndToEnd(object):
                 'body_section_title',
                 'body_section_paragraph',
                 'back_section_title',
-                'back_section_paragraph'
+                'back_section_paragraph',
+                'appendix_group_title',
+                'appendix'
             ])
         }), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
-        assert get_xpath_text_list(tei_auto_root, '//back') == [tei_text]
+        assert get_xpath_text_list(tei_auto_root, '//div[@type="annex"]') == [tei_text]
 
     def test_should_auto_annotate_body_and_back_figure_label_title_caption(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
