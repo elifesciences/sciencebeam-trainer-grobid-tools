@@ -108,10 +108,13 @@ def get_default_target_xml_node():
     return get_target_xml_node(title=TOKEN_1)
 
 
+def get_node_text(node: Union[str, etree.ElementBase]) -> str:
+    if isinstance(node, str):
+        return str(node)
+    if node.tag == 'lb':
+        return '\n'
+    return get_text_content(node)
+
+
 def get_nodes_text(nodes: List[Union[str, etree.Element]]) -> str:
-    return ''.join([
-        str(node)
-        if isinstance(node, str)
-        else get_text_content(node)
-        for node in nodes
-    ])
+    return ''.join([get_node_text(node) for node in nodes])

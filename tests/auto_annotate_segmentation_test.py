@@ -7,7 +7,7 @@ import pytest
 from lxml import etree
 from lxml.builder import E
 
-from sciencebeam_trainer_grobid_tools.utils.xml import get_xpath_text
+from sciencebeam_trainer_grobid_tools.utils.xml import get_xpath_text, get_xpath_text_list
 
 from sciencebeam_trainer_grobid_tools.auto_annotate_utils import (
     MatcherNames
@@ -21,6 +21,8 @@ from .test_utils import log_on_exception, dict_to_args
 
 from .auto_annotate_test_utils import (
     get_target_xml_node,
+    get_nodes_text,
+    get_tei_nodes_for_text,
     get_default_target_xml_node,
     SingleFileAutoAnnotateEndToEndTestHelper
 )
@@ -50,10 +52,21 @@ NOT_MATCHING_ABSTRACT_1 = (
     'Something different.'
 )
 
+SECTION_TITLE_1 = 'Section Title 1'
+SECTION_TITLE_2 = 'Section Title 2'
+
+TEXT_1 = 'text 1'
+TEXT_2 = 'text 2'
+
 
 def get_segmentation_tei_node(
         text_items: List[Union[etree.Element, str]]) -> etree.Element:
     return E.tei(E.text(*text_items))
+
+
+def get_training_tei_node(
+        items: List[Union[etree.Element, str]]) -> etree.Element:
+    return get_segmentation_tei_node(items)
 
 
 def get_default_tei_node() -> etree.Element:
@@ -109,6 +122,63 @@ class TestEndToEnd(object):
 
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text(tei_auto_root, '//text/front') == TOKEN_1
+
+    def test_should_auto_annotate_body_and_back_section(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        target_body_content_nodes = [
+            E.sec(
+                E.title(SECTION_TITLE_1),
+                E.lb(),
+                '\n',
+                E.p(TEXT_1)
+            )
+        ]
+        target_back_content_nodes = [
+            E.sec(
+                E.title(SECTION_TITLE_2),
+                E.lb(),
+                '\n',
+                E.p(TEXT_2)
+            )
+        ]
+        tei_text = get_nodes_text(
+            target_body_content_nodes
+            + ['\n']
+            + target_back_content_nodes
+        )
+        LOGGER.debug('tei_text: %s', tei_text)
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_training_tei_node(get_tei_nodes_for_text(tei_text))
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(
+                body_nodes=target_body_content_nodes,
+                back_nodes=target_back_content_nodes
+            )
+        ))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'fields': ','.join([
+                'body_section_title',
+                'body_section_paragraph',
+                'back_section_title',
+                'back_section_paragraph'
+            ])
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text_list(tei_auto_root, '//body') == [
+            '\n'.join([
+                SECTION_TITLE_1,
+                TEXT_1
+            ])
+        ]
+        assert get_xpath_text_list(tei_auto_root, '//back') == [
+            '\n'.join([
+                SECTION_TITLE_2,
+                TEXT_2
+            ])
+        ]
 
     def test_should_process_specific_file(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
