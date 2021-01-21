@@ -259,11 +259,15 @@ class TestEndToEnd(object):
     def test_should_auto_annotate_appendix_section_as_annex(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_back_content_nodes = [
-            E.app(
-                E.title(SECTION_TITLE_2),
+            E('app-group', *[
+                E.title('Appendix'),
                 '\n',
-                E.p(TEXT_2)
-            )
+                E.app(
+                    E.title(SECTION_TITLE_2),
+                    '\n',
+                    E.p(TEXT_2)
+                )
+            ])
         ]
         tei_text = get_nodes_text(target_back_content_nodes)
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
