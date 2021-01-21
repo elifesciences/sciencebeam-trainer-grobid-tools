@@ -293,7 +293,7 @@ class TestEndToEnd(object):
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text_list(tei_auto_root, '//div[@type="annex"]') == [tei_text]
 
-    def test_should_auto_annotate_body_and_back_figure_label_title_caption(
+    def test_should_auto_annotate_body_and_back_figure_label_title_caption_as_body(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_body_content_nodes = [
             E.fig(
@@ -333,16 +333,14 @@ class TestEndToEnd(object):
         main(dict_to_args({
             **test_helper.main_args_dict,
             'fields': ','.join([
-                'body_figure',
-                'back_figure'
+                'figure'
             ])
         }), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
-        assert get_xpath_text_list(tei_auto_root, '//body') == [body_tei_text]
-        assert get_xpath_text_list(tei_auto_root, '//back') == [back_tei_text]
+        assert get_xpath_text_list(tei_auto_root, '//body') == [tei_text]
 
-    def test_should_auto_annotate_body_and_back_table_label_title_caption(
+    def test_should_auto_annotate_body_and_back_table_label_title_caption_as_body(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_body_content_nodes = [
             E('table-wrap', *[
@@ -381,14 +379,12 @@ class TestEndToEnd(object):
         main(dict_to_args({
             **test_helper.main_args_dict,
             'fields': ','.join([
-                'body_table',
-                'back_table'
+                'table'
             ])
         }), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
-        assert get_xpath_text_list(tei_auto_root, '//body') == [body_tei_text]
-        assert get_xpath_text_list(tei_auto_root, '//back') == [back_tei_text]
+        assert get_xpath_text_list(tei_auto_root, '//body') == [tei_text]
 
     def test_should_process_specific_file(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
