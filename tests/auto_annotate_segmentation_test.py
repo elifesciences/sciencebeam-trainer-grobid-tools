@@ -326,6 +326,55 @@ class TestEndToEnd(object):
         assert get_xpath_text_list(tei_auto_root, '//body') == [body_tei_text]
         assert get_xpath_text_list(tei_auto_root, '//back') == [back_tei_text]
 
+    def test_should_auto_annotate_body_and_back_table_label_title_caption(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        target_body_content_nodes = [
+            E('table-wrap', *[
+                E.label(FIGURE_LABEL_1),
+                ' ',
+                E.caption(
+                    E.title(SECTION_TITLE_1),
+                    '\n',
+                    E.p(TEXT_1)
+                )
+            ])
+        ]
+        target_back_content_nodes = [
+            E('table-wrap', *[
+                E.label(FIGURE_LABEL_2),
+                ' ',
+                E.caption(
+                    E.title(SECTION_TITLE_2),
+                    '\n',
+                    E.p(TEXT_2)
+                )
+            ])
+        ]
+        body_tei_text = get_nodes_text(target_body_content_nodes)
+        back_tei_text = get_nodes_text(target_back_content_nodes)
+        tei_text = '\n'.join([body_tei_text, back_tei_text])
+        LOGGER.debug('tei_text: %s', tei_text)
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_training_tei_node(get_tei_nodes_for_text(tei_text))
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(
+                body_nodes=target_body_content_nodes,
+                back_nodes=target_back_content_nodes
+            )
+        ))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'fields': ','.join([
+                'body_table',
+                'back_table'
+            ])
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text_list(tei_auto_root, '//body') == [body_tei_text]
+        assert get_xpath_text_list(tei_auto_root, '//back') == [back_tei_text]
+
     def test_should_process_specific_file(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(get_default_tei_node()))
