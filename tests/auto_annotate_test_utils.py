@@ -40,6 +40,11 @@ class SingleFileAutoAnnotateEndToEndTestHelper:
         self.main_args = dict_to_args(self.main_args_dict)
         self.tei_auto_file_path = self.tei_auto_path.joinpath(tei_filename)
 
+    def write_xml_root(self, root: etree.ElementBase):
+        data = etree.tostring(root)
+        LOGGER.debug('xml: %s', data)
+        self.xml_file_path.write_bytes(data)
+
     def get_tei_auto_root(self):
         assert self.tei_auto_file_path.exists()
         tei_auto_root = etree.parse(str(self.tei_auto_file_path)).getroot()

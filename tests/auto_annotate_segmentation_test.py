@@ -126,6 +126,38 @@ class TestEndToEnd(object):
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text(tei_auto_root, '//text/front') == TOKEN_1
 
+    def test_should_merge_front_tags_and_include_preceeding_text(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        front_tei_text = '\n'.join([
+            'Before',
+            TITLE_1,
+            'Other',
+            ABSTRACT_1
+        ])
+        tei_text = '\n'.join([
+            front_tei_text,
+            'After'
+        ])
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_training_tei_node(get_tei_nodes_for_text(tei_text))
+        ))
+        test_helper.write_xml_root(
+            get_target_xml_node(
+                title=TITLE_1,
+                abstract_node=E.abstract(E.p(ABSTRACT_1))
+            )
+        )
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'fields': ','.join([
+                'title',
+                'abstract'
+            ])
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text_list(tei_auto_root, '//front') == [front_tei_text]
+
     def test_should_auto_annotate_body_and_back_section(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_body_content_nodes = [
