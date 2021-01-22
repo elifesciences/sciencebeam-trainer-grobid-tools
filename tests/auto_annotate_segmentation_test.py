@@ -7,7 +7,7 @@ import pytest
 from lxml import etree
 from lxml.builder import E
 
-from sciencebeam_trainer_grobid_tools.utils.xml import get_xpath_text, get_xpath_text_list
+from sciencebeam_trainer_grobid_tools.utils.xml import get_xpath_text_list
 
 from sciencebeam_trainer_grobid_tools.auto_annotate_utils import (
     MatcherNames
@@ -108,7 +108,7 @@ class TestEndToEnd(object):
         ], save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
-        assert get_xpath_text(tei_auto_root, '//text/front') == TOKEN_1
+        assert get_xpath_text_list(tei_auto_root, '//text/front') == [TOKEN_1]
 
     def test_should_auto_annotate_using_simple_matcher(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
@@ -124,7 +124,7 @@ class TestEndToEnd(object):
         ], save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
-        assert get_xpath_text(tei_auto_root, '//text/front') == TOKEN_1
+        assert get_xpath_text_list(tei_auto_root, '//text/front') == [TOKEN_1]
 
     def test_should_merge_front_tags_and_include_preceeding_text(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
@@ -495,7 +495,7 @@ class TestEndToEnd(object):
         ], save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
-        assert get_xpath_text(tei_auto_root, '//text/page') == TOKEN_1
+        assert get_xpath_text_list(tei_auto_root, '//text/page') == [TOKEN_1]
 
     def test_should_always_preserve_specified_existing_tag(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
@@ -518,7 +518,7 @@ class TestEndToEnd(object):
         }), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
-        assert get_xpath_text(tei_auto_root, '//text/page') == TOKEN_2
+        assert get_xpath_text_list(tei_auto_root, '//text/page') == [TOKEN_2]
 
     def test_should_always_preserve_reference_tag(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
@@ -542,7 +542,7 @@ class TestEndToEnd(object):
         }), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
-        assert get_xpath_text(tei_auto_root, '//text/listBibl') == _reference_text
+        assert get_xpath_text_list(tei_auto_root, '//text/listBibl') == [_reference_text]
 
     def test_should_auto_annotate_reference_without_separate_label_tag(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
@@ -567,10 +567,9 @@ class TestEndToEnd(object):
         }), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
-        assert (
-            get_xpath_text(tei_auto_root, '//text/listBibl')
-            == LABEL_1 + ' ' + REFERENCE_TEXT_1
-        )
+        assert get_xpath_text_list(tei_auto_root, '//text/listBibl') == [
+            LABEL_1 + ' ' + REFERENCE_TEXT_1
+        ]
 
     def test_should_not_preserve_exclude_existing_tag_and_use_body_by_default(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
@@ -587,8 +586,8 @@ class TestEndToEnd(object):
         ], save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
-        assert get_xpath_text(tei_auto_root, '//text/page') == ''
-        assert get_xpath_text(tei_auto_root, '//text/body') == TOKEN_1
+        assert get_xpath_text_list(tei_auto_root, '//text/page') == []
+        assert get_xpath_text_list(tei_auto_root, '//text/body') == [TOKEN_1]
 
     @pytest.mark.parametrize(
         'relative_failed_output_path', ['tei-error', '']
