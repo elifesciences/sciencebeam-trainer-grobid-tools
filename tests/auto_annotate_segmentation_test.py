@@ -520,6 +520,30 @@ class TestEndToEnd(object):
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text_list(tei_auto_root, '//text/page') == [TOKEN_2]
 
+    def test_should_always_preserve_specified_existing_tag_when_merging_front(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_segmentation_tei_node([
+                E.note(TITLE_1),
+                E.lb(),
+                E.page(TOKEN_2),
+                E.lb(),
+                E.note(ABSTRACT_1),
+                E.lb()
+            ])
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(title=TITLE_1, abstract_node=E.abstract(E.p(ABSTRACT_1)))
+        ))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'always-preserve-fields': 'page'
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text_list(tei_auto_root, '//text/page') == [TOKEN_2]
+        assert get_xpath_text_list(tei_auto_root, '//text/front') == [TITLE_1, ABSTRACT_1]
+
     def test_should_always_preserve_reference_tag(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         _common_tokens = [TOKEN_2, TOKEN_3]

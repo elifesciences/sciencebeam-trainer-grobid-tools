@@ -177,7 +177,7 @@ class SegmentationAnnotator(AbstractAnnotator):
             else:
                 if majority_tag_name is None:
                     _clear_line_token_tags(structured_document, line)
-                untagged_indexed_lines.append((line_index, line))
+                    untagged_indexed_lines.append((line_index, line))
 
         if SegmentationTagNames.FRONT in min_max_by_tag:
             front_min_line_index, front_max_line_index = min_max_by_tag[SegmentationTagNames.FRONT]
