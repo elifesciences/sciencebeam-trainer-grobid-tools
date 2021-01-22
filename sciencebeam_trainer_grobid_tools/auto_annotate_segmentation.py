@@ -57,6 +57,29 @@ SEGMENTATION_TAG_TO_TEI_PATH_MAPPING = {
 DEFAULT_SEGMENTATION_CONFIG = 'segmentation.conf'
 
 
+DEFAULT_FIELDS = [
+    'title',
+    'abstract',
+    'keywords_title',
+    'keywords',
+    'manuscript_type',
+    'author',
+    'author_aff',
+    'author_notes',
+    'body_section_title',
+    'body_section_paragraph',
+    'figure',
+    'table',
+    'back_section_title',
+    'back_section_paragraph',
+    'acknowledgment_section_title',
+    'acknowledgment_section_paragraph',
+    'appendix_group_title',
+    'appendix',
+    'reference'
+]
+
+
 def get_logger():
     return logging.getLogger(__name__)
 
@@ -178,7 +201,7 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
 def add_main_args(parser):
     add_annotation_pipeline_arguments(parser)
     add_document_checks_arguments(parser)
-    add_fields_argument(parser)
+    add_fields_argument(parser, default_fields=DEFAULT_FIELDS)
 
     parser.add_argument(
         '--no-preserve-fields',
