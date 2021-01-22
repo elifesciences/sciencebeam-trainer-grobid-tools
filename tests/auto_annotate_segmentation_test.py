@@ -199,7 +199,7 @@ class TestEndToEnd(object):
 
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text_list(tei_auto_root, '//body') == [body_tei_text]
-        assert get_xpath_text_list(tei_auto_root, '//back') == [back_tei_text]
+        assert get_xpath_text_list(tei_auto_root, '//div[@type="annex"]') == [back_tei_text]
 
     def test_should_auto_annotate_body_and_back_top_level_section_paragraphs(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
@@ -228,7 +228,7 @@ class TestEndToEnd(object):
 
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text_list(tei_auto_root, '//body') == [TEXT_1]
-        assert get_xpath_text_list(tei_auto_root, '//back') == [TEXT_2]
+        assert get_xpath_text_list(tei_auto_root, '//div[@type="annex"]') == [TEXT_2]
 
     def test_should_auto_annotate_body_and_back_list_item_section_paragraphs(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
@@ -257,7 +257,7 @@ class TestEndToEnd(object):
 
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text_list(tei_auto_root, '//body') == [TEXT_1]
-        assert get_xpath_text_list(tei_auto_root, '//back') == [TEXT_2]
+        assert get_xpath_text_list(tei_auto_root, '//div[@type="annex"]') == [TEXT_2]
 
     def test_should_auto_annotate_acknowledgment_section_as_acknowledgment(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
