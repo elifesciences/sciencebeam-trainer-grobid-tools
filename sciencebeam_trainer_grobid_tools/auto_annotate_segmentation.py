@@ -76,6 +76,7 @@ DEFAULT_FIELDS = [
     'acknowledgment_section_paragraph',
     'appendix_group_title',
     'appendix',
+    'reference_list_title',
     'reference'
 ]
 
