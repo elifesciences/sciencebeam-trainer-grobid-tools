@@ -544,6 +544,35 @@ class TestEndToEnd(object):
         assert get_xpath_text_list(tei_auto_root, '//text/page') == [TOKEN_2]
         assert get_xpath_text_list(tei_auto_root, '//text/front') == [TITLE_1, ABSTRACT_1]
 
+    def test_should_not_merge_front_interrupted_by_body_tag(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_segmentation_tei_node(get_tei_nodes_for_text('\n'.join([
+                TITLE_1,
+                'After title',
+                TEXT_1,
+                'Before abstract',
+                ABSTRACT_1
+            ])))
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(get_target_xml_node(
+            title=TITLE_1,
+            abstract_node=E.abstract(E.p(ABSTRACT_1)),
+            body_nodes=[E.sec(E.p(TEXT_1))]
+        )))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'fields': ','.join(['title', 'abstract', 'body_section_paragraph'])
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text_list(tei_auto_root, '//text/front') == [
+            TITLE_1, ABSTRACT_1
+        ]
+        assert get_xpath_text_list(tei_auto_root, '//text/body') == [
+            '\n'.join(['After title', TEXT_1, 'Before abstract'])
+        ]
+
     def test_should_always_preserve_reference_tag(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         _common_tokens = [TOKEN_2, TOKEN_3]
