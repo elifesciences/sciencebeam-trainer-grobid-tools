@@ -163,7 +163,7 @@ class TestSegmentationAnnotator:
 
     def test_should_annotate_other_tags_as_body(self):
         doc = _simple_document_with_tagged_token_lines(lines=[
-            [(OTHER_TAG, TOKEN_1)]
+            [(None, TOKEN_1)]
         ])
 
         SegmentationAnnotator(DEFAULT_CONFIG).annotate(doc)
@@ -248,7 +248,7 @@ class TestSegmentationAnnotator:
     def test_should_annotate_untagged_lines_between_first_and_last_header(self):
         doc = _simple_document_with_tagged_token_lines(lines=[
             [(FrontTagNames.TITLE, TOKEN_1)],
-            [(OTHER_TAG, TOKEN_2)],
+            [(None, TOKEN_2)],
             [(FrontTagNames.TITLE, TOKEN_3)]
         ])
 
@@ -261,7 +261,7 @@ class TestSegmentationAnnotator:
 
     def test_should_annotate_untagged_lines_before_first_header(self):
         doc = _simple_document_with_tagged_token_lines(lines=[
-            [(OTHER_TAG, TOKEN_1)],
+            [(None, TOKEN_1)],
             [(FrontTagNames.TITLE, TOKEN_2)],
             [(FrontTagNames.TITLE, TOKEN_3)]
         ])
@@ -277,14 +277,14 @@ class TestSegmentationAnnotator:
         doc = _simple_document_with_tagged_token_lines(lines=[
             [(FrontTagNames.TITLE, TOKEN_1)],
             [(FrontTagNames.TITLE, TOKEN_2)],
-            [(OTHER_TAG, TOKEN_3)],
+            [(None, TOKEN_3)],
         ])
 
         SegmentationAnnotator(DEFAULT_CONFIG, preserve_tags=True).annotate(doc)
         assert _get_document_tagged_token_lines(doc) == [
             [(SegmentationTagNames.FRONT, TOKEN_1)],
             [(SegmentationTagNames.FRONT, TOKEN_2)],
-            [(OTHER_TAG, TOKEN_3)]
+            [(None, TOKEN_3)]
         ]
 
     def test_should_not_annotate_untagged_page_no_lines_between_first_and_last_header(self):
