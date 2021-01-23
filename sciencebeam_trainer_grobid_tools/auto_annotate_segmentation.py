@@ -129,7 +129,7 @@ def is_segmentation_structured_document_passing_checks(
     if not required_value_by_name:
         return True
     entities_by_name = get_structured_document_entities_by_name(structured_document)
-    LOGGER.info('entities_by_name: %s', entities_by_name)
+    LOGGER.debug('entities_by_name: %s', entities_by_name)
     expected_entity_by_field_name = {
         field_name: entity_name
         for entity_name, field_names in segmentation_config.segmentation_mapping.items()
