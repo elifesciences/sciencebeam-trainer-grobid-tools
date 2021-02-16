@@ -2,6 +2,12 @@ from __future__ import absolute_import
 
 import argparse
 import logging
+import os
+from contextlib import contextmanager
+from tempfile import TemporaryDirectory
+from typing import ContextManager
+
+from sciencebeam_utils.beam_utils.io import read_all_from_path, save_file_content
 
 from sciencebeam_gym.preprocess.annotation.annotator import Annotator
 
@@ -186,6 +192,22 @@ def _get_annotator(
     return annotator
 
 
+def fix_source_file_to(source_url: str, target_url: str):
+    source_data = read_all_from_path(source_url)
+    data = source_data
+    if b'</table>' in data and b'<table>' not in data:
+        data = data.replace(b'</table>', b'</figure>')
+    save_file_content(target_url, data)
+
+
+@contextmanager
+def get_fixed_source_url(source_url: str) -> ContextManager[str]:
+    with TemporaryDirectory(suffix='-fixed') as temp_dir:
+        fixed_source_url = os.path.join(temp_dir, os.path.basename(source_url))
+        fix_source_file_to(source_url, fixed_source_url)
+        yield fixed_source_url
+
+
 class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
     def __init__(self, opt):
         super().__init__(
@@ -211,6 +233,11 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
         self.no_extend_to_line = opt.no_extend_to_line
         self.expand_to_previous_untagged_lines = opt.expand_to_previous_untagged_lines
         self.expand_to_following_untagged_lines = opt.expand_to_following_untagged_lines
+
+    def get_final_source_url(self, source_url: str) -> str:
+        final_source_url_context = get_fixed_source_url(source_url)
+        self.file_exit_stack.push(final_source_url_context)
+        return final_source_url_context.__enter__()  # pylint: disable=no-member
 
     def get_annotator(self, source_url: str):
         target_xml_path = self.get_target_xml_for_source_file(source_url)
