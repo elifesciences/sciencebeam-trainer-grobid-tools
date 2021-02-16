@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import argparse
 import logging
 import os
-from contextlib import contextmanager, ExitStack
+from contextlib import contextmanager
 from tempfile import TemporaryDirectory
 from typing import ContextManager
 
