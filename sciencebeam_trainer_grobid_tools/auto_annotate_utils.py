@@ -4,6 +4,7 @@ import concurrent.futures
 import re
 import os
 from abc import ABC, abstractmethod
+from contextlib import ExitStack
 from functools import partial
 from typing import Callable, Dict, List, Optional, Set
 
@@ -587,6 +588,7 @@ class AbstractAnnotatePipelineFactory(ABC):
                 line_number_ratio_threshold=opt.min_line_number_ratio,
             )
         )
+        self.file_exit_stack = ExitStack()
 
     @abstractmethod
     def get_annotator(self, source_url: str):
@@ -633,6 +635,10 @@ class AbstractAnnotatePipelineFactory(ABC):
         return source_url
 
     def auto_annotate(self, source_url: str):
+        with self.file_exit_stack:
+            self._auto_annotate(source_url)
+
+    def _auto_annotate(self, source_url: str):
         try:
             output_xml_path = self.get_tei_xml_output_file_for_source_file(source_url)
             final_source_url = self.get_final_source_url(source_url)
