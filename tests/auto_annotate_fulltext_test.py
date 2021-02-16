@@ -1156,3 +1156,28 @@ class TestEndToEnd(object):
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text_list(tei_auto_root, '//formula') == [TEXT_1]
         assert get_xpath_text_list(tei_auto_root, '//head') == [SECTION_TITLE_1]
+
+    def test_should_preserve_and_decode_quote_html_entities_after_invalid_xml(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        target_jats_xml = etree.tostring(
+            get_target_xml_node()
+        )
+        test_helper.tei_raw_file_path.write_text(''.join([
+            '<tei><text>',
+            '<figure></table>',
+            'before',
+            '&apos;',
+            'after',
+            '</text></tei>'
+        ]))
+        LOGGER.debug('target_jats_xml: %s', target_jats_xml)
+        test_helper.xml_file_path.write_bytes(target_jats_xml)
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'matcher': 'simple'
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text_list(tei_auto_root, './/text') == [
+            'before\'after'
+        ]
