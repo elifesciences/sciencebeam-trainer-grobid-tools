@@ -6,7 +6,12 @@ from setuptools import (
 )
 
 with open(os.path.join('requirements.txt'), 'r') as f:
-    REQUIRED_PACKAGES = f.readlines()
+    PINNED_REQUIRED_PACKAGES = f.readlines()
+
+REQUIRED_PACKAGES = [
+    req.replace('==', '>=')
+    for req in PINNED_REQUIRED_PACKAGES
+]
 
 packages = find_packages()
 
