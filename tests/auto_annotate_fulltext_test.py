@@ -10,7 +10,6 @@ from lxml.builder import E
 from sciencebeam_trainer_grobid_tools.utils.xml import get_xpath_text_list
 
 from sciencebeam_trainer_grobid_tools.auto_annotate_fulltext import (
-    fix_source_file_to,
     main
 )
 
@@ -78,19 +77,6 @@ def _test_helper(temp_dir: Path) -> SingleFileAutoAnnotateEndToEndTestHelper:
         tei_filename=TEI_FILENAME_1,
         tei_filename_regex=TEI_FILENAME_REGEX
     )
-
-
-class TestFixSourceFileTo:
-    def test_should_fix_closing_table_instead_of_figure(self, tmp_path: Path):
-        in_file = tmp_path / 'in.xml'
-        out_file = tmp_path / 'out.xml'
-        in_file.write_text(
-            '<tei><text><figure></table><figure></table></text></tei>'
-        )
-        fix_source_file_to(str(in_file), str(out_file))
-        assert out_file.read_text() == (
-            '<tei><text><figure></figure><figure></figure></text></tei>'
-        )
 
 
 @log_on_exception

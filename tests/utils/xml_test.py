@@ -5,7 +5,8 @@ from apache_beam.io.filesystems import FileSystems
 
 from sciencebeam_trainer_grobid_tools.utils.xml import (
     parse_xml_or_get_error_line,
-    XMLSyntaxErrorWithErrorLine
+    XMLSyntaxErrorWithErrorLine,
+    get_fixed_xml_str
 )
 
 
@@ -53,3 +54,85 @@ class TestParseXmlOrGetErrorLine:
             assert False
         except XMLSyntaxErrorWithErrorLine as e:
             assert e.error_line == b'/xml>'
+
+
+class TestGetFixedXmlStr:
+    def test_should_preserve_valid_xml_without_ns(self):
+        xml_str = '<tei><text>abc</text></tei>'
+        assert get_fixed_xml_str(xml_str) == xml_str
+
+    def test_should_preserve_valid_xml_with_ns(self):
+        xml_str = '<tei xmlns="http://www.tei-c.org/ns/1.0"><text>abc</text></tei>'
+        assert get_fixed_xml_str(xml_str) == xml_str
+
+    def test_should_correct_single_closing_tag(self):
+        xml_str = (
+            '<tei><text><figure>abc</p></text></tei>'
+        )
+        expected_xml_str = (
+            '<tei><text><figure>abc</figure></text></tei>'
+        )
+        assert get_fixed_xml_str(xml_str) == expected_xml_str
+
+    def test_should_correct_multiple_single_closing_tag(self):
+        xml_str = (
+            '<tei><text><figure>abc</p><figure>abc</p></text></tei>'
+        )
+        expected_xml_str = (
+            '<tei><text><figure>abc</figure><figure>abc</figure></text></tei>'
+        )
+        assert get_fixed_xml_str(xml_str) == expected_xml_str
+
+    def test_should_close_unclosed_tag(self):
+        xml_str = (
+            '<tei><text><figure>abc</text></tei>'
+        )
+        expected_xml_str = (
+            '<tei><text><figure>abc</figure></text></tei>'
+        )
+        assert get_fixed_xml_str(xml_str) == expected_xml_str
+
+    def test_should_correct_closing_tag_with_ns(self):
+        xml_str = (
+            '<tei xmlns="http://www.tei-c.org/ns/1.0"><text><figure>abc</p></text></tei>'
+        )
+        expected_xml_str = (
+            '<tei xmlns="http://www.tei-c.org/ns/1.0"><text><figure>abc</figure></text></tei>'
+        )
+        assert get_fixed_xml_str(xml_str) == expected_xml_str
+
+    def test_should_correct_closing_tag_with_attributes(self):
+        xml_str = (
+            '<tei><text><figure a="1" b="2">abc</p></text></tei>'
+        )
+        expected_xml_str = (
+            '<tei><text><figure a="1" b="2">abc</figure></text></tei>'
+        )
+        assert get_fixed_xml_str(xml_str) == expected_xml_str
+
+    def test_should_correct_closing_tag_and_escape_gt_in_data(self):
+        xml_str = (
+            '<tei><text><figure a="1" b="2">a &gt; b</p></text></tei>'
+        )
+        expected_xml_str = (
+            '<tei><text><figure a="1" b="2">a &gt; b</figure></text></tei>'
+        )
+        assert get_fixed_xml_str(xml_str) == expected_xml_str
+
+    def test_should_correct_closing_tag_and_decode_apos_in_data(self):
+        xml_str = (
+            '<tei><text><figure a="1" b="2">a &apos; b</p></text></tei>'
+        )
+        expected_xml_str = (
+            '<tei><text><figure a="1" b="2">a \' b</figure></text></tei>'
+        )
+        assert get_fixed_xml_str(xml_str) == expected_xml_str
+
+    def test_should_correct_closing_tag_and_escape_amp_in_attrib(self):
+        xml_str = (
+            '<tei><text><figure a="1 &amp; 2">abc</p></text></tei>'
+        )
+        expected_xml_str = (
+            '<tei><text><figure a="1 &amp; 2">abc</figure></text></tei>'
+        )
+        assert get_fixed_xml_str(xml_str) == expected_xml_str

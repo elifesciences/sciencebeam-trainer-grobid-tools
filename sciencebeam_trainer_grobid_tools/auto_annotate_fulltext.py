@@ -2,12 +2,6 @@ from __future__ import absolute_import
 
 import argparse
 import logging
-import os
-from contextlib import contextmanager
-from tempfile import TemporaryDirectory
-from typing import ContextManager
-
-from sciencebeam_utils.beam_utils.io import read_all_from_path, save_file_content
 
 from sciencebeam_gym.preprocess.annotation.annotator import Annotator
 
@@ -15,7 +9,7 @@ from .structured_document.grobid_training_tei import (
     DEFAULT_TAG_KEY
 )
 
-from .utils.xml import parse_xml
+from .utils.xml import parse_xml, get_fixed_source_url
 
 from .annotation.target_annotation import (
     xml_root_to_target_annotations
@@ -190,22 +184,6 @@ def _get_annotator(
         )
     annotator = Annotator(annotators)
     return annotator
-
-
-def fix_source_file_to(source_url: str, target_url: str):
-    source_data = read_all_from_path(source_url)
-    data = source_data
-    if b'</table>' in data and b'<table>' not in data:
-        data = data.replace(b'</table>', b'</figure>')
-    save_file_content(target_url, data)
-
-
-@contextmanager
-def get_fixed_source_url(source_url: str) -> ContextManager[str]:
-    with TemporaryDirectory(suffix='-fixed') as temp_dir:
-        fixed_source_url = os.path.join(temp_dir, os.path.basename(source_url))
-        fix_source_file_to(source_url, fixed_source_url)
-        yield fixed_source_url
 
 
 class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
