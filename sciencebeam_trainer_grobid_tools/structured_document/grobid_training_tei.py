@@ -20,7 +20,7 @@ from sciencebeam_utils.utils.xml import (
     set_or_remove_attrib
 )
 
-from sciencebeam_gym.structured_document import (
+from sciencebeam_trainer_grobid_tools.core.structured_document import (
     AbstractStructuredDocument,
     get_scoped_attrib_name,
     get_attrib_by_scope,

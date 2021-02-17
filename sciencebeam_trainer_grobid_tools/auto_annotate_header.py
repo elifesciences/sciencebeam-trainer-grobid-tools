@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import argparse
 import logging
 
-from sciencebeam_gym.preprocess.annotation.annotator import Annotator
+from .core.annotation.annotator import Annotator
 
 from .structured_document.grobid_training_tei import (
     ContainerNodePaths,

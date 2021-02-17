@@ -8,15 +8,12 @@ from setuptools import (
 with open(os.path.join('requirements.txt'), 'r') as f:
     REQUIRED_PACKAGES = f.readlines()
 
-with open(os.path.join('requirements.links.setup.txt'), 'r') as f:
-    LINKS_PACKAGES = f.readlines()
-
 packages = find_packages()
 
 setup(
     name='sciencebeam_trainer_grobid_tools',
     version='0.0.1',
-    install_requires=REQUIRED_PACKAGES + LINKS_PACKAGES,
+    install_requires=REQUIRED_PACKAGES,
     packages=packages,
     include_package_data=True,
     description='ScienceBeam Trainer - Tools for GROBID training',

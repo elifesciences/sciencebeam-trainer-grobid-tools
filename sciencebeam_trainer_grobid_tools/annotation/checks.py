@@ -2,17 +2,17 @@ import logging
 from itertools import groupby
 from typing import Dict, Iterable, List, Set, Tuple
 
-from sciencebeam_gym.preprocess.annotation.annotator import (
+from sciencebeam_alignment.levenshtein import get_levenshtein_ratio
+
+from ..core.annotation.annotator import (
     AbstractAnnotator,
     Annotator
 )
 
-from sciencebeam_gym.structured_document import (
+from ..core.structured_document import (
     split_tag_prefix,
     B_TAG_PREFIX
 )
-
-from sciencebeam_alignment.levenshtein import get_levenshtein_ratio
 
 from ..structured_document.grobid_training_tei import (
     GrobidTrainingTeiStructuredDocument,

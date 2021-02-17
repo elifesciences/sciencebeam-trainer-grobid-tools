@@ -1,7 +1,7 @@
 import re
 from typing import List
 
-from sciencebeam_gym.structured_document import (
+from sciencebeam_trainer_grobid_tools.core.structured_document import (
     SimpleStructuredDocument,
     SimplePage,
     SimpleLine,

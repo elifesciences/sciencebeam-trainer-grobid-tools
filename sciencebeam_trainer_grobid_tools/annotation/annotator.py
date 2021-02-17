@@ -3,7 +3,7 @@ from collections import Counter
 from functools import partial
 from typing import Callable, List, Set
 
-from sciencebeam_gym.structured_document import (
+from ..core.structured_document import (
     strip_tag_prefix
 )
 

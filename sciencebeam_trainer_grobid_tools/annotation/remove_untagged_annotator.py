@@ -1,7 +1,7 @@
-from sciencebeam_gym.structured_document import (
+from sciencebeam_trainer_grobid_tools.core.structured_document import (
     AbstractStructuredDocument,
 )
-from sciencebeam_gym.preprocess.annotation.annotator import (
+from sciencebeam_trainer_grobid_tools.core.annotation.annotator import (
     AbstractAnnotator
 )
 

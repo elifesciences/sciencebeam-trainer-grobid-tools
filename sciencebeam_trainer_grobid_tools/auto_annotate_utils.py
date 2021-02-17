@@ -21,7 +21,7 @@ from sciencebeam_utils.utils.progress_logger import logging_tqdm
 from sciencebeam_utils.beam_utils.files import find_matching_filenames_with_limit
 from sciencebeam_utils.tools.check_file_list import map_file_list_to_file_exists
 
-from sciencebeam_gym.preprocess.annotation.matching_annotator import (
+from .core.annotation.matching_annotator import (
     get_simple_fuzzy_match_filter,
     MatchingAnnotatorConfig,
     MatchingAnnotator,
@@ -32,16 +32,16 @@ from sciencebeam_gym.preprocess.annotation.matching_annotator import (
     DEFAULT_CHOICE_RATIO_MIN_MATCH_COUNT
 )
 
-from sciencebeam_gym.preprocess.annotation.annotator import (
+from .core.annotation.annotator import (
     AbstractAnnotator
 )
 
-from sciencebeam_gym.preprocess.annotation.target_annotation import (
+from .core.annotation.target_annotation import (
     XmlMappingSuffix,
     parse_xml_mapping
 )
 
-from sciencebeam_trainer_grobid_tools.annotation.target_annotation import (
+from .annotation.target_annotation import (
     xml_root_to_target_annotations
 )
 
@@ -101,7 +101,7 @@ def add_debug_argument(parser: argparse.ArgumentParser):
 
 def process_debug_argument(args: argparse.Namespace):
     if args.debug:
-        for name in {'sciencebeam_trainer_grobid_tools', 'sciencebeam_gym', '__main__'}:
+        for name in {'sciencebeam_trainer_grobid_tools', '__main__'}:
             logging.getLogger(name).setLevel('DEBUG')
 
 

@@ -1,1 +1,0 @@
-sciencebeam-gym @ git+https://github.com/elifesciences/sciencebeam-gym.git@v0.1.0#egg=sciencebeam-gym

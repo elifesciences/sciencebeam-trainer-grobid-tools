@@ -1,11 +1,11 @@
 import logging
 from typing import Callable
 
-from sciencebeam_gym.preprocess.annotation.annotator import (
+from sciencebeam_trainer_grobid_tools.core.annotation.annotator import (
     AbstractAnnotator
 )
 
-from sciencebeam_gym.structured_document import (
+from sciencebeam_trainer_grobid_tools.core.structured_document import (
     add_tag_prefix,
     I_TAG_PREFIX
 )

@@ -4,19 +4,19 @@ from distutils.util import strtobool
 from itertools import groupby
 from typing import Dict, List, Optional, Tuple
 
-from sciencebeam_gym.structured_document import (
+from sciencebeam_trainer_grobid_tools.core.structured_document import (
     AbstractStructuredDocument
 )
 
-from sciencebeam_gym.preprocess.annotation.target_annotation import (
+from sciencebeam_trainer_grobid_tools.core.annotation.target_annotation import (
     TargetAnnotation
 )
 
-from sciencebeam_gym.preprocess.annotation.annotator import (
+from sciencebeam_trainer_grobid_tools.core.annotation.annotator import (
     AbstractAnnotator
 )
 
-from sciencebeam_gym.structured_document import (
+from sciencebeam_trainer_grobid_tools.core.structured_document import (
     strip_tag_prefix,
     split_tag_prefix,
     add_tag_prefix,

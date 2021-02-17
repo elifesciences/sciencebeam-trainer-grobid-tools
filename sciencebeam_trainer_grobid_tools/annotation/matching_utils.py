@@ -6,9 +6,9 @@ from sciencebeam_utils.utils.collection import (
     iter_flatten
 )
 
-from sciencebeam_gym.preprocess.annotation.fuzzy_match import remove_junk
+from sciencebeam_trainer_grobid_tools.core.annotation.fuzzy_match import remove_junk
 
-from sciencebeam_gym.structured_document import (
+from sciencebeam_trainer_grobid_tools.core.structured_document import (
     AbstractStructuredDocument
 )
 

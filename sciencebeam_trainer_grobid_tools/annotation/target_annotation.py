@@ -11,7 +11,7 @@ from sciencebeam_utils.utils.collection import (
     strip_all
 )
 
-from sciencebeam_gym.preprocess.annotation.target_annotation import (
+from sciencebeam_trainer_grobid_tools.core.annotation.target_annotation import (
     XmlMappingSuffix as _XmlMappingSuffix,
     TargetAnnotation,
     parse_xpaths,

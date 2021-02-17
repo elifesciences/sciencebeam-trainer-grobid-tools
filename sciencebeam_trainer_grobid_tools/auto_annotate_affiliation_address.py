@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import argparse
 import logging
 
-from sciencebeam_gym.preprocess.annotation.annotator import Annotator
+from .core.annotation.annotator import Annotator
 
 from .utils.xml import parse_xml
 from .utils.tei_xml import TEI_NS_MAP
