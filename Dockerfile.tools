@@ -28,6 +28,8 @@ RUN if [ "${install_dev}" = "y" ]; then pip install --user -r requirements.dev.t
 
 COPY sciencebeam_trainer_grobid_tools ./sciencebeam_trainer_grobid_tools
 COPY config ./config
+COPY setup.py ./
+RUN pip install -e .
 
 COPY docker ./docker
 COPY scripts /opt/scripts
