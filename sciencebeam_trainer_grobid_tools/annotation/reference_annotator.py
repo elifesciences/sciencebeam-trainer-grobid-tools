@@ -3,14 +3,14 @@ import re
 from itertools import groupby
 from typing import Dict, List, Set, Iterable, Any
 
-from sciencebeam_gym.structured_document import (
+from sciencebeam_trainer_grobid_tools.core.structured_document import (
     AbstractStructuredDocument,
     split_tag_prefix,
     strip_tag_prefix,
     add_tag_prefix,
     B_TAG_PREFIX
 )
-from sciencebeam_gym.preprocess.annotation.annotator import (
+from sciencebeam_trainer_grobid_tools.core.annotation.annotator import (
     AbstractAnnotator
 )
 

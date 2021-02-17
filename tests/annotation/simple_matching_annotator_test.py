@@ -6,7 +6,7 @@ import pytest
 
 from sciencebeam_utils.utils.collection import flatten
 
-from sciencebeam_gym.structured_document import (
+from sciencebeam_trainer_grobid_tools.core.structured_document import (
     SimpleStructuredDocument,
     SimpleLine,
     SimpleToken,
@@ -16,7 +16,7 @@ from sciencebeam_gym.structured_document import (
     strip_tag_prefix
 )
 
-from sciencebeam_gym.preprocess.annotation.target_annotation import (
+from sciencebeam_trainer_grobid_tools.core.annotation.target_annotation import (
     TargetAnnotation
 )
 

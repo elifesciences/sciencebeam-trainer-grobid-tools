@@ -1,6 +1,6 @@
 from typing import Any, Iterable
 
-from sciencebeam_gym.structured_document import (
+from sciencebeam_trainer_grobid_tools.core.structured_document import (
     AbstractStructuredDocument
 )
 

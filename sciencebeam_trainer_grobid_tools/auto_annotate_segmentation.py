@@ -4,7 +4,7 @@ import argparse
 import logging
 from typing import List, Set
 
-from sciencebeam_gym.preprocess.annotation.annotator import Annotator
+from .core.annotation.annotator import Annotator
 
 from .utils.string import comma_separated_str_to_list
 

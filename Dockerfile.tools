@@ -22,10 +22,6 @@ WORKDIR /opt/sciencebeam-grobid-trainer-tools
 COPY requirements.txt ./
 RUN pip install --user -r requirements.txt
 
-COPY requirements.links.txt ./
-ENV SCIENCEBEAM_GYM_NO_APT=1
-RUN pip install --user --no-deps -r requirements.links.txt
-
 ARG install_dev
 COPY requirements.dev.txt ./
 RUN if [ "${install_dev}" = "y" ]; then pip install --user -r requirements.dev.txt; fi

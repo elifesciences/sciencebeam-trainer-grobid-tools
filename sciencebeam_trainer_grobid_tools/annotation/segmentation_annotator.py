@@ -5,11 +5,11 @@ from typing import Dict, List, Set, Tuple
 
 from sciencebeam_utils.utils.string import parse_list
 
-from sciencebeam_gym.structured_document import (
+from sciencebeam_trainer_grobid_tools.core.structured_document import (
     AbstractStructuredDocument,
     strip_tag_prefix
 )
-from sciencebeam_gym.preprocess.annotation.annotator import (
+from sciencebeam_trainer_grobid_tools.core.annotation.annotator import (
     AbstractAnnotator
 )
 from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei import (

@@ -9,7 +9,7 @@ from typing import ContextManager
 
 from sciencebeam_utils.beam_utils.io import read_all_from_path, save_file_content
 
-from sciencebeam_gym.preprocess.annotation.annotator import Annotator
+from .core.annotation.annotator import Annotator
 
 from .utils.xml import parse_xml
 from .utils.tei_xml import TEI_NS_MAP

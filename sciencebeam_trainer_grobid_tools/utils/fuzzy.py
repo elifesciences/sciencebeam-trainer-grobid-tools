@@ -6,7 +6,7 @@ from sciencebeam_alignment.align import (
     LocalSequenceMatcher
 )
 
-from sciencebeam_gym.preprocess.annotation.fuzzy_match import (
+from sciencebeam_trainer_grobid_tools.core.annotation.fuzzy_match import (
     FuzzyMatchResult as _FuzzyMatchResult,
     len_index_range,
     DEFAULT_SCORING

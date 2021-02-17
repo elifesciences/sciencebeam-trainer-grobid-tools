@@ -3,7 +3,7 @@ from typing import Dict
 import pytest
 from lxml.builder import E
 
-from sciencebeam_gym.preprocess.annotation.target_annotation import (
+from sciencebeam_trainer_grobid_tools.core.annotation.target_annotation import (
     parse_xml_mapping
 )
 
