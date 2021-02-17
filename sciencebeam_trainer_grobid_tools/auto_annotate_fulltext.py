@@ -9,7 +9,7 @@ from .structured_document.grobid_training_tei import (
     DEFAULT_TAG_KEY
 )
 
-from .utils.xml import parse_xml
+from .utils.xml import parse_xml, get_fixed_source_url
 
 from .annotation.target_annotation import (
     xml_root_to_target_annotations
@@ -211,6 +211,11 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
         self.no_extend_to_line = opt.no_extend_to_line
         self.expand_to_previous_untagged_lines = opt.expand_to_previous_untagged_lines
         self.expand_to_following_untagged_lines = opt.expand_to_following_untagged_lines
+
+    def get_final_source_url(self, source_url: str) -> str:
+        final_source_url_context = get_fixed_source_url(source_url)
+        self.file_exit_stack.push(final_source_url_context)
+        return final_source_url_context.__enter__()  # pylint: disable=no-member
 
     def get_annotator(self, source_url: str):
         target_xml_path = self.get_target_xml_for_source_file(source_url)
