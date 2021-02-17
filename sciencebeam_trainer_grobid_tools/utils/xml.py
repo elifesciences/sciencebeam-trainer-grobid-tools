@@ -177,16 +177,29 @@ class FixingHtmlParser(HTMLParser):
         LOGGER.debug('endtag: tag=%r', tag)
         self.buffer.write(f'</{tag}>')
 
+    @property
+    def _current_tag(self):
+        return self.tag_stack[-1]
+
     def handle_endtag(self, tag):
         if not self.tag_stack:
+            LOGGER.warning('attempting to close element without any open elements, tag=%r', tag)
             return
-        if tag == self.tag_stack[-1]:
+        if tag == self._current_tag:
             self._close_current_element()
             return
         if tag not in self.tag_stack:
+            LOGGER.warning(
+                'end tag tag=%r not matching any open element, closing tag=%r',
+                tag, self._current_tag
+            )
             self._close_current_element()
             return
-        while tag != self.tag_stack[-1]:
+        while tag != self._current_tag:
+            LOGGER.warning(
+                'end tag tag=%r not matching immediate open element, first closing tag=%r',
+                tag, self._current_tag
+            )
             self._close_current_element()
 
     def handle_data(self, data):
