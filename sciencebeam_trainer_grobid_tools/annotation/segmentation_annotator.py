@@ -1,7 +1,7 @@
 import logging
 from configparser import ConfigParser
 from collections import Counter
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Optional, Set
 
 from sciencebeam_utils.utils.string import parse_list
 
@@ -20,9 +20,13 @@ from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei im
 LOGGER = logging.getLogger(__name__)
 
 
+class PageTagNames:
+    PAGE = 'page'
+
+
 class FrontTagNames:
     TITLE = 'title'
-    PAGE = 'page'
+    ABSTRACT = 'abstract'
 
 
 class BackTagNames:
@@ -32,6 +36,7 @@ class BackTagNames:
 class SegmentationTagNames:
     FRONT = 'front'
     PAGE = 'page'
+    HEADNOTE = 'headnote'
     BODY = 'body'
     REFERENCE = 'reference'
 
@@ -132,58 +137,80 @@ def get_segmentation_tag_name_by_tag_name(
     }
 
 
-def get_next_non_empty_line_tag(
-        segmentation_tag_by_line_index: Dict[int, str],
-        line_index: int) -> str:
-    for offset in range(1, 11):
-        tag = segmentation_tag_by_line_index[line_index + offset]
-        if tag:
-            return tag
-    return None
+class SegmentationLine:
+    def __init__(
+        self,
+        structured_document: AbstractStructuredDocument,
+        line_index: int,
+        line,
+        segmentation_tag: Optional[str]
+    ):
+        self.structured_document = structured_document
+        self.line_index = line_index
+        self.line = line
+        self.segmentation_tag = segmentation_tag
+
+    def set_segmentation_tag(self, segmentation_tag: Optional[str]):
+        _set_line_tokens_tag(self.structured_document, self.line, segmentation_tag)
+
+    def clear_line_token_tags(self):
+        _clear_line_token_tags(self.structured_document, self.line)
+
+    def get_line_token_tags(self) -> List[Optional[str]]:
+        return _get_line_token_tags(self.structured_document, self.line)
+
+
+class SegmentationLineList:
+    def __init__(self, lines: List[SegmentationLine]):
+        self.lines = lines
+        self.line_by_line_index_map = {
+            line.line_index: line
+            for line in lines
+        }
+
+    def __iter__(self):
+        return iter(self.lines)
+
+    def iter_untagged(self):
+        return (line for line in self.lines if not line.segmentation_tag)
+
+    def get_segmentation_tag_by_line_index(self, line_index: int) -> Optional[str]:
+        line = self.line_by_line_index_map.get(line_index)
+        return line.segmentation_tag if line else None
 
 
 def merge_front_lines(
-        structured_document: AbstractStructuredDocument,
-        untagged_indexed_lines: List[Tuple[int, str]],
-        segmentation_tag_by_line_index: Dict[int, str],
-        front_min_line_index: int,
-        front_max_line_index: int,
-        preserve_tags: bool):
-    LOGGER.debug(
-        'processing untagged lines, front (%d -> %d)',
-        front_min_line_index, front_max_line_index
-    )
-    for line_index, line in list(untagged_indexed_lines):
-        tags = _get_line_token_tags_or_preserved_tags(structured_document, line)
+    segmentation_lines: SegmentationLineList,
+    preserve_tags: bool
+):
+    condidate_lines = []
+    previous_segmentation_tag: Optional[str] = SegmentationTagNames.FRONT
+    total_merged_lines = 0
+    for line in segmentation_lines:
+        if line.segmentation_tag:
+            previous_segmentation_tag = line.segmentation_tag
+        if line.segmentation_tag == SegmentationTagNames.FRONT:
+            if condidate_lines:
+                LOGGER.debug(
+                    'tagging as front, merging with previous front line: %s',
+                    condidate_lines
+                )
+                total_merged_lines += len(condidate_lines)
+                for condidate_line in condidate_lines:
+                    condidate_line.set_segmentation_tag(SegmentationTagNames.FRONT)
+            condidate_lines = []
+            continue
+        if line.segmentation_tag:
+            condidate_lines = []
+            continue
+        tags = _get_line_token_tags_or_preserved_tags(
+            line.structured_document, line.line
+        )
         if preserve_tags and SegmentationTagNames.PAGE in tags:
             continue
-        if line_index > front_max_line_index:
-            LOGGER.debug(
-                'reached end of front, range (%d: > %d)',
-                line_index, front_max_line_index
-            )
-            break
-        if line_index <= front_min_line_index:
-            LOGGER.debug(
-                'tagging as front, within range (%d: < %d)',
-                line_index, front_min_line_index
-            )
-        elif (
-            segmentation_tag_by_line_index.get(line_index - 1) == SegmentationTagNames.FRONT
-            and (
-                get_next_non_empty_line_tag(segmentation_tag_by_line_index, line_index)
-                == SegmentationTagNames.FRONT
-            )
-        ):
-            LOGGER.debug(
-                'tagging as front, merging with previous front line (%d)',
-                line_index
-            )
-        else:
-            continue
-        _set_line_tokens_tag(structured_document, line, SegmentationTagNames.FRONT)
-        untagged_indexed_lines.remove((line_index, line))
-        segmentation_tag_by_line_index[line_index] = SegmentationTagNames.FRONT
+        if previous_segmentation_tag == SegmentationTagNames.FRONT:
+            condidate_lines.append(line)
+    LOGGER.debug('merged front lines, %d lines', total_merged_lines)
 
 
 class SegmentationAnnotator(AbstractAnnotator):
@@ -194,12 +221,18 @@ class SegmentationAnnotator(AbstractAnnotator):
         self.segmentation_tag_name_by_tag_name = get_segmentation_tag_name_by_tag_name(config)
 
     def annotate(self, structured_document: AbstractStructuredDocument):
-        untagged_indexed_lines = []
-        min_max_by_tag = {}
-        segmentation_tag_by_line_index = {}
-        untagged_indexed_lines = []
-        for line_index, line in enumerate(_iter_all_lines(structured_document)):
-            full_line_token_tags = _get_line_token_tags(structured_document, line)
+        segmentation_lines = SegmentationLineList([
+            SegmentationLine(
+                structured_document,
+                line_index=line_index,
+                line=line,
+                segmentation_tag=None
+            )
+            for line_index, line in enumerate(_iter_all_lines(structured_document))
+        ])
+        for line in segmentation_lines.lines:
+            line_index = line.line_index
+            full_line_token_tags = line.get_line_token_tags()
             line_token_tags = _to_tag_values(full_line_token_tags)
             line_tag_counts = Counter(line_token_tags)
             if not line_tag_counts:
@@ -213,7 +246,6 @@ class SegmentationAnnotator(AbstractAnnotator):
 
             if (
                 segmentation_tag == SegmentationTagNames.FRONT
-                and segmentation_tag not in min_max_by_tag
                 and self.config.front_max_start_line_index
                 and line_index > self.config.front_max_start_line_index
             ):
@@ -222,7 +254,7 @@ class SegmentationAnnotator(AbstractAnnotator):
                     line_index, self.config.front_max_start_line_index
                 )
                 segmentation_tag = None
-                _clear_line_token_tags(structured_document, line)
+                line.clear_line_token_tags()
 
             if segmentation_tag and segmentation_tag == majority_tag_name:
                 LOGGER.debug(
@@ -230,30 +262,18 @@ class SegmentationAnnotator(AbstractAnnotator):
                     segmentation_tag
                 )
             elif segmentation_tag:
-                if segmentation_tag not in min_max_by_tag:
-                    min_max_by_tag[segmentation_tag] = [line_index, line_index]
-                else:
-                    min_max_by_tag[segmentation_tag][1] = line_index
-                _set_line_tokens_tag(structured_document, line, segmentation_tag)
-            else:
-                if majority_tag_name is None:
-                    _clear_line_token_tags(structured_document, line)
-                    untagged_indexed_lines.append((line_index, line))
+                line.set_segmentation_tag(segmentation_tag)
+            elif majority_tag_name is None:
+                line.clear_line_token_tags()
 
-            segmentation_tag_by_line_index[line_index] = segmentation_tag or majority_tag_name
+            line.segmentation_tag = segmentation_tag or majority_tag_name
 
-        if SegmentationTagNames.FRONT in min_max_by_tag:
-            front_min_line_index, front_max_line_index = min_max_by_tag[SegmentationTagNames.FRONT]
-            merge_front_lines(
-                structured_document=structured_document,
-                untagged_indexed_lines=untagged_indexed_lines,
-                segmentation_tag_by_line_index=segmentation_tag_by_line_index,
-                front_min_line_index=front_min_line_index,
-                front_max_line_index=front_max_line_index,
-                preserve_tags=self.preserve_tags
-            )
+        merge_front_lines(
+            segmentation_lines=segmentation_lines,
+            preserve_tags=self.preserve_tags
+        )
 
         if not self.preserve_tags:
-            for line_index, line in untagged_indexed_lines:
-                _set_line_tokens_tag(structured_document, line, SegmentationTagNames.BODY)
+            for line in segmentation_lines.iter_untagged():
+                line.set_segmentation_tag(SegmentationTagNames.BODY)
         return structured_document
