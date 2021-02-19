@@ -18,6 +18,7 @@ from sciencebeam_trainer_grobid_tools.annotation.segmentation_annotator import (
     SegmentationAnnotator,
     PageTagNames,
     FrontTagNames,
+    BodyTagNames,
     BackTagNames,
     SegmentationTagNames
 )
@@ -31,6 +32,7 @@ SEGMENTATION_CONTAINER_NODE_PATH = ContainerNodePaths.SEGMENTATION_CONTAINER_NOD
 
 DEFAULT_CONFIG = SegmentationConfig({
     SegmentationTagNames.FRONT: {FrontTagNames.TITLE, FrontTagNames.ABSTRACT},
+    SegmentationTagNames.BODY: {BodyTagNames.SECTION_TITLE},
     SegmentationTagNames.REFERENCE: {BackTagNames.REFERENCE}
 })
 
@@ -39,6 +41,8 @@ TOKEN_1 = 'token1'
 TOKEN_2 = 'token2'
 TOKEN_3 = 'token3'
 TOKEN_4 = 'token4'
+
+PAGE_HEADER_1 = 'Page_Header_1'
 
 
 OTHER_TAG = 'other'
@@ -332,16 +336,36 @@ class TestSegmentationAnnotator:
 
     def test_should_annotate_page_header(self):
         doc = _simple_document_with_tagged_token_lines(lines=[
-            [(None, TOKEN_1)],
-            [(FrontTagNames.TITLE, TOKEN_2)],
-            [(None, TOKEN_1)],
-            [(FrontTagNames.ABSTRACT, TOKEN_3)],
+            [(None, PAGE_HEADER_1)],
+            [(FrontTagNames.TITLE, TOKEN_1)],
+            [(None, PAGE_HEADER_1)],
+            [(FrontTagNames.ABSTRACT, TOKEN_2)],
         ])
 
         SegmentationAnnotator(DEFAULT_CONFIG).annotate(doc)
         assert _get_document_tagged_token_lines(doc) == [
-            [(SegmentationTagNames.HEADNOTE, TOKEN_1)],
+            [(SegmentationTagNames.HEADNOTE, PAGE_HEADER_1)],
+            [(SegmentationTagNames.FRONT, TOKEN_1)],
+            [(SegmentationTagNames.HEADNOTE, PAGE_HEADER_1)],
+            [(SegmentationTagNames.FRONT, TOKEN_2)]
+        ]
+
+    def test_should_annotate_assume_front_or_body_after_page_header(self):
+        doc = _simple_document_with_tagged_token_lines(lines=[
+            [(None, PAGE_HEADER_1)],
+            [(None, TOKEN_1)],
+            [(FrontTagNames.TITLE, TOKEN_2)],
+            [(None, PAGE_HEADER_1)],
+            [(None, TOKEN_3)],
+            [(BodyTagNames.SECTION_TITLE, TOKEN_4)],
+        ])
+
+        SegmentationAnnotator(DEFAULT_CONFIG).annotate(doc)
+        assert _get_document_tagged_token_lines(doc) == [
+            [(SegmentationTagNames.HEADNOTE, PAGE_HEADER_1)],
+            [(SegmentationTagNames.FRONT, TOKEN_1)],
             [(SegmentationTagNames.FRONT, TOKEN_2)],
-            [(SegmentationTagNames.HEADNOTE, TOKEN_1)],
-            [(SegmentationTagNames.FRONT, TOKEN_3)]
+            [(SegmentationTagNames.HEADNOTE, PAGE_HEADER_1)],
+            [(SegmentationTagNames.BODY, TOKEN_3)],
+            [(SegmentationTagNames.BODY, TOKEN_4)]
         ]

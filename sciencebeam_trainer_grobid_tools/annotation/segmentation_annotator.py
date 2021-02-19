@@ -31,6 +31,10 @@ class FrontTagNames:
     ABSTRACT = 'abstract'
 
 
+class BodyTagNames:
+    SECTION_TITLE = 'section_title'
+
+
 class BackTagNames:
     REFERENCE = 'reference'
 
@@ -214,7 +218,10 @@ def merge_front_lines(
     condidate_lines = []
     previous_segmentation_tag: Optional[str] = SegmentationTagNames.FRONT
     total_merged_lines = 0
+    ignored_segmentation_tags = {SegmentationTagNames.HEADNOTE, SegmentationTagNames.PAGE}
     for line in segmentation_lines:
+        if line.segmentation_tag in ignored_segmentation_tags:
+            continue
         if line.segmentation_tag:
             previous_segmentation_tag = line.segmentation_tag
         if line.segmentation_tag == SegmentationTagNames.FRONT:
