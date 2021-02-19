@@ -69,7 +69,8 @@ def _add_all(parent: etree.Element, children: List[Union[str, etree.Element]]):
 
 def get_tei_nodes_for_text(
         text: str,
-        element_maker: ElementMaker = None) -> List[Union[str, etree.Element]]:
+        element_maker: ElementMaker = None,
+        trailing_line_feed: bool = False) -> List[Union[str, etree.Element]]:
     if element_maker is None:
         element_maker = E
     result = []
@@ -78,7 +79,19 @@ def get_tei_nodes_for_text(
             result.append(element_maker.lb)
             result.append('\n')
         result.append(line)
+    if trailing_line_feed:
+        result.append(element_maker.lb)
+        result.append('\n')
     return result
+
+
+def get_tei_nodes_for_lines(lines: List[str], *args, **kwargs) -> List[Union[str, etree.Element]]:
+    return get_tei_nodes_for_text(
+        '\n'.join(lines),
+        *args,
+        trailing_line_feed=True,
+        **kwargs
+    )
 
 
 def get_target_xml_node(

@@ -23,6 +23,7 @@ from .auto_annotate_test_utils import (
     get_target_xml_node,
     get_nodes_text,
     get_tei_nodes_for_text,
+    get_tei_nodes_for_lines,
     get_default_target_xml_node,
     SingleFileAutoAnnotateEndToEndTestHelper
 )
@@ -641,6 +642,51 @@ class TestEndToEnd(object):
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text_list(tei_auto_root, '//text/page') == []
         assert get_xpath_text_list(tei_auto_root, '//text/body') == [TOKEN_1]
+
+    def test_should_not_preserve_existing_front_body_tag_front_and_use_headnote_for_repeated_text(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_segmentation_tei_node([
+                E.front(*get_tei_nodes_for_lines([
+                    'Page header',
+                    'Before title',
+                    TITLE_1,
+                    'After title'
+                ])),
+                E.body(*get_tei_nodes_for_lines([
+                    'Page header',
+                    'Before paragraph',
+                    TEXT_1,
+                    'After paragraph',
+                ]))
+            ])
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(get_target_xml_node(
+            title=TITLE_1,
+            body_nodes=[E.sec(E.p(TEXT_1))]
+        )))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'no-preserve-fields': 'front,body',
+            'fields': ','.join(['title', 'abstract', 'body_section_paragraph'])
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text_list(tei_auto_root, '//text/div[@type="headnote"]') == [
+            'Page header',
+            'Page header'
+        ]
+        # assert get_xpath_text_list(tei_auto_root, '//text/front') == [
+        #     TITLE_1
+        # ]
+        # assert get_xpath_text_list(tei_auto_root, '//text/body') == [
+        #     TEXT_1
+        # ]
+        # assert get_xpath_text_list(tei_auto_root, '//text/div[@type="headnote"]') == [
+        #     'Before title',
+        #     '\n'.join(['After title', 'Before paragraph']),
+        #     'After paragraph'
+        # ]
 
     @pytest.mark.parametrize(
         'relative_failed_output_path', ['tei-error', '']
