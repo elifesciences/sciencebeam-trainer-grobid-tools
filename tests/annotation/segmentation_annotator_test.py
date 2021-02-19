@@ -2,8 +2,6 @@ import logging
 from pathlib import Path
 from typing import List, Tuple
 
-import pytest
-
 from lxml.builder import E
 
 from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei import (
@@ -32,7 +30,7 @@ SEGMENTATION_CONTAINER_NODE_PATH = ContainerNodePaths.SEGMENTATION_CONTAINER_NOD
 
 
 DEFAULT_CONFIG = SegmentationConfig({
-    SegmentationTagNames.FRONT: {FrontTagNames.TITLE},
+    SegmentationTagNames.FRONT: {FrontTagNames.TITLE, FrontTagNames.ABSTRACT},
     SegmentationTagNames.REFERENCE: {BackTagNames.REFERENCE}
 })
 
@@ -332,7 +330,6 @@ class TestSegmentationAnnotator:
             [(None, TOKEN_3)]
         ]
 
-    @pytest.mark.skip()
     def test_should_annotate_page_header(self):
         doc = _simple_document_with_tagged_token_lines(lines=[
             [(None, TOKEN_1)],
@@ -343,10 +340,8 @@ class TestSegmentationAnnotator:
 
         SegmentationAnnotator(DEFAULT_CONFIG).annotate(doc)
         assert _get_document_tagged_token_lines(doc) == [
-            [
-                (SegmentationTagNames.HEADNOTE, TOKEN_1),
-                (SegmentationTagNames.FRONT, TOKEN_2),
-                (SegmentationTagNames.HEADNOTE, TOKEN_1),
-                (SegmentationTagNames.FRONT, TOKEN_3)
-            ]
+            [(SegmentationTagNames.HEADNOTE, TOKEN_1)],
+            [(SegmentationTagNames.FRONT, TOKEN_2)],
+            [(SegmentationTagNames.HEADNOTE, TOKEN_1)],
+            [(SegmentationTagNames.FRONT, TOKEN_3)]
         ]

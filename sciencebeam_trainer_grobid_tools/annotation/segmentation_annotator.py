@@ -16,6 +16,8 @@ from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei im
     GrobidTrainingTeiStructuredDocument
 )
 
+from sciencebeam_trainer_grobid_tools.annotation.matching_utils import join_tokens_text
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -149,11 +151,19 @@ class SegmentationLine:
         self.line_index = line_index
         self.line = line
         self.segmentation_tag = segmentation_tag
+        self.text = join_tokens_text(self.structured_document.get_tokens_of_line(line))
+
+    def __repr__(self):
+        return '%s(line_index=%d, segmentation_tag=%s, line=%s)' % (
+            type(self).__name__, self.line_index, self.segmentation_tag, self.line
+        )
 
     def set_segmentation_tag(self, segmentation_tag: Optional[str]):
+        self.segmentation_tag = segmentation_tag
         _set_line_tokens_tag(self.structured_document, self.line, segmentation_tag)
 
     def clear_line_token_tags(self):
+        self.segmentation_tag = None
         _clear_line_token_tags(self.structured_document, self.line)
 
     def get_line_token_tags(self) -> List[Optional[str]]:
@@ -177,6 +187,24 @@ class SegmentationLineList:
     def get_segmentation_tag_by_line_index(self, line_index: int) -> Optional[str]:
         line = self.line_by_line_index_map.get(line_index)
         return line.segmentation_tag if line else None
+
+
+def find_and_tag_page_headers(
+    segmentation_lines: SegmentationLineList
+):
+    untagged_line_counts = Counter((
+        line.text for line in segmentation_lines.iter_untagged()
+    ))
+    LOGGER.debug('untagged_line_counts: %s', untagged_line_counts)
+    if not untagged_line_counts:
+        return
+    for text, count in untagged_line_counts.most_common():
+        if count < 2:
+            break
+        LOGGER.debug('setting page header (headnote) for line(s): %r (%d)', text, count)
+        for line in segmentation_lines:
+            if line.text == text:
+                line.set_segmentation_tag(SegmentationTagNames.HEADNOTE)
 
 
 def merge_front_lines(
@@ -268,6 +296,7 @@ class SegmentationAnnotator(AbstractAnnotator):
 
             line.segmentation_tag = segmentation_tag or majority_tag_name
 
+        find_and_tag_page_headers(segmentation_lines)
         merge_front_lines(
             segmentation_lines=segmentation_lines,
             preserve_tags=self.preserve_tags
