@@ -2,6 +2,8 @@ import logging
 from pathlib import Path
 from typing import List, Tuple
 
+import pytest
+
 from lxml.builder import E
 
 from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei import (
@@ -16,6 +18,7 @@ from sciencebeam_trainer_grobid_tools.annotation.segmentation_annotator import (
     parse_segmentation_config,
     SegmentationConfig,
     SegmentationAnnotator,
+    PageTagNames,
     FrontTagNames,
     BackTagNames,
     SegmentationTagNames
@@ -290,7 +293,7 @@ class TestSegmentationAnnotator:
     def test_should_not_annotate_untagged_page_no_lines_between_first_and_last_header(self):
         doc = _simple_document_with_tagged_token_lines(lines=[
             [(FrontTagNames.TITLE, TOKEN_1)],
-            [(FrontTagNames.PAGE, TOKEN_2)],
+            [(PageTagNames.PAGE, TOKEN_2)],
             [(FrontTagNames.TITLE, TOKEN_3)]
         ])
 
@@ -327,4 +330,23 @@ class TestSegmentationAnnotator:
             [(None, TOKEN_1)],
             [(None, TOKEN_2)],
             [(None, TOKEN_3)]
+        ]
+
+    @pytest.mark.skip()
+    def test_should_annotate_page_header(self):
+        doc = _simple_document_with_tagged_token_lines(lines=[
+            [(None, TOKEN_1)],
+            [(FrontTagNames.TITLE, TOKEN_2)],
+            [(None, TOKEN_1)],
+            [(FrontTagNames.ABSTRACT, TOKEN_3)],
+        ])
+
+        SegmentationAnnotator(DEFAULT_CONFIG).annotate(doc)
+        assert _get_document_tagged_token_lines(doc) == [
+            [
+                (SegmentationTagNames.HEADNOTE, TOKEN_1),
+                (SegmentationTagNames.FRONT, TOKEN_2),
+                (SegmentationTagNames.HEADNOTE, TOKEN_1),
+                (SegmentationTagNames.FRONT, TOKEN_3)
+            ]
         ]
