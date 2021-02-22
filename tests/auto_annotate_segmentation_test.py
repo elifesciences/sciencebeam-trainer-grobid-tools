@@ -670,7 +670,7 @@ class TestEndToEnd(object):
             '123',
             '123'
         ]
-        assert get_xpath_text_list(tei_auto_root, '//text/div[@type="headnote"]') == [
+        assert get_xpath_text_list(tei_auto_root, '//text/note[@place="headnote"]') == [
             'Page header',
             'Page header'
         ]
@@ -706,7 +706,7 @@ class TestEndToEnd(object):
         }), save_main_session=False)
 
         tei_auto_root = test_helper.get_tei_auto_root()
-        assert get_xpath_text_list(tei_auto_root, '//text/div[@type="headnote"]') == [
+        assert get_xpath_text_list(tei_auto_root, '//text/note[@place="headnote"]') == [
             'Page header',
             'Page header'
         ]
