@@ -51,6 +51,7 @@ SEGMENTATION_TAG_TO_TEI_PATH_MAPPING = {
     'headnote': 'div[@type="headnote"]',
     'acknowledgment': 'div[@type="acknowledgment"]',
     'annex': 'div[@type="annex"]',
+    'page': 'page',
     'line_no': 'note[@type="line_no"]',
     'reference': 'listBibl'
 }
