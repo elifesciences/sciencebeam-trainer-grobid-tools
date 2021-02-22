@@ -710,17 +710,13 @@ class TestEndToEnd(object):
             'Page header',
             'Page header'
         ]
-        # assert get_xpath_text_list(tei_auto_root, '//text/front') == [
-        #     TITLE_1
-        # ]
-        # assert get_xpath_text_list(tei_auto_root, '//text/body') == [
-        #     TEXT_1
-        # ]
-        # assert get_xpath_text_list(tei_auto_root, '//text/div[@type="headnote"]') == [
-        #     'Before title',
-        #     '\n'.join(['After title', 'Before paragraph']),
-        #     'After paragraph'
-        # ]
+        assert get_xpath_text_list(tei_auto_root, '//text/front') == [
+            '\n'.join(['Before title', TITLE_1])
+        ]
+        assert get_xpath_text_list(tei_auto_root, '//text/body') == [
+            'After title',
+            '\n'.join(['Before paragraph', TEXT_1, 'After paragraph'])
+        ]
 
     @pytest.mark.parametrize(
         'relative_failed_output_path', ['tei-error', '']
