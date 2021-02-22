@@ -242,9 +242,25 @@ def find_missing_page_numbers(
         if is_valid_page_number_candidate(line.text)
     ]
     LOGGER.debug('page_number_candidates: %s', page_number_candidates)
-    for page_number_candidate in page_number_candidates:
-        LOGGER.debug('setting page number candidate: %s', page_number_candidate)
-        page_number_candidate.line.set_segmentation_tag(SegmentationTagNames.PAGE)
+    min_line_number = 0
+    min_page_number = 1
+    for existing_page_number_candidate in existing_page_number_candidates:
+        max_line_number = existing_page_number_candidate.line.line_index
+        max_page_number = existing_page_number_candidate.page_number - 1
+        for page_number_candidate in page_number_candidates:
+            if page_number_candidate.line.line_index < min_line_number:
+                continue
+            if page_number_candidate.line.line_index > max_line_number:
+                continue
+            if page_number_candidate.page_number < min_page_number:
+                continue
+            if page_number_candidate.page_number > max_page_number:
+                continue
+            LOGGER.debug('setting page number candidate: %s', page_number_candidate)
+            page_number_candidate.line.set_segmentation_tag(SegmentationTagNames.PAGE)
+            min_page_number += 1
+        min_line_number = max_line_number
+        min_page_number = max_page_number + 1
 
 
 def is_valid_page_header_candidate(

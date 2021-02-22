@@ -452,3 +452,20 @@ class TestSegmentationAnnotator:
             [(SegmentationTagNames.BODY, TOKEN_2)],
             [(SegmentationTagNames.PAGE, '3')]
         ]
+
+    def test_should_not_annotate_out_of_order_page_number(self):
+        doc = _simple_document_with_tagged_token_lines(lines=[
+            [(None, '2')],
+            [(FrontTagNames.TITLE, TOKEN_1)],
+            [(SegmentationTagNames.PAGE, '2')],
+            [(BodyTagNames.SECTION_TITLE, TOKEN_2)],
+            [(SegmentationTagNames.PAGE, '3')]
+        ])
+        SegmentationAnnotator(DEFAULT_CONFIG, preserve_tags=True).annotate(doc)
+        assert _get_document_tagged_token_lines(doc) == [
+            [(SegmentationTagNames.FRONT, '2')],
+            [(SegmentationTagNames.FRONT, TOKEN_1)],
+            [(SegmentationTagNames.PAGE, '2')],
+            [(SegmentationTagNames.BODY, TOKEN_2)],
+            [(SegmentationTagNames.PAGE, '3')]
+        ]
