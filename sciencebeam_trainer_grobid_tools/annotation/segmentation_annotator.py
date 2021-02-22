@@ -63,19 +63,10 @@ DEFAULT_FRONT_MAX_START_LINE_INDEX = 30
 DEFAULT_PAGE_HEADER_MAX_FIRST_LINE_INDEX = 50
 
 
-class SegmentationConfig:
-    def __init__(
-        self,
-        segmentation_mapping: Dict[str, Set[str]],
-        front_max_start_line_index: int = DEFAULT_FRONT_MAX_START_LINE_INDEX,
-        page_header_max_first_line_index: int = DEFAULT_PAGE_HEADER_MAX_FIRST_LINE_INDEX
-    ):
-        self.segmentation_mapping = segmentation_mapping
-        self.front_max_start_line_index = front_max_start_line_index
-        self.page_header_max_first_line_index = page_header_max_first_line_index
-
-    def __repr__(self):
-        return '%s(%s)' % (type(self), self.__dict__)
+class SegmentationConfig(NamedTuple):
+    segmentation_mapping: Dict[str, Set[str]]
+    front_max_start_line_index: int = DEFAULT_FRONT_MAX_START_LINE_INDEX
+    page_header_max_first_line_index: int = DEFAULT_PAGE_HEADER_MAX_FIRST_LINE_INDEX
 
 
 def parse_segmentation_config(filename: str) -> SegmentationConfig:
