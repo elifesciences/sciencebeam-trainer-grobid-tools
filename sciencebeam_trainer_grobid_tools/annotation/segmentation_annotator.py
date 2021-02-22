@@ -59,16 +59,20 @@ def _get_class_tag_names(c) -> Set[str]:
 FRONT_TAG_NAMES = _get_class_tag_names(FrontTagNames)
 
 
-DEFAULT_FRONT_MAX_START_LINE = 30
+DEFAULT_FRONT_MAX_START_LINE_INDEX = 30
+DEFAULT_PAGE_HEADER_MAX_FIRST_LINE_INDEX = 50
 
 
 class SegmentationConfig:
     def __init__(
-            self,
-            segmentation_mapping: Dict[str, Set[str]],
-            front_max_start_line_index: int = DEFAULT_FRONT_MAX_START_LINE):
+        self,
+        segmentation_mapping: Dict[str, Set[str]],
+        front_max_start_line_index: int = DEFAULT_FRONT_MAX_START_LINE_INDEX,
+        page_header_max_first_line_index: int = DEFAULT_PAGE_HEADER_MAX_FIRST_LINE_INDEX
+    ):
         self.segmentation_mapping = segmentation_mapping
         self.front_max_start_line_index = front_max_start_line_index
+        self.page_header_max_first_line_index = page_header_max_first_line_index
 
     def __repr__(self):
         return '%s(%s)' % (type(self), self.__dict__)
@@ -80,12 +84,20 @@ def parse_segmentation_config(filename: str) -> SegmentationConfig:
         config.read_file(f)  # pylint: disable=no-member
         front_max_start_line_index = config.getint(
             'config', 'front_max_start_line_index',
-            fallback=DEFAULT_FRONT_MAX_START_LINE
+            fallback=DEFAULT_FRONT_MAX_START_LINE_INDEX
         )
-        return SegmentationConfig(segmentation_mapping={
-            key: set(parse_list(value))
-            for key, value in config.items('tags')
-        }, front_max_start_line_index=front_max_start_line_index)
+        page_header_max_first_line_index = config.getint(
+            'config', 'page_header_max_first_line_index',
+            fallback=DEFAULT_PAGE_HEADER_MAX_FIRST_LINE_INDEX
+        )
+        return SegmentationConfig(
+            segmentation_mapping={
+                key: set(parse_list(value))
+                for key, value in config.items('tags')
+            },
+            front_max_start_line_index=front_max_start_line_index,
+            page_header_max_first_line_index=page_header_max_first_line_index
+        )
 
 
 def _iter_all_lines(structured_document: AbstractStructuredDocument):
@@ -283,7 +295,8 @@ def is_valid_page_header_candidate(
 
 
 def find_and_tag_page_headers(
-    segmentation_lines: SegmentationLineList
+    segmentation_lines: SegmentationLineList,
+    max_first_line_index: int
 ):
     untagged_line_counts = Counter((
         line.text for line in segmentation_lines.iter_untagged()
@@ -294,6 +307,17 @@ def find_and_tag_page_headers(
     min_count: Optional[int] = None
     for text, count in untagged_line_counts.most_common():
         if not is_valid_page_header_candidate(text, count, min_count=min_count):
+            continue
+        first_line_index = -1
+        for line in segmentation_lines:
+            if line.text == text:
+                first_line_index = line.line_index
+                break
+        if first_line_index >= max_first_line_index:
+            LOGGER.debug(
+                'first_line_index above threshold: %d >= %d',
+                first_line_index, max_first_line_index
+            )
             continue
         if min_count is None:
             min_count = max(2, count - 1)
@@ -398,7 +422,10 @@ class SegmentationAnnotator(AbstractAnnotator):
         if self.preserve_tags:
             apply_preserved_page_numbers(segmentation_lines)
         find_missing_page_numbers(segmentation_lines)
-        find_and_tag_page_headers(segmentation_lines)
+        find_and_tag_page_headers(
+            segmentation_lines,
+            max_first_line_index=self.config.page_header_max_first_line_index
+        )
         merge_front_lines(
             segmentation_lines=segmentation_lines,
             preserve_tags=self.preserve_tags
