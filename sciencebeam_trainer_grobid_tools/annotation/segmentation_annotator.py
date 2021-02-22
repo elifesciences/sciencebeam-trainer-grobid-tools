@@ -2,7 +2,7 @@ import logging
 import re
 from configparser import ConfigParser
 from collections import Counter
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, NamedTuple, Optional, Set
 
 from sciencebeam_utils.utils.string import parse_list
 
@@ -205,6 +205,48 @@ def apply_preserved_page_numbers(
             line.set_segmentation_tag(SegmentationTagNames.PAGE)
 
 
+class PageNumberCandidate(NamedTuple):
+    page_number: int
+    line: SegmentationLine
+
+
+def is_valid_page_number_candidate(text: str) -> bool:
+    return re.match(r'^\d+$', text)
+
+
+def parse_page_number(text: str) -> int:
+    try:
+        return int(text)
+    except ValueError:
+        return -1
+
+
+def find_missing_page_numbers(
+    segmentation_lines: SegmentationLineList
+):
+    existing_page_number_candidates = [
+        PageNumberCandidate(
+            page_number=parse_page_number(line.text),
+            line=line
+        )
+        for line in segmentation_lines
+        if line.segmentation_tag == SegmentationTagNames.PAGE
+    ]
+    LOGGER.debug('existing_page_number_candidates: %s', existing_page_number_candidates)
+    page_number_candidates = [
+        PageNumberCandidate(
+            page_number=parse_page_number(line.text),
+            line=line
+        )
+        for line in segmentation_lines.iter_untagged()
+        if is_valid_page_number_candidate(line.text)
+    ]
+    LOGGER.debug('page_number_candidates: %s', page_number_candidates)
+    for page_number_candidate in page_number_candidates:
+        LOGGER.debug('setting page number candidate: %s', page_number_candidate)
+        page_number_candidate.line.set_segmentation_tag(SegmentationTagNames.PAGE)
+
+
 def is_valid_page_header_candidate(
     text: str,
     count: int,
@@ -339,6 +381,7 @@ class SegmentationAnnotator(AbstractAnnotator):
 
         if self.preserve_tags:
             apply_preserved_page_numbers(segmentation_lines)
+        find_missing_page_numbers(segmentation_lines)
         find_and_tag_page_headers(segmentation_lines)
         merge_front_lines(
             segmentation_lines=segmentation_lines,

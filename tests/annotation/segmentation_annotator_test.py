@@ -435,3 +435,20 @@ class TestSegmentationAnnotator:
             [(SegmentationTagNames.PAGE, '1')],
             [(SegmentationTagNames.BODY, TOKEN_2)]
         ]
+
+    def test_should_find_missing_page_numbers_annotations(self):
+        doc = _simple_document_with_tagged_token_lines(lines=[
+            [(None, '1')],
+            [(FrontTagNames.TITLE, TOKEN_1)],
+            [(SegmentationTagNames.PAGE, '2')],
+            [(BodyTagNames.SECTION_TITLE, TOKEN_2)],
+            [(SegmentationTagNames.PAGE, '3')]
+        ])
+        SegmentationAnnotator(DEFAULT_CONFIG, preserve_tags=True).annotate(doc)
+        assert _get_document_tagged_token_lines(doc) == [
+            [(SegmentationTagNames.PAGE, '1')],
+            [(SegmentationTagNames.FRONT, TOKEN_1)],
+            [(SegmentationTagNames.PAGE, '2')],
+            [(SegmentationTagNames.BODY, TOKEN_2)],
+            [(SegmentationTagNames.PAGE, '3')]
+        ]
