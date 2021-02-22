@@ -440,9 +440,9 @@ class TestSegmentationAnnotator:
         doc = _simple_document_with_tagged_token_lines(lines=[
             [(None, '1')],
             [(FrontTagNames.TITLE, TOKEN_1)],
-            [(SegmentationTagNames.PAGE, '2')],
+            [(PageTagNames.PAGE, '2')],
             [(BodyTagNames.SECTION_TITLE, TOKEN_2)],
-            [(SegmentationTagNames.PAGE, '3')]
+            [(PageTagNames.PAGE, '3')]
         ])
         SegmentationAnnotator(DEFAULT_CONFIG, preserve_tags=True).annotate(doc)
         assert _get_document_tagged_token_lines(doc) == [
@@ -457,9 +457,9 @@ class TestSegmentationAnnotator:
         doc = _simple_document_with_tagged_token_lines(lines=[
             [(None, '2')],
             [(FrontTagNames.TITLE, TOKEN_1)],
-            [(SegmentationTagNames.PAGE, '2')],
+            [(PageTagNames.PAGE, '2')],
             [(BodyTagNames.SECTION_TITLE, TOKEN_2)],
-            [(SegmentationTagNames.PAGE, '3')]
+            [(PageTagNames.PAGE, '3')]
         ])
         SegmentationAnnotator(DEFAULT_CONFIG, preserve_tags=True).annotate(doc)
         assert _get_document_tagged_token_lines(doc) == [
