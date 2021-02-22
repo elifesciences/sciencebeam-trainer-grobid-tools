@@ -369,3 +369,22 @@ class TestSegmentationAnnotator:
             [(SegmentationTagNames.BODY, TOKEN_3)],
             [(SegmentationTagNames.BODY, TOKEN_4)]
         ]
+
+    def test_should_not_annotate_preserved_page_numbers_as_headnote(self):
+        doc = _simple_document_with_tagged_token_lines(lines=[
+            [(None, '1')],
+            [(FrontTagNames.TITLE, TOKEN_1)],
+            [(None, '1')],
+            [(BodyTagNames.SECTION_TITLE, TOKEN_2)],
+        ])
+        all_tokens = list(doc.iter_all_tokens())
+        doc._set_preserved_tag(all_tokens[0], PageTagNames.PAGE)  # pylint: disable=protected-access
+        doc._set_preserved_tag(all_tokens[2], PageTagNames.PAGE)  # pylint: disable=protected-access
+
+        SegmentationAnnotator(DEFAULT_CONFIG, preserve_tags=True).annotate(doc)
+        assert _get_document_tagged_token_lines(doc) == [
+            [(SegmentationTagNames.PAGE, '1')],
+            [(SegmentationTagNames.FRONT, TOKEN_1)],
+            [(SegmentationTagNames.PAGE, '1')],
+            [(SegmentationTagNames.BODY, TOKEN_2)]
+        ]

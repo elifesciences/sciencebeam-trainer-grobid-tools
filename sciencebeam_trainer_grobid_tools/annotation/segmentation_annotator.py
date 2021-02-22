@@ -193,6 +193,17 @@ class SegmentationLineList:
         return line.segmentation_tag if line else None
 
 
+def apply_preserved_page_numbers(
+    segmentation_lines: SegmentationLineList
+):
+    for line in segmentation_lines.iter_untagged():
+        tags = _get_line_token_tags_or_preserved_tags(
+            line.structured_document, line.line
+        )
+        if SegmentationTagNames.PAGE in tags:
+            line.set_segmentation_tag(SegmentationTagNames.PAGE)
+
+
 def find_and_tag_page_headers(
     segmentation_lines: SegmentationLineList
 ):
@@ -303,6 +314,8 @@ class SegmentationAnnotator(AbstractAnnotator):
 
             line.segmentation_tag = segmentation_tag or majority_tag_name
 
+        if self.preserve_tags:
+            apply_preserved_page_numbers(segmentation_lines)
         find_and_tag_page_headers(segmentation_lines)
         merge_front_lines(
             segmentation_lines=segmentation_lines,
