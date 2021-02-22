@@ -1,4 +1,5 @@
 import logging
+import re
 from configparser import ConfigParser
 from collections import Counter
 from typing import Dict, List, Optional, Set
@@ -204,6 +205,25 @@ def apply_preserved_page_numbers(
             line.set_segmentation_tag(SegmentationTagNames.PAGE)
 
 
+def is_valid_page_header_candidate(
+    text: str,
+    count: int,
+    min_count: int = None
+) -> bool:
+    if min_count is None:
+        min_count = 2
+    if count < min_count:
+        LOGGER.debug('not meeting minimum count: %d < %d (%r)', count, min_count, text)
+        return False
+    if re.match(r'^(\d|\s|\.)+$', text):
+        LOGGER.debug('mostly digits: %r', text)
+        return False
+    if len(re.split(r'\s', text)) < 2:
+        LOGGER.debug('not enough tokens: %r', text)
+        return False
+    return True
+
+
 def find_and_tag_page_headers(
     segmentation_lines: SegmentationLineList
 ):
@@ -213,9 +233,12 @@ def find_and_tag_page_headers(
     LOGGER.debug('untagged_line_counts: %s', untagged_line_counts)
     if not untagged_line_counts:
         return
+    min_count: Optional[int] = None
     for text, count in untagged_line_counts.most_common():
-        if count < 2:
-            break
+        if not is_valid_page_header_candidate(text, count, min_count=min_count):
+            continue
+        if min_count is None:
+            min_count = max(2, count - 1)
         LOGGER.debug('setting page header (headnote) for line(s): %r (%d)', text, count)
         for line in segmentation_lines:
             if line.text == text:

@@ -14,6 +14,7 @@ from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei im
 
 from sciencebeam_trainer_grobid_tools.annotation.segmentation_annotator import (
     parse_segmentation_config,
+    is_valid_page_header_candidate,
     SegmentationConfig,
     SegmentationAnnotator,
     PageTagNames,
@@ -42,8 +43,9 @@ TOKEN_2 = 'token2'
 TOKEN_3 = 'token3'
 TOKEN_4 = 'token4'
 
-PAGE_HEADER_1 = 'Page_Header_1'
+PAGE_HEADER_TOKEN_1 = 'Page_Header_1'
 
+LONG_PAGE_HEADER_TEXT_1 = 'This is a very long page header'
 
 OTHER_TAG = 'other'
 
@@ -109,6 +111,51 @@ class TestParseSegmentationConfig:
         config = parse_segmentation_config(config_path)
         LOGGER.debug('config: %s', config)
         assert config.front_max_start_line_index == 123
+
+
+class TestIsValidPageHeaderCandidate:
+    def test_should_not_accept_all_digits(self):
+        assert is_valid_page_header_candidate(
+            '123',
+            100
+        ) is False
+
+    def test_should_not_accept_all_digits_with_dot(self):
+        assert is_valid_page_header_candidate(
+            '123.45',
+            100
+        ) is False
+
+    def test_should_not_accept_all_digits_with_space(self):
+        assert is_valid_page_header_candidate(
+            '123 45',
+            100
+        ) is False
+
+    def test_should_not_accept_single_token_text(self):
+        assert is_valid_page_header_candidate(
+            'ThisIsALongSingleToken',
+            100
+        ) is False
+
+    def test_should_accept_long_text(self):
+        assert is_valid_page_header_candidate(
+            LONG_PAGE_HEADER_TEXT_1,
+            100
+        ) is True
+
+    def test_should_accept_long_text_starting_with_digit(self):
+        assert is_valid_page_header_candidate(
+            '123 ' + LONG_PAGE_HEADER_TEXT_1,
+            100
+        ) is True
+
+    def test_should_not_accept_long_text_if_below_min_count(self):
+        assert is_valid_page_header_candidate(
+            '123 ' + LONG_PAGE_HEADER_TEXT_1,
+            100,
+            min_count=101
+        ) is False
 
 
 class TestSegmentationAnnotator:
@@ -336,36 +383,36 @@ class TestSegmentationAnnotator:
 
     def test_should_annotate_page_header(self):
         doc = _simple_document_with_tagged_token_lines(lines=[
-            [(None, PAGE_HEADER_1)],
+            [(None, t) for t in LONG_PAGE_HEADER_TEXT_1.split(' ')],
             [(FrontTagNames.TITLE, TOKEN_1)],
-            [(None, PAGE_HEADER_1)],
+            [(None, t) for t in LONG_PAGE_HEADER_TEXT_1.split(' ')],
             [(FrontTagNames.ABSTRACT, TOKEN_2)],
         ])
 
         SegmentationAnnotator(DEFAULT_CONFIG).annotate(doc)
         assert _get_document_tagged_token_lines(doc) == [
-            [(SegmentationTagNames.HEADNOTE, PAGE_HEADER_1)],
+            [(SegmentationTagNames.HEADNOTE, t) for t in LONG_PAGE_HEADER_TEXT_1.split(' ')],
             [(SegmentationTagNames.FRONT, TOKEN_1)],
-            [(SegmentationTagNames.HEADNOTE, PAGE_HEADER_1)],
+            [(SegmentationTagNames.HEADNOTE, t) for t in LONG_PAGE_HEADER_TEXT_1.split(' ')],
             [(SegmentationTagNames.FRONT, TOKEN_2)]
         ]
 
     def test_should_annotate_assume_front_or_body_after_page_header(self):
         doc = _simple_document_with_tagged_token_lines(lines=[
-            [(None, PAGE_HEADER_1)],
+            [(None, t) for t in LONG_PAGE_HEADER_TEXT_1.split(' ')],
             [(None, TOKEN_1)],
             [(FrontTagNames.TITLE, TOKEN_2)],
-            [(None, PAGE_HEADER_1)],
+            [(None, t) for t in LONG_PAGE_HEADER_TEXT_1.split(' ')],
             [(None, TOKEN_3)],
             [(BodyTagNames.SECTION_TITLE, TOKEN_4)],
         ])
 
         SegmentationAnnotator(DEFAULT_CONFIG).annotate(doc)
         assert _get_document_tagged_token_lines(doc) == [
-            [(SegmentationTagNames.HEADNOTE, PAGE_HEADER_1)],
+            [(SegmentationTagNames.HEADNOTE, t) for t in LONG_PAGE_HEADER_TEXT_1.split(' ')],
             [(SegmentationTagNames.FRONT, TOKEN_1)],
             [(SegmentationTagNames.FRONT, TOKEN_2)],
-            [(SegmentationTagNames.HEADNOTE, PAGE_HEADER_1)],
+            [(SegmentationTagNames.HEADNOTE, t) for t in LONG_PAGE_HEADER_TEXT_1.split(' ')],
             [(SegmentationTagNames.BODY, TOKEN_3)],
             [(SegmentationTagNames.BODY, TOKEN_4)]
         ]
