@@ -59,7 +59,7 @@ def _get_class_tag_names(c) -> Set[str]:
 FRONT_TAG_NAMES = _get_class_tag_names(FrontTagNames)
 
 
-DEFAULT_FRONT_MAX_START_LINE_INDEX = 30
+DEFAULT_FRONT_MAX_START_LINE_INDEX = 0
 DEFAULT_PAGE_HEADER_MAX_FIRST_LINE_INDEX = 50
 
 
@@ -195,6 +195,30 @@ class SegmentationLineList:
     def get_segmentation_tag_by_line_index(self, line_index: int) -> Optional[str]:
         line = self.line_by_line_index_map.get(line_index)
         return line.segmentation_tag if line else None
+
+
+def clear_front_tags_for_front_blocks_starting_after_threshold(
+    segmentation_lines: SegmentationLineList,
+    max_block_start_line_index: int
+):
+    if not max_block_start_line_index:
+        LOGGER.debug('no max_block_start_line_index set')
+        return
+    block_segmentation_tag = None
+    block_start_line_index = 0
+    for line in segmentation_lines:
+        if line.segmentation_tag != block_segmentation_tag:
+            block_segmentation_tag = line.segmentation_tag
+            block_start_line_index = line.line_index
+        if (
+            block_segmentation_tag == SegmentationTagNames.FRONT
+            and block_start_line_index > max_block_start_line_index
+        ):
+            LOGGER.debug(
+                'ignore front tag beyond line index threshold (%d > %d), line: %r',
+                block_start_line_index, max_block_start_line_index, line
+            )
+            line.clear_line_token_tags()
 
 
 def apply_preserved_page_numbers(
@@ -373,7 +397,6 @@ class SegmentationAnnotator(AbstractAnnotator):
             for line_index, line in enumerate(_iter_all_lines(structured_document))
         ])
         for line in segmentation_lines.lines:
-            line_index = line.line_index
             full_line_token_tags = line.get_line_token_tags()
             line_token_tags = _to_tag_values(full_line_token_tags)
             line_tag_counts = Counter(line_token_tags)
@@ -386,18 +409,6 @@ class SegmentationAnnotator(AbstractAnnotator):
                 line_tag_counts, majority_tag_name, segmentation_tag
             )
 
-            if (
-                segmentation_tag == SegmentationTagNames.FRONT
-                and self.config.front_max_start_line_index
-                and line_index > self.config.front_max_start_line_index
-            ):
-                LOGGER.debug(
-                    'ignore front tag beyond line index threshold (%d > %d)',
-                    line_index, self.config.front_max_start_line_index
-                )
-                segmentation_tag = None
-                line.clear_line_token_tags()
-
             if segmentation_tag and segmentation_tag == majority_tag_name:
                 LOGGER.debug(
                     'keep line tokens for %s',
@@ -409,6 +420,11 @@ class SegmentationAnnotator(AbstractAnnotator):
                 line.clear_line_token_tags()
 
             line.segmentation_tag = segmentation_tag or majority_tag_name
+
+        clear_front_tags_for_front_blocks_starting_after_threshold(
+            segmentation_lines,
+            max_block_start_line_index=self.config.front_max_start_line_index
+        )
 
         if self.preserve_tags:
             apply_preserved_page_numbers(segmentation_lines)

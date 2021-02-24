@@ -381,6 +381,24 @@ class TestSegmentationAnnotator:
             [(None, TOKEN_3)]
         ]
 
+    def test_should_keep_front_if_line_index_of_front_started_before_threshold(self):
+        doc = _simple_document_with_tagged_token_lines(lines=[
+            [(FrontTagNames.TITLE, TOKEN_1)],
+            [(FrontTagNames.TITLE, TOKEN_2)],
+            [(FrontTagNames.TITLE, TOKEN_3)]
+        ])
+
+        config = SegmentationConfig(
+            DEFAULT_CONFIG.segmentation_mapping,
+            front_max_start_line_index=1
+        )
+        SegmentationAnnotator(config, preserve_tags=True).annotate(doc)
+        assert _get_document_tagged_token_lines(doc) == [
+            [(SegmentationTagNames.FRONT, TOKEN_1)],
+            [(SegmentationTagNames.FRONT, TOKEN_2)],
+            [(SegmentationTagNames.FRONT, TOKEN_3)]
+        ]
+
     def test_should_annotate_page_header(self):
         doc = _simple_document_with_tagged_token_lines(lines=[
             [(None, t) for t in LONG_PAGE_HEADER_TEXT_1.split(' ')],
