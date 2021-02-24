@@ -219,7 +219,6 @@ def clear_front_tags_for_front_blocks_starting_after_threshold(
                 block_start_line_index, max_block_start_line_index, line
             )
             line.clear_line_token_tags()
-            continue
 
 
 def apply_preserved_page_numbers(
