@@ -59,7 +59,7 @@ def _get_class_tag_names(c) -> Set[str]:
 FRONT_TAG_NAMES = _get_class_tag_names(FrontTagNames)
 
 
-DEFAULT_FRONT_MAX_START_LINE_INDEX = 30
+DEFAULT_FRONT_MAX_START_LINE_INDEX = 0
 DEFAULT_PAGE_HEADER_MAX_FIRST_LINE_INDEX = 50
 
 
