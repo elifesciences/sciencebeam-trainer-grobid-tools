@@ -45,7 +45,11 @@ from .annotation.target_annotation import (
     xml_root_to_target_annotations
 )
 
-from .utils.string import comma_separated_str_to_list, parse_dict
+from .utils.string import (
+    comma_separated_str_to_list,
+    get_plus_minus_comma_separated_str_to_list_fn,
+    parse_dict
+)
 from .utils.regex import regex_change_name
 from .utils.xml import parse_xml
 from .annotation.annotator import annotate_structured_document
@@ -276,7 +280,7 @@ def add_fields_argument(
         default_fields: List[str] = None):
     parser.add_argument(
         '--fields',
-        type=comma_separated_str_to_list,
+        type=get_plus_minus_comma_separated_str_to_list_fn(default_fields),
         default=','.join(default_fields) if default_fields else None,
         help='comma separated list of fields to annotate'
     )
@@ -287,7 +291,7 @@ def add_sub_fields_argument(
         default_sub_fields: List[str] = None):
     parser.add_argument(
         '--sub-fields',
-        type=comma_separated_str_to_list,
+        type=get_plus_minus_comma_separated_str_to_list_fn(default_sub_fields),
         default=','.join(default_sub_fields) if default_sub_fields else None,
         help=(
             'comma separated list of sub fields to annotate.'
