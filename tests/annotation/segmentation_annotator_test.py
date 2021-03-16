@@ -189,7 +189,7 @@ class TestSegmentationAnnotator:
             ]
         ]
 
-    def test_should_keep_separate_reference(self):
+    def test_should_merge_separate_reference_if_enabled(self):
         doc = _simple_document_with_tagged_token_lines(lines=[
             [
                 (add_tag_prefix(BackTagNames.REFERENCE, prefix=B_TAG_PREFIX), TOKEN_1),
@@ -201,7 +201,35 @@ class TestSegmentationAnnotator:
             ]
         ])
 
-        SegmentationAnnotator(DEFAULT_CONFIG).annotate(doc)
+        SegmentationAnnotator(
+            DEFAULT_CONFIG._replace(no_merge_references=False)
+        ).annotate(doc)
+        assert _get_document_tagged_token_lines(doc) == [
+            [
+                (BackTagNames.REFERENCE, TOKEN_1),
+                (BackTagNames.REFERENCE, TOKEN_2)
+            ],
+            [
+                (BackTagNames.REFERENCE, TOKEN_3),
+                (BackTagNames.REFERENCE, TOKEN_4)
+            ]
+        ]
+
+    def test_should_keep_separate_reference_if_disabled(self):
+        doc = _simple_document_with_tagged_token_lines(lines=[
+            [
+                (add_tag_prefix(BackTagNames.REFERENCE, prefix=B_TAG_PREFIX), TOKEN_1),
+                (add_tag_prefix(BackTagNames.REFERENCE, prefix=I_TAG_PREFIX), TOKEN_2)
+            ],
+            [
+                (add_tag_prefix(BackTagNames.REFERENCE, prefix=B_TAG_PREFIX), TOKEN_3),
+                (add_tag_prefix(BackTagNames.REFERENCE, prefix=I_TAG_PREFIX), TOKEN_4)
+            ]
+        ])
+
+        SegmentationAnnotator(
+            DEFAULT_CONFIG._replace(no_merge_references=True)
+        ).annotate(doc)
         assert _get_document_tagged_token_lines(doc) == [
             [
                 (add_tag_prefix(BackTagNames.REFERENCE, prefix=B_TAG_PREFIX), TOKEN_1),

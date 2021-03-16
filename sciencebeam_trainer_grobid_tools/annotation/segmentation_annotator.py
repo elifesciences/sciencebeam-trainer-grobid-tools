@@ -67,6 +67,7 @@ class SegmentationConfig(NamedTuple):
     segmentation_mapping: Dict[str, Set[str]]
     front_max_start_line_index: int = DEFAULT_FRONT_MAX_START_LINE_INDEX
     page_header_max_first_line_index: int = DEFAULT_PAGE_HEADER_MAX_FIRST_LINE_INDEX
+    no_merge_references: bool = False
 
 
 def parse_segmentation_config(filename: str) -> SegmentationConfig:
@@ -414,6 +415,8 @@ class SegmentationAnnotator(AbstractAnnotator):
                     'keep line tokens for %s',
                     segmentation_tag
                 )
+                if not self.config.no_merge_references:
+                    line.set_segmentation_tag(segmentation_tag)
             elif segmentation_tag:
                 line.set_segmentation_tag(segmentation_tag)
             elif majority_tag_name is None:
