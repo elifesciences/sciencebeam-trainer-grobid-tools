@@ -1,4 +1,13 @@
-from typing import Dict, Tuple
+from functools import partial
+from typing import Callable, Dict, List, Tuple
+
+
+class PlusMinus:
+    PLUS = '+'
+    MINUS = '-'
+
+
+PLUS_OR_MINUS = {PlusMinus.PLUS, PlusMinus.MINUS}
 
 
 def is_blank(text: str) -> bool:
@@ -10,6 +19,33 @@ def comma_separated_str_to_list(s):
     if not s:
         return []
     return [item.strip() for item in s.split(',')]
+
+
+def plus_minus_comma_separated_str_to_list(s: str, default_value: List[str]) -> List[str]:
+    user_list = comma_separated_str_to_list(s)
+    if not user_list or not user_list[0] or user_list[0][0] not in PLUS_OR_MINUS:
+        return user_list
+    result = default_value.copy()
+    mode = None
+    for user_item in user_list:
+        if not user_item:
+            continue
+        if user_item[0] in PLUS_OR_MINUS:
+            mode = user_item[0]
+            value = user_item[1:]
+        else:
+            value = user_item
+        if mode == PlusMinus.PLUS:
+            result.append(value)
+        if mode == PlusMinus.MINUS:
+            result.remove(value)
+    return result
+
+
+def get_plus_minus_comma_separated_str_to_list_fn(
+    default_value: List[str]
+) -> Callable[[str], List[str]]:
+    return partial(plus_minus_comma_separated_str_to_list, default_value=default_value)
 
 
 def parse_key_value(expr: str) -> Tuple[str, str]:
