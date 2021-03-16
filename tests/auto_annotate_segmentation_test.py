@@ -42,7 +42,9 @@ TOKEN_2 = 'token2'
 TOKEN_3 = 'token3'
 
 LABEL_1 = '1'
+LABEL_2 = '2'
 REFERENCE_TEXT_1 = 'reference A'
+REFERENCE_TEXT_2 = 'reference B'
 
 TITLE_1 = 'Chocolate bars for mice'
 ABSTRACT_PREFIX_1 = 'Abstract'
@@ -623,6 +625,63 @@ class TestEndToEnd(object):
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text_list(tei_auto_root, '//text/listBibl') == [
             LABEL_1 + ' ' + REFERENCE_TEXT_1
+        ]
+
+    def test_should_auto_annotate_and_merge_multiple_references(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_segmentation_tei_node(get_tei_nodes_for_lines([
+                TOKEN_1,
+                LABEL_1 + ' ' + REFERENCE_TEXT_1,
+                LABEL_2 + ' ' + REFERENCE_TEXT_2
+            ]))
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(reference_nodes=[
+                get_jats_reference_node(LABEL_1, REFERENCE_TEXT_1),
+                get_jats_reference_node(LABEL_2, REFERENCE_TEXT_2)
+            ])
+        ))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'no-preserve-tags': True,
+            'fields': 'reference',
+            'xml-mapping-overrides': 'reference.use-raw-text=true'
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text_list(tei_auto_root, '//text/listBibl') == ['\n'.join([
+            LABEL_1 + ' ' + REFERENCE_TEXT_1,
+            LABEL_2 + ' ' + REFERENCE_TEXT_2
+        ])]
+
+    def test_should_auto_annotate_and_not_merge_multiple_references(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_segmentation_tei_node(get_tei_nodes_for_lines([
+                TOKEN_1,
+                LABEL_1 + ' ' + REFERENCE_TEXT_1,
+                LABEL_2 + ' ' + REFERENCE_TEXT_2
+            ]))
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(reference_nodes=[
+                get_jats_reference_node(LABEL_1, REFERENCE_TEXT_1),
+                get_jats_reference_node(LABEL_2, REFERENCE_TEXT_2)
+            ])
+        ))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'no-preserve-tags': True,
+            'no-merge-references': True,
+            'fields': 'reference',
+            'xml-mapping-overrides': 'reference.use-raw-text=true'
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text_list(tei_auto_root, '//text/listBibl') == [
+            LABEL_1 + ' ' + REFERENCE_TEXT_1,
+            LABEL_2 + ' ' + REFERENCE_TEXT_2
         ]
 
     def test_should_not_preserve_exclude_existing_tag_and_use_body_by_default(

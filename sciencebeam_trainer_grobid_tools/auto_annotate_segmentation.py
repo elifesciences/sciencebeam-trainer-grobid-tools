@@ -178,6 +178,10 @@ class AnnotatePipelineFactory(AbstractAnnotatePipelineFactory):
             xml_mapping_overrides=opt.xml_mapping_overrides
         )
         self.segmentation_config = parse_segmentation_config(opt.segmentation_config)
+        if opt.no_merge_references:
+            self.segmentation_config = self.segmentation_config._replace(
+                no_merge_references=True
+            )
 
     def get_annotator(self, source_url: str):
         target_xml_path = self.get_target_xml_for_source_file(source_url)
@@ -211,6 +215,12 @@ def add_main_args(parser):
         '--no-preserve-fields',
         type=comma_separated_str_to_list,
         help='comma separated list of output fields that should not be preserved'
+    )
+
+    parser.add_argument(
+        '--no-merge-references',
+        action='store_true',
+        help='disable merging of references'
     )
 
     parser.add_argument(
