@@ -278,7 +278,7 @@ class TestSegmentationAnnotator:
             ]
         ]
 
-    def test_should_merge_and_fill_gap_between_back_tags_if_enabled(self):
+    def test_should_merge_and_fill_gap_between_back_tags(self):
         doc = _simple_document_with_tagged_token_lines(lines=[
             [
                 (add_tag_prefix(BackTagNames.APPENDIX, prefix=B_TAG_PREFIX), TOKEN_1),
@@ -309,6 +309,32 @@ class TestSegmentationAnnotator:
             [
                 (SegmentationTagNames.ANNEX, TOKEN_5),
                 (SegmentationTagNames.ANNEX, TOKEN_6)
+            ]
+        ]
+
+    def test_should_merge_and_fill_remaining_untagged_with_annex(self):
+        doc = _simple_document_with_tagged_token_lines(lines=[
+            [
+                (add_tag_prefix(BackTagNames.APPENDIX, prefix=B_TAG_PREFIX), TOKEN_1),
+                (add_tag_prefix(BackTagNames.APPENDIX, prefix=I_TAG_PREFIX), TOKEN_2)
+            ],
+            [
+                (None, TOKEN_3),
+                (None, TOKEN_4)
+            ]
+        ])
+
+        SegmentationAnnotator(
+            DEFAULT_CONFIG._replace(no_merge_references=False)
+        ).annotate(doc)
+        assert _get_document_tagged_token_lines(doc) == [
+            [
+                (SegmentationTagNames.ANNEX, TOKEN_1),
+                (SegmentationTagNames.ANNEX, TOKEN_2)
+            ],
+            [
+                (SegmentationTagNames.ANNEX, TOKEN_3),
+                (SegmentationTagNames.ANNEX, TOKEN_4)
             ]
         ]
 

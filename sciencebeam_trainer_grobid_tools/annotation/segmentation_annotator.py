@@ -348,7 +348,8 @@ def find_and_tag_page_headers(
 def merge_lines(
     segmentation_lines: SegmentationLineList,
     preserve_tags: bool,
-    enabled_tags: Set[str]
+    enabled_tags: Set[str],
+    enabled_remaining_tags: Set[str]
 ):
     condidate_lines = []
     previous_segmentation_tag: Optional[str] = SegmentationTagNames.FRONT
@@ -382,6 +383,14 @@ def merge_lines(
             continue
         if previous_segmentation_tag in enabled_tags:
             condidate_lines.append(line)
+    if condidate_lines and previous_segmentation_tag in enabled_remaining_tags:
+        LOGGER.debug(
+            'tagging remaining as %r, merging with previous lines: %s',
+            previous_segmentation_tag, condidate_lines
+        )
+        total_merged_line_counts[previous_segmentation_tag] += len(condidate_lines)
+        for condidate_line in condidate_lines:
+            condidate_line.set_segmentation_tag(previous_segmentation_tag)
     LOGGER.debug('merged lines, %s', total_merged_line_counts)
 
 
@@ -447,7 +456,8 @@ class SegmentationAnnotator(AbstractAnnotator):
         merge_lines(
             segmentation_lines=segmentation_lines,
             preserve_tags=self.preserve_tags,
-            enabled_tags=enabled_tags
+            enabled_tags=enabled_tags,
+            enabled_remaining_tags={SegmentationTagNames.ANNEX}
         )
 
         if not self.preserve_tags:
