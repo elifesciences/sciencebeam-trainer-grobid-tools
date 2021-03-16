@@ -293,6 +293,37 @@ class TestEndToEnd(object):
         tei_auto_root = test_helper.get_tei_auto_root()
         assert get_xpath_text_list(tei_auto_root, '//div[@type="acknowledgment"]') == [tei_text]
 
+    def test_should_auto_annotate_acknowledgment_sub_section_as_acknowledgment(
+            self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
+        target_back_content_nodes = [
+            E.ack(E.sec(
+                E.title(SECTION_TITLE_2),
+                '\n',
+                E.p(TEXT_2)
+            ))
+        ]
+        tei_text = get_nodes_text(target_back_content_nodes)
+        test_helper.tei_raw_file_path.write_bytes(etree.tostring(
+            get_training_tei_node(get_tei_nodes_for_text(tei_text))
+        ))
+        test_helper.xml_file_path.write_bytes(etree.tostring(
+            get_target_xml_node(back_nodes=target_back_content_nodes)
+        ))
+        main(dict_to_args({
+            **test_helper.main_args_dict,
+            'fields': ','.join([
+                'body_section_title',
+                'body_section_paragraph',
+                'back_section_title',
+                'back_section_paragraph',
+                'acknowledgment_section_title',
+                'acknowledgment_section_paragraph'
+            ])
+        }), save_main_session=False)
+
+        tei_auto_root = test_helper.get_tei_auto_root()
+        assert get_xpath_text_list(tei_auto_root, '//div[@type="acknowledgment"]') == [tei_text]
+
     def test_should_auto_annotate_appendix_section_as_annex(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
         target_back_content_nodes = [
