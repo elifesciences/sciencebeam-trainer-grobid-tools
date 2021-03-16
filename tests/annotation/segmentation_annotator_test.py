@@ -34,7 +34,8 @@ SEGMENTATION_CONTAINER_NODE_PATH = ContainerNodePaths.SEGMENTATION_CONTAINER_NOD
 DEFAULT_CONFIG = SegmentationConfig({
     SegmentationTagNames.FRONT: {FrontTagNames.TITLE, FrontTagNames.ABSTRACT},
     SegmentationTagNames.BODY: {BodyTagNames.SECTION_TITLE},
-    SegmentationTagNames.REFERENCE: {BackTagNames.REFERENCE}
+    SegmentationTagNames.REFERENCE: {BackTagNames.REFERENCE},
+    SegmentationTagNames.ANNEX: {BackTagNames.APPENDIX}
 })
 
 
@@ -208,12 +209,12 @@ class TestSegmentationAnnotator:
         ).annotate(doc)
         assert _get_document_tagged_token_lines(doc) == [
             [
-                (BackTagNames.REFERENCE, TOKEN_1),
-                (BackTagNames.REFERENCE, TOKEN_2)
+                (SegmentationTagNames.REFERENCE, TOKEN_1),
+                (SegmentationTagNames.REFERENCE, TOKEN_2)
             ],
             [
-                (BackTagNames.REFERENCE, TOKEN_3),
-                (BackTagNames.REFERENCE, TOKEN_4)
+                (SegmentationTagNames.REFERENCE, TOKEN_3),
+                (SegmentationTagNames.REFERENCE, TOKEN_4)
             ]
         ]
 
@@ -234,12 +235,12 @@ class TestSegmentationAnnotator:
         ).annotate(doc)
         assert _get_document_tagged_token_lines(doc) == [
             [
-                (add_tag_prefix(BackTagNames.REFERENCE, prefix=B_TAG_PREFIX), TOKEN_1),
-                (add_tag_prefix(BackTagNames.REFERENCE, prefix=I_TAG_PREFIX), TOKEN_2)
+                (add_tag_prefix(SegmentationTagNames.REFERENCE, prefix=B_TAG_PREFIX), TOKEN_1),
+                (add_tag_prefix(SegmentationTagNames.REFERENCE, prefix=I_TAG_PREFIX), TOKEN_2)
             ],
             [
-                (add_tag_prefix(BackTagNames.REFERENCE, prefix=B_TAG_PREFIX), TOKEN_3),
-                (add_tag_prefix(BackTagNames.REFERENCE, prefix=I_TAG_PREFIX), TOKEN_4)
+                (add_tag_prefix(SegmentationTagNames.REFERENCE, prefix=B_TAG_PREFIX), TOKEN_3),
+                (add_tag_prefix(SegmentationTagNames.REFERENCE, prefix=I_TAG_PREFIX), TOKEN_4)
             ]
         ]
 
@@ -264,16 +265,50 @@ class TestSegmentationAnnotator:
         ).annotate(doc)
         assert _get_document_tagged_token_lines(doc) == [
             [
-                (BackTagNames.REFERENCE, TOKEN_1),
-                (BackTagNames.REFERENCE, TOKEN_2)
+                (SegmentationTagNames.REFERENCE, TOKEN_1),
+                (SegmentationTagNames.REFERENCE, TOKEN_2)
             ],
             [
-                (BackTagNames.REFERENCE, TOKEN_3),
-                (BackTagNames.REFERENCE, TOKEN_4)
+                (SegmentationTagNames.REFERENCE, TOKEN_3),
+                (SegmentationTagNames.REFERENCE, TOKEN_4)
             ],
             [
-                (BackTagNames.REFERENCE, TOKEN_5),
-                (BackTagNames.REFERENCE, TOKEN_6)
+                (SegmentationTagNames.REFERENCE, TOKEN_5),
+                (SegmentationTagNames.REFERENCE, TOKEN_6)
+            ]
+        ]
+
+    def test_should_merge_and_fill_gap_between_back_tags_if_enabled(self):
+        doc = _simple_document_with_tagged_token_lines(lines=[
+            [
+                (add_tag_prefix(BackTagNames.APPENDIX, prefix=B_TAG_PREFIX), TOKEN_1),
+                (add_tag_prefix(BackTagNames.APPENDIX, prefix=I_TAG_PREFIX), TOKEN_2)
+            ],
+            [
+                (None, TOKEN_3),
+                (None, TOKEN_4)
+            ],
+            [
+                (add_tag_prefix(BackTagNames.APPENDIX, prefix=B_TAG_PREFIX), TOKEN_5),
+                (add_tag_prefix(BackTagNames.APPENDIX, prefix=I_TAG_PREFIX), TOKEN_6)
+            ]
+        ])
+
+        SegmentationAnnotator(
+            DEFAULT_CONFIG._replace(no_merge_references=False)
+        ).annotate(doc)
+        assert _get_document_tagged_token_lines(doc) == [
+            [
+                (SegmentationTagNames.ANNEX, TOKEN_1),
+                (SegmentationTagNames.ANNEX, TOKEN_2)
+            ],
+            [
+                (SegmentationTagNames.ANNEX, TOKEN_3),
+                (SegmentationTagNames.ANNEX, TOKEN_4)
+            ],
+            [
+                (SegmentationTagNames.ANNEX, TOKEN_5),
+                (SegmentationTagNames.ANNEX, TOKEN_6)
             ]
         ]
 

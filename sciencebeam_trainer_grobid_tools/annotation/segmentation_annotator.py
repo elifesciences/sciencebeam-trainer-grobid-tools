@@ -38,6 +38,7 @@ class BodyTagNames:
 
 class BackTagNames:
     REFERENCE = 'reference'
+    APPENDIX = 'appendix'
 
 
 class SegmentationTagNames:
@@ -46,6 +47,7 @@ class SegmentationTagNames:
     HEADNOTE = 'headnote'
     BODY = 'body'
     REFERENCE = 'reference'
+    ANNEX = 'annex'
 
 
 def _get_class_tag_names(c) -> Set[str]:
@@ -439,7 +441,7 @@ class SegmentationAnnotator(AbstractAnnotator):
             segmentation_lines,
             max_first_line_index=self.config.page_header_max_first_line_index
         )
-        enabled_tags = {SegmentationTagNames.FRONT}
+        enabled_tags = {SegmentationTagNames.FRONT, SegmentationTagNames.ANNEX}
         if not self.config.no_merge_references:
             enabled_tags.add(SegmentationTagNames.REFERENCE)
         merge_lines(
