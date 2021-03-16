@@ -42,6 +42,8 @@ TOKEN_1 = 'token1'
 TOKEN_2 = 'token2'
 TOKEN_3 = 'token3'
 TOKEN_4 = 'token4'
+TOKEN_5 = 'token5'
+TOKEN_6 = 'token6'
 
 PAGE_HEADER_TOKEN_1 = 'Page_Header_1'
 
@@ -238,6 +240,40 @@ class TestSegmentationAnnotator:
             [
                 (add_tag_prefix(BackTagNames.REFERENCE, prefix=B_TAG_PREFIX), TOKEN_3),
                 (add_tag_prefix(BackTagNames.REFERENCE, prefix=I_TAG_PREFIX), TOKEN_4)
+            ]
+        ]
+
+    def test_should_merge_and_fill_gap_between_reference_if_enabled(self):
+        doc = _simple_document_with_tagged_token_lines(lines=[
+            [
+                (add_tag_prefix(BackTagNames.REFERENCE, prefix=B_TAG_PREFIX), TOKEN_1),
+                (add_tag_prefix(BackTagNames.REFERENCE, prefix=I_TAG_PREFIX), TOKEN_2)
+            ],
+            [
+                (None, TOKEN_3),
+                (None, TOKEN_4)
+            ],
+            [
+                (add_tag_prefix(BackTagNames.REFERENCE, prefix=B_TAG_PREFIX), TOKEN_5),
+                (add_tag_prefix(BackTagNames.REFERENCE, prefix=I_TAG_PREFIX), TOKEN_6)
+            ]
+        ])
+
+        SegmentationAnnotator(
+            DEFAULT_CONFIG._replace(no_merge_references=False)
+        ).annotate(doc)
+        assert _get_document_tagged_token_lines(doc) == [
+            [
+                (BackTagNames.REFERENCE, TOKEN_1),
+                (BackTagNames.REFERENCE, TOKEN_2)
+            ],
+            [
+                (BackTagNames.REFERENCE, TOKEN_3),
+                (BackTagNames.REFERENCE, TOKEN_4)
+            ],
+            [
+                (BackTagNames.REFERENCE, TOKEN_5),
+                (BackTagNames.REFERENCE, TOKEN_6)
             ]
         ]
 

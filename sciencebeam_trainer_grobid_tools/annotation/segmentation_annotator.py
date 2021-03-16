@@ -343,28 +343,31 @@ def find_and_tag_page_headers(
                 line.set_segmentation_tag(SegmentationTagNames.HEADNOTE)
 
 
-def merge_front_lines(
+def merge_lines(
     segmentation_lines: SegmentationLineList,
-    preserve_tags: bool
+    preserve_tags: bool,
+    enabled_tags: Set[str]
 ):
     condidate_lines = []
     previous_segmentation_tag: Optional[str] = SegmentationTagNames.FRONT
-    total_merged_lines = 0
+    total_merged_line_counts = Counter()
     ignored_segmentation_tags = {SegmentationTagNames.HEADNOTE, SegmentationTagNames.PAGE}
     for line in segmentation_lines:
         if line.segmentation_tag in ignored_segmentation_tags:
             continue
         if line.segmentation_tag:
+            if previous_segmentation_tag != line.segmentation_tag:
+                condidate_lines = []
             previous_segmentation_tag = line.segmentation_tag
-        if line.segmentation_tag == SegmentationTagNames.FRONT:
+        if line.segmentation_tag in enabled_tags:
             if condidate_lines:
                 LOGGER.debug(
-                    'tagging as front, merging with previous front line: %s',
-                    condidate_lines
+                    'tagging as %r, merging with previous lines: %s',
+                    line.segmentation_tag, condidate_lines
                 )
-                total_merged_lines += len(condidate_lines)
+                total_merged_line_counts[line.segmentation_tag] += len(condidate_lines)
                 for condidate_line in condidate_lines:
-                    condidate_line.set_segmentation_tag(SegmentationTagNames.FRONT)
+                    condidate_line.set_segmentation_tag(line.segmentation_tag)
             condidate_lines = []
             continue
         if line.segmentation_tag:
@@ -375,9 +378,9 @@ def merge_front_lines(
         )
         if preserve_tags and SegmentationTagNames.PAGE in tags:
             continue
-        if previous_segmentation_tag == SegmentationTagNames.FRONT:
+        if previous_segmentation_tag in enabled_tags:
             condidate_lines.append(line)
-    LOGGER.debug('merged front lines, %d lines', total_merged_lines)
+    LOGGER.debug('merged lines, %s', total_merged_line_counts)
 
 
 class SegmentationAnnotator(AbstractAnnotator):
@@ -436,9 +439,13 @@ class SegmentationAnnotator(AbstractAnnotator):
             segmentation_lines,
             max_first_line_index=self.config.page_header_max_first_line_index
         )
-        merge_front_lines(
+        enabled_tags = {SegmentationTagNames.FRONT}
+        if not self.config.no_merge_references:
+            enabled_tags.add(SegmentationTagNames.REFERENCE)
+        merge_lines(
             segmentation_lines=segmentation_lines,
-            preserve_tags=self.preserve_tags
+            preserve_tags=self.preserve_tags,
+            enabled_tags=enabled_tags
         )
 
         if not self.preserve_tags:
