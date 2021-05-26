@@ -5,11 +5,11 @@ import logging
 import os
 from contextlib import contextmanager
 from tempfile import TemporaryDirectory
-from typing import ContextManager
+from typing import ContextManager, List
 
 from sciencebeam_utils.beam_utils.io import read_all_from_path, save_file_content
 
-from .core.annotation.annotator import Annotator
+from .core.annotation.annotator import AbstractAnnotator, Annotator
 
 from .utils.xml import parse_xml
 from .utils.tei_xml import TEI_NS_MAP
@@ -74,7 +74,7 @@ def _get_annotator(
         preserve_sub_annotations=True,
         extend_to_line_enabled=False
     )
-    annotators = []
+    annotators: List[AbstractAnnotator] = []
     if segment_figures:
         annotators.append(SimpleMatchingAnnotator(
             target_annotations,

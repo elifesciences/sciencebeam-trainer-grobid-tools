@@ -2,8 +2,9 @@ from __future__ import absolute_import
 
 import argparse
 import logging
+from typing import List
 
-from .core.annotation.annotator import Annotator
+from .core.annotation.annotator import AbstractAnnotator, Annotator
 
 from .utils.xml import parse_xml
 from .utils.tei_xml import TEI_NS_MAP
@@ -145,7 +146,7 @@ def _get_annotator(
         xml_mapping=xml_mapping,
         extend_to_line_enabled=False
     )
-    annotators = []
+    annotators: List[AbstractAnnotator] = []
     if segment_references:
         annotators.append(SimpleMatchingAnnotator(
             target_annotations,

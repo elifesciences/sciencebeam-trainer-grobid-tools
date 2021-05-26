@@ -482,7 +482,7 @@ def get_default_annotators(
         xml_path, xml_mapping,
         annotator_config: AnnotatorConfig) -> List[AbstractAnnotator]:
 
-    annotators = []
+    annotators: List[AbstractAnnotator] = []
     if annotator_config.use_line_number_annotator:
         annotators.append(TextLineNumberAnnotator(
             config=annotator_config.line_number_annotator_config
