@@ -1,7 +1,7 @@
 import logging
 import re
 from itertools import groupby
-from typing import Dict, List, Set, Iterable, Any
+from typing import Dict, List, Optional, Set, Iterable, Any
 
 from sciencebeam_trainer_grobid_tools.core.structured_document import (
     AbstractStructuredDocument,
@@ -200,8 +200,8 @@ def get_suffix_extended_token_tags(
         token_tags: List[str],
         token_texts: List[str],
         token_whitespaces: List[str] = None,
-        enabled_tags: Set[str] = None) -> List[str]:
-    result = []
+        enabled_tags: Set[str] = None) -> List[Optional[str]]:
+    result: List[Optional[str]] = []
     if token_whitespaces is None:
         token_whitespaces = [' '] * len(token_texts)
     grouped_token_tags = [
