@@ -75,7 +75,7 @@ def is_address_sub_tag(sub_tag: str) -> bool:
     return 'address' in sub_tag
 
 
-def get_address_group_tag_for_sub_tag(sub_tag: str) -> bool:
+def get_address_group_tag_for_sub_tag(sub_tag: str) -> str:
     if is_address_sub_tag(sub_tag):
         return 'author_aff-address'
     return None
