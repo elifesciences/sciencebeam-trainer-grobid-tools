@@ -410,7 +410,7 @@ def get_xml_mapping_with_overrides(
 def get_xml_mapping_and_fields(
     xml_mapping_path: str,
     fields: Optional[Set[str]],
-    sub_fields: List[str] = None,
+    sub_fields: Set[str] = None,
     xml_mapping_overrides: Optional[Dict[str, str]] = None
 ) -> Tuple[Dict[str, Dict[str, str]], Set[str]]:
     return get_filtered_xml_mapping_and_fields(

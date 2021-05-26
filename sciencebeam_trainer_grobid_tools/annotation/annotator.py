@@ -1,7 +1,7 @@
 import logging
 from collections import Counter
 from functools import partial
-from typing import Callable, List, Optional, Set
+from typing import Callable, Optional, Set
 
 from sciencebeam_trainer_grobid_tools.core.annotation.annotator import AbstractAnnotator
 
@@ -41,8 +41,8 @@ def _map_token_tags(structured_document, tag_fn, **kwargs):
 def _preserve_tag_fn(
         existing_tag: str,
         token,  # pylint: disable=unused-argument
-        include_fields: List[str] = None,
-        exclude_fields: List[str] = None):
+        include_fields: Set[str] = None,
+        exclude_fields: Set[str] = None):
     simple_existing_tag = strip_tag_prefix(existing_tag)
     if exclude_fields and simple_existing_tag in exclude_fields:
         return None
