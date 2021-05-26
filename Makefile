@@ -66,7 +66,11 @@ dev-pylint:
 	$(PYTHON) -m pylint sciencebeam_trainer_grobid_tools tests setup.py
 
 
-dev-lint: dev-flake8 dev-pylint
+dev-mypy:
+	$(PYTHON) -m mypy --ignore-missing-imports sciencebeam_trainer_grobid_tools tests setup.py $(ARGS)
+
+
+dev-lint: dev-flake8 dev-pylint dev-mypy
 
 
 dev-pytest:
@@ -246,8 +250,33 @@ tools-delete-pyc: build-dev
 	$(RUN_TOOLS_DEV) find . -name '*.pyc' -delete
 
 
-tools-test: build-dev tools-delete-pyc
-	$(RUN_TOOLS_DEV) ./project-tests.sh
+tools-pylint:
+	$(RUN_TOOLS_DEV) pylint sciencebeam_trainer_grobid_tools tests setup.py
+
+
+tools-flake8:
+	$(RUN_TOOLS_DEV) flake8 sciencebeam_trainer_grobid_tools tests setup.py
+
+
+tools-mypy:
+	$(RUN_TOOLS_DEV) mypy --ignore-missing-imports sciencebeam_trainer_grobid_tools tests setup.py
+
+
+tools-pytest:
+	$(RUN_TOOLS_DEV) pytest -v -p no:cacheprovider $(PYTEST_ARGS)
+
+
+tools-lint: \
+	tools-flake8 \
+	tools-pylint \
+	tools-mypy
+
+
+tools-test: \
+	build-dev \
+	tools-delete-pyc \
+	tools-lint \
+	tools-pytest
 
 
 tools-watch: build-dev tools-delete-pyc
