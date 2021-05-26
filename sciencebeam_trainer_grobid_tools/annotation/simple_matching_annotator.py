@@ -65,7 +65,7 @@ class SimpleTagConfig:
     def __init__(
             self,
             match_prefix_regex: str = None,
-            alternative_spellings: Dict[str, List[str]] = None,
+            alternative_spellings: Optional[Dict[str, List[str]]] = None,
             merge_enabled: bool = DEFAULT_MERGE_ENABLED,
             extend_to_line_enabled: bool = DEFAULT_EXTEND_TO_LINE_ENABLED,
             max_chunks: int = DEFAULT_MAX_CHUNKS,
@@ -358,7 +358,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             config = SimpleSimpleMatchingConfig(**kwargs)
         elif kwargs:
             raise ValueError('either config or kwargs should be specified')
-        self.config = config
+        self.config: SimpleSimpleMatchingConfig = config
         LOGGER.debug('config: %s', config)
         self.merge_enabled_map = {
             tag: tag_confg.merge_enabled
@@ -401,7 +401,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             self,
             haystack: str,
             needle,
-            alternative_spellings: Dict[str, List[str]],
+            alternative_spellings: Optional[Dict[str, List[str]]],
             **kwargs):
         index_range = self.get_fuzzy_matching_index_range_chunks(haystack, needle, **kwargs)
         if index_range or not alternative_spellings:
@@ -565,7 +565,11 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             tag_config = self.config.tag_config_map.get(
                 target_annotation.name, DEFAULT_SIMPLE_TAG_CONFIG
             )
-            alternative_spellings = tag_config and tag_config.alternative_spellings
+            alternative_spellings = (
+                tag_config.alternative_spellings
+                if tag_config
+                else None
+            )
             LOGGER.debug('alternative_spellings: %s', alternative_spellings)
             text_str = str(text)
             LOGGER.debug('text: %s', text)
