@@ -92,7 +92,7 @@ def get_logger():
 
 def _get_annotator(
         *args,
-        segmentation_config: SegmentationConfig = None,
+        segmentation_config: SegmentationConfig,
         preserve_tags: bool = False,
         **kwargs):
 
