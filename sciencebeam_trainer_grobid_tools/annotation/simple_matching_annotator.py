@@ -751,7 +751,7 @@ def parse_regex(regex_str: str) -> str:
     return regex_str
 
 
-def parse_alternative_spellings(alternative_spellings_str: str) -> Dict[str, List[str]]:
+def parse_alternative_spellings(alternative_spellings_str: Optional[str]) -> Dict[str, List[str]]:
     LOGGER.debug('alternative_spellings_str: %s', alternative_spellings_str)
     if not alternative_spellings_str:
         return {}
