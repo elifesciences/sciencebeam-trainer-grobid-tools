@@ -123,7 +123,7 @@ def _get_default_reference_annotator_config() -> ReferenceAnnotatorConfig:
     return ReferenceAnnotatorConfig(
         sub_tag_map=DEFAULT_SUB_TAG_MAP,
         merge_enabled_sub_tags=DEFAULT_MERGE_ENABLED_SUB_TAGS,
-        include_prefix_enabled_sub_tags={},
+        include_prefix_enabled_sub_tags=set(),
         include_suffix_enabled_sub_tags=NAME_SUFFIX_ENABLED_SUB_TAGS,
         prefix_regex_by_sub_tag_map=IDNO_PREFIX_REGEX_MAP,
         etal_sub_tag=ETAL_SUB_TAG,
