@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, Dict, List, Optional, Set, Tuple
 
 
 class PlusMinus:
@@ -42,10 +42,22 @@ def plus_minus_comma_separated_str_to_list(s: str, default_value: List[str]) -> 
     return result
 
 
+def plus_minus_comma_separated_str_to_set(s: str, default_value: Optional[Set[str]]) -> Set[str]:
+    return set(
+        plus_minus_comma_separated_str_to_list(s, list(default_value or set()))
+    )
+
+
 def get_plus_minus_comma_separated_str_to_list_fn(
     default_value: List[str]
 ) -> Callable[[str], List[str]]:
     return partial(plus_minus_comma_separated_str_to_list, default_value=default_value)
+
+
+def get_plus_minus_comma_separated_str_to_set_fn(
+    default_value: Set[str]
+) -> Callable[[str], Set[str]]:
+    return partial(plus_minus_comma_separated_str_to_set, default_value=default_value)
 
 
 def parse_key_value(expr: str) -> Tuple[str, str]:

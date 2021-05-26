@@ -47,7 +47,7 @@ from .annotation.target_annotation import (
 
 from .utils.string import (
     comma_separated_str_to_list,
-    get_plus_minus_comma_separated_str_to_list_fn,
+    get_plus_minus_comma_separated_str_to_set_fn,
     parse_dict
 )
 from .utils.regex import regex_change_name
@@ -280,7 +280,9 @@ def add_fields_argument(
         default_fields: Collection[str] = None):
     parser.add_argument(
         '--fields',
-        type=get_plus_minus_comma_separated_str_to_list_fn(default_fields),
+        type=get_plus_minus_comma_separated_str_to_set_fn(
+            set(default_fields or [])
+        ),
         default=','.join(default_fields) if default_fields else None,
         help='comma separated list of fields to annotate'
     )
@@ -288,10 +290,12 @@ def add_fields_argument(
 
 def add_sub_fields_argument(
         parser: argparse.ArgumentParser,
-        default_sub_fields: Collection[str] = None):
+        default_sub_fields: Optional[Collection[str]] = None):
     parser.add_argument(
         '--sub-fields',
-        type=get_plus_minus_comma_separated_str_to_list_fn(default_sub_fields),
+        type=get_plus_minus_comma_separated_str_to_set_fn(
+            set(default_sub_fields or [])
+        ),
         default=','.join(default_sub_fields) if default_sub_fields else None,
         help=(
             'comma separated list of sub fields to annotate.'
