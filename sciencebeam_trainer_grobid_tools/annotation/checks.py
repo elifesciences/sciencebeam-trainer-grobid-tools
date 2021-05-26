@@ -55,7 +55,7 @@ def get_entities_name(entity_pair: Tuple[str, str]) -> str:
 
 def iter_structured_document_entities(
         structured_document: GrobidTrainingTeiStructuredDocument
-        ) -> Iterable[Tuple[Optional[str], str]]:
+        ) -> Iterable[Tuple[str, str]]:
     pending_tokens: List[Any] = []
     pending_tag_value: Optional[str] = None
     for token in _iter_all_tokens(structured_document):
@@ -63,6 +63,7 @@ def iter_structured_document_entities(
         tag_prefix, tag_value = split_tag_prefix(tag)
         if pending_tokens:
             if pending_tag_value != tag_value or tag_prefix == B_TAG_PREFIX:
+                assert pending_tag_value is not None
                 yield pending_tag_value, get_token_text(pending_tokens)
                 pending_tokens = []
                 pending_tag_value = None
@@ -71,6 +72,7 @@ def iter_structured_document_entities(
         pending_tag_value = tag_value
         pending_tokens.append(token)
     if pending_tokens:
+        assert pending_tag_value is not None
         yield pending_tag_value, get_token_text(pending_tokens)
 
 

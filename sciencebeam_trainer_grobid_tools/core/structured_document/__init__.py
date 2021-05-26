@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from copy import deepcopy
+from typing import Optional, Tuple
 
 B_TAG_PREFIX = 'b-'
 I_TAG_PREFIX = 'i-'
@@ -43,7 +44,7 @@ def get_simple_tag_attrib_name(scope, level=None):
     return get_scoped_attrib_name(SIMPLE_TAG_ATTRIB_NAME, scope, level)
 
 
-def split_tag_prefix(tag):
+def split_tag_prefix(tag: Optional[str]) -> Tuple[Optional[str], Optional[str]]:
     if tag:
         if tag.startswith(B_TAG_PREFIX):
             return B_TAG_PREFIX, tag[len(B_TAG_PREFIX):]
