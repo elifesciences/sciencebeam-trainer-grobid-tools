@@ -34,7 +34,7 @@ def log_on_exception(f: Union[callable, type]) -> callable:
     return wrapper
 
 
-def dict_to_args(args_dict: Dict[str, str]) -> List[str]:
+def dict_to_args(args_dict: Dict[str, Union[str, bool]]) -> List[str]:
     return [
         (
             '--%s' % key if isinstance(value, bool) and value
