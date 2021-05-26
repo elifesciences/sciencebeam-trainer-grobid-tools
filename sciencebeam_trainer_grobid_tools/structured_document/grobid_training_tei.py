@@ -641,13 +641,13 @@ class GrobidTrainingTeiStructuredDocument(AbstractStructuredDocument):
         return strip_tag_prefix(self.get_tag_or_preserved_tag(*args, **kwargs))
 
     def set_tag_only(
-            self, parent: TeiText, tag: str,
+            self, parent: TeiText, tag: Optional[str],
             scope: str = None,
             level: Optional[T_Tag_Level] = None):
         set_or_remove_attrib(parent.attrib, _get_tag_attrib_name(scope, level), tag)
 
     def set_sub_tag_only(
-            self, parent: TeiText, tag: str):
+            self, parent: TeiText, tag: Optional[str]):
         set_or_remove_attrib(parent.attrib, SUB_TAG_ATTRIB_NAME, tag)
 
     def clear_preserved_sub_tag(
