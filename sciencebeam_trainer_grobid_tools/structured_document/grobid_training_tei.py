@@ -4,7 +4,7 @@ import copy
 import logging
 import re
 from itertools import zip_longest
-from typing import Dict, Iterable, List, Set
+from typing import Dict, Iterable, List, Optional, Set, Union
 
 import regex
 from apache_beam.io.filesystems import FileSystems
@@ -46,6 +46,7 @@ PRESERVED_SUB_TAG_ATTRIB_NAME = get_scoped_attrib_name(
     level=SUB_LEVEL
 )
 
+T_Tag_Level = Union[str, int]
 
 DEFAULT_TAG_KEY = ''
 
@@ -331,7 +332,7 @@ def _iter_extract_lines_from_container_elements(
             yield line_buffer.flush()
 
 
-def _get_tag_attrib_name(scope, level):
+def _get_tag_attrib_name(scope, level: Optional[T_Tag_Level]):
     return get_scoped_attrib_name(TAG_ATTRIB_NAME, scope=scope, level=level)
 
 
@@ -627,7 +628,7 @@ class GrobidTrainingTeiStructuredDocument(AbstractStructuredDocument):
     def get_whitespace(self, parent):
         return parent.whitespace
 
-    def get_tag(self, parent, scope=None, level=None):
+    def get_tag(self, parent, scope=None, level: Optional[T_Tag_Level] = None):
         return parent.attrib.get(_get_tag_attrib_name(scope, level))
 
     def get_preserved_tag(self, parent, **kwargs):
@@ -641,7 +642,8 @@ class GrobidTrainingTeiStructuredDocument(AbstractStructuredDocument):
 
     def set_tag_only(
             self, parent: TeiText, tag: str,
-            scope: str = None, level: str = None):
+            scope: str = None,
+            level: Optional[T_Tag_Level] = None):
         set_or_remove_attrib(parent.attrib, _get_tag_attrib_name(scope, level), tag)
 
     def set_sub_tag_only(
@@ -660,7 +662,10 @@ class GrobidTrainingTeiStructuredDocument(AbstractStructuredDocument):
             None
         )
 
-    def set_tag(self, parent, tag, scope=None, level=None):
+    def set_tag(
+            self, parent, tag,
+            scope=None,
+            level: Optional[T_Tag_Level] = None):
         _previous_tag = self.get_tag_or_preserved_tag(parent, level=level)
         self.set_tag_only(parent, tag, scope=scope, level=level)
         if isinstance(parent, TeiSpace):
@@ -670,7 +675,7 @@ class GrobidTrainingTeiStructuredDocument(AbstractStructuredDocument):
             if level is None:
                 self._clear_same_preserved_tag_on_same_line(parent, level=SUB_LEVEL)
 
-    def _clear_same_preserved_tag_on_same_line(self, token, level: int = None):
+    def _clear_same_preserved_tag_on_same_line(self, token, level: T_Tag_Level = None):
         preserved_tag_attrib_name = get_scoped_attrib_name(PRESERVED_TAG_ATTRIB_NAME, level=level)
         preserved_tag = strip_tag_prefix(token.attrib.get(preserved_tag_attrib_name))
         if not preserved_tag:
@@ -681,7 +686,7 @@ class GrobidTrainingTeiStructuredDocument(AbstractStructuredDocument):
             if strip_tag_prefix(line_token.attrib.get(preserved_tag_attrib_name)) == preserved_tag:
                 self._set_preserved_tag(line_token, None, level=level)
 
-    def _set_preserved_tag(self, parent, tag, level: int = None):
+    def _set_preserved_tag(self, parent, tag, level: T_Tag_Level = None):
         set_or_remove_attrib(
             parent.attrib,
             get_scoped_attrib_name(PRESERVED_TAG_ATTRIB_NAME, level=level),

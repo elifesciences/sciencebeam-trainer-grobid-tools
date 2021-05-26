@@ -1,5 +1,5 @@
 import logging
-from typing import Callable
+from typing import Callable, Optional
 
 from sciencebeam_trainer_grobid_tools.core.annotation.annotator import (
     AbstractAnnotator
@@ -11,7 +11,8 @@ from sciencebeam_trainer_grobid_tools.core.structured_document import (
 )
 
 from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei import (
-    GrobidTrainingTeiStructuredDocument
+    GrobidTrainingTeiStructuredDocument,
+    T_Tag_Level
 )
 
 from sciencebeam_trainer_grobid_tools.structured_document.utils import (
@@ -26,7 +27,7 @@ class MergeGroupTagsAnnotatorConfig:
     def __init__(
             self,
             get_group_tag_for_tag_fn: Callable[[str], str],
-            tag_level: str = None):
+            tag_level: Optional[T_Tag_Level] = None):
         self.get_group_tag_for_tag_fn = get_group_tag_for_tag_fn
         self.tag_level = tag_level
 
