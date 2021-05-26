@@ -5,7 +5,7 @@ import logging
 import os
 from contextlib import contextmanager
 from tempfile import TemporaryDirectory
-from typing import ContextManager, List
+from typing import Iterator, List
 
 from sciencebeam_utils.beam_utils.io import read_all_from_path, save_file_content
 
@@ -98,7 +98,7 @@ def fix_source_file_to(source_url: str, target_url: str):
 
 
 @contextmanager
-def get_fixed_source_url(source_url: str) -> ContextManager[str]:
+def get_fixed_source_url(source_url: str) -> Iterator[str]:
     with TemporaryDirectory(suffix='-fixed') as temp_dir:
         fixed_source_url = os.path.join(temp_dir, os.path.basename(source_url))
         fix_source_file_to(source_url, fixed_source_url)

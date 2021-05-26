@@ -6,7 +6,7 @@ from html.parser import HTMLParser
 from io import BufferedReader, StringIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import ContextManager, Iterable, List, Union
+from typing import Iterable, Iterator, List, Union
 
 from lxml import etree
 
@@ -239,7 +239,7 @@ def fix_source_file_to(source_url: str, target_url: str, encoding: str = 'utf-8'
 
 
 @contextmanager
-def get_fixed_source_url(source_url: str) -> ContextManager[str]:
+def get_fixed_source_url(source_url: str) -> Iterator[str]:
     with TemporaryDirectory(suffix='-fixed') as temp_dir:
         fixed_source_url = os.path.join(temp_dir, os.path.basename(source_url))
         fix_source_file_to(source_url, fixed_source_url)
