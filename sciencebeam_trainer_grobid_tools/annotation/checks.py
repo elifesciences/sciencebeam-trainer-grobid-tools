@@ -55,9 +55,9 @@ def get_entities_name(entity_pair: Tuple[str, str]) -> str:
 
 def iter_structured_document_entities(
         structured_document: GrobidTrainingTeiStructuredDocument
-        ) -> List[Tuple[str, str]]:
+        ) -> Iterable[Tuple[Optional[str], str]]:
     pending_tokens: List[Any] = []
-    pending_tag_value = None
+    pending_tag_value: Optional[str] = None
     for token in _iter_all_tokens(structured_document):
         tag = structured_document.get_tag(token)
         tag_prefix, tag_value = split_tag_prefix(tag)
