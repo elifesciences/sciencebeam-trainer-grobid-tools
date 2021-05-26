@@ -97,7 +97,7 @@ def _iter_group_tokens_by_tag_entity(
 def _map_tag(tag: str, tag_map: Dict[str, str]) -> str:
     prefix, tag_value = split_tag_prefix(tag)
     return add_tag_prefix(
-        tag=tag_map.get(tag_value, tag_value),
+        tag=tag_map.get(tag_value, tag_value) if tag_value else tag_value,
         prefix=prefix
     )
 
