@@ -1107,7 +1107,7 @@ class TestEndToEnd(object):
 
     def test_should_convert_note_other_to_other(
             self, test_helper: SingleFileAutoAnnotateEndToEndTestHelper):
-        target_body_content_nodes = []
+        target_body_content_nodes: List[etree.ElementBase] = []
         test_helper.tei_raw_file_path.write_bytes(etree.tostring(
             get_training_tei_node([
                 E.note({'type': 'other'}, TEXT_1),
