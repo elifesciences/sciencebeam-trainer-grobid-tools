@@ -1,4 +1,5 @@
 import logging
+from sciencebeam_trainer_grobid_tools.core.structured_document import AbstractStructuredDocument
 
 from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei import (
     GrobidTrainingTeiStructuredDocument
@@ -23,7 +24,8 @@ class SubTagOnlyAnnotator(SimpleMatchingAnnotator):
     def extend_annotations_to_whole_line(self, *_, **__):  # pylint: disable=arguments-differ
         pass
 
-    def annotate(self, structured_document: GrobidTrainingTeiStructuredDocument):
+    def annotate(self, structured_document: AbstractStructuredDocument):
+        assert isinstance(structured_document, GrobidTrainingTeiStructuredDocument)
         LOGGER.debug('preserving tags')
         token_preserved_tags = [
             (token, structured_document.get_tag_or_preserved_tag(token))
