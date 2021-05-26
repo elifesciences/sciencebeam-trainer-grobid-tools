@@ -206,7 +206,9 @@ def merge_related_clusters(clusters: List[IndexRangeCluster]) -> List[IndexRange
         clusters = merged_clusters
 
 
-def select_index_ranges(index_ranges: List[Tuple[int, int]]) -> Tuple[int, int]:
+def select_index_ranges(
+    index_ranges: List[Tuple[int, int]]
+) -> Tuple[List[Tuple[int, int]], List[Tuple[int, int]]]:
     if len(index_ranges) <= 1:
         return index_ranges, []
     index_ranges = sorted_index_ranges(index_ranges)
@@ -420,7 +422,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
         return None
 
     def get_fuzzy_matching_index_range_with_alternative_spellings(
-            self, *args, **kwargs) -> Optional[Tuple[int]]:
+            self, *args, **kwargs) -> Optional[Tuple[int, int]]:
         index_range_chunks = self.get_fuzzy_matching_index_range_with_alternative_spellings_chunks(
             *args, **kwargs
         )

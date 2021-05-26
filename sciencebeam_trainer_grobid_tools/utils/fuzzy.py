@@ -1,6 +1,6 @@
 import logging
 from difflib import SequenceMatcher
-from typing import List, Tuple
+from typing import Iterable, List, Optional, Tuple
 
 from sciencebeam_alignment.align import (
     LocalSequenceMatcher
@@ -561,14 +561,14 @@ def iter_fuzzy_search_all(haystack: str, *args, start_index: int = 0, **kwargs) 
         start_index = new_start_index
 
 
-def fuzzy_search_index_range(*args, **kwargs) -> Tuple[int, int]:
+def fuzzy_search_index_range(*args, **kwargs) -> Optional[Tuple[int, int]]:
     fm = fuzzy_search(*args, **kwargs)
     if fm:
         return fm.a_index_range()
     return None
 
 
-def fuzzy_search_index_range_chunks(*args, **kwargs) -> Tuple[int, int]:
+def fuzzy_search_index_range_chunks(*args, **kwargs) -> Optional[Tuple[int, int]]:
     fm_chunks = fuzzy_search_chunks(*args, **kwargs)
     if not fm_chunks:
         return None
@@ -578,7 +578,7 @@ def fuzzy_search_index_range_chunks(*args, **kwargs) -> Tuple[int, int]:
     ]
 
 
-def iter_fuzzy_search_all_index_ranges(*args, **kwargs) -> Tuple[int, int]:
+def iter_fuzzy_search_all_index_ranges(*args, **kwargs) -> Iterable[Tuple[int, int]]:
     return (
         fm.a_index_range()
         for fm in iter_fuzzy_search_all(*args, **kwargs)
