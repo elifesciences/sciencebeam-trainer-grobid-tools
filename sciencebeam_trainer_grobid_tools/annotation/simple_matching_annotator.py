@@ -243,7 +243,7 @@ def to_begin_tag(tag: str) -> str:
     )
 
 
-def to_inside_tag(tag: str) -> str:
+def to_inside_tag(tag: Optional[str]) -> Optional[str]:
     prefix, tag_value = split_tag_prefix(tag)
     return (
         add_tag_prefix(tag_value, prefix=I_TAG_PREFIX)

@@ -1,7 +1,7 @@
 import logging
 import re
 from itertools import groupby
-from typing import Dict, List, Optional, Set, Iterable, Any
+from typing import Dict, List, Optional, Set, Iterable, Any, Tuple
 
 from sciencebeam_trainer_grobid_tools.core.structured_document import (
     AbstractStructuredDocument,
@@ -199,12 +199,12 @@ def _add_idno_text_prefix(
 def get_suffix_extended_token_tags(
         token_tags: List[str],
         token_texts: List[str],
-        token_whitespaces: List[str] = None,
-        enabled_tags: Set[str] = None) -> List[Optional[str]]:
+        enabled_tags: Set[str],
+        token_whitespaces: Optional[List[str]] = None) -> List[Optional[str]]:
     result: List[Optional[str]] = []
     if token_whitespaces is None:
         token_whitespaces = [' '] * len(token_texts)
-    grouped_token_tags = [
+    grouped_token_tags: List[List[Tuple[str, str, Optional[str]]]] = [
         list(group)
         for _, group in groupby(
             zip(token_tags, token_texts, token_whitespaces),
@@ -214,7 +214,10 @@ def get_suffix_extended_token_tags(
     LOGGER.debug('suffix grouped_token_tags=%s', grouped_token_tags)
     for index, group in enumerate(grouped_token_tags):
         LOGGER.debug('suffix group: unpacked=%s', group)
-        group_tags, group_texts, group_whitespaces = zip(*group)
+        group_tags: List[str]
+        group_texts: List[str]
+        group_whitespaces: Optional[List[str]]
+        group_tags, group_texts, group_whitespaces = zip(*group)  # type: ignore
         LOGGER.debug(
             'suffix group: tags=%s, texts=%s, whitespace=%s',
             group_tags, group_texts, group_whitespaces
@@ -222,7 +225,7 @@ def get_suffix_extended_token_tags(
         first_group_tag = group_tags[0]
 
         prev_group = grouped_token_tags[index - 1] if index > 0 else None
-        first_prev_tag = get_safe(get_safe(prev_group, 0), 0)
+        first_prev_tag: Optional[str] = get_safe(get_safe(prev_group, 0), 0)
         _, first_prev_tag_value = split_tag_prefix(first_prev_tag)
 
         if first_group_tag or first_prev_tag_value not in enabled_tags:
@@ -260,7 +263,7 @@ def _add_name_text_suffix(
     transformed_sub_tags = get_suffix_extended_token_tags(
         mapped_sub_tags,
         token_texts,
-        token_whitespaces,
+        token_whitespaces=token_whitespaces,
         enabled_tags=config.include_suffix_enabled_sub_tags
     )
     LOGGER.debug(
