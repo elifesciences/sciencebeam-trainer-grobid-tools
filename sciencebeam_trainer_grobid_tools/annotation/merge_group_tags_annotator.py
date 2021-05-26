@@ -26,7 +26,7 @@ LOGGER = logging.getLogger(__name__)
 class MergeGroupTagsAnnotatorConfig:
     def __init__(
             self,
-            get_group_tag_for_tag_fn: Callable[[str], str],
+            get_group_tag_for_tag_fn: Callable[[str], Optional[str]],
             tag_level: Optional[T_Tag_Level] = None):
         self.get_group_tag_for_tag_fn = get_group_tag_for_tag_fn
         self.tag_level = tag_level

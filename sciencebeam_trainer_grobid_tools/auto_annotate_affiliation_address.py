@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import argparse
 import logging
-from typing import List
+from typing import List, Optional
 
 from .core.annotation.annotator import AbstractAnnotator, Annotator
 
@@ -76,7 +76,7 @@ def is_address_sub_tag(sub_tag: str) -> bool:
     return 'address' in sub_tag
 
 
-def get_address_group_tag_for_sub_tag(sub_tag: str) -> str:
+def get_address_group_tag_for_sub_tag(sub_tag: str) -> Optional[str]:
     if is_address_sub_tag(sub_tag):
         return 'author_aff-address'
     return None
