@@ -423,7 +423,7 @@ def get_xml_mapping_and_fields(
     )
 
 
-def get_match_detail_reporter(debug_match: str) -> CsvMatchDetailReporter:
+def get_match_detail_reporter(debug_match: str) -> Optional[CsvMatchDetailReporter]:
     if not debug_match:
         return None
     return CsvMatchDetailReporter(
@@ -527,7 +527,7 @@ def get_file_list_without_output_file(
 
 def _resolve_tag_expression_namespace(
         tag_expression: str,
-        namespaces: Dict[str, str]) -> str:
+        namespaces: Optional[Dict[str, str]]) -> str:
     if not tag_expression or not namespaces:
         return tag_expression
     for ns_name, ns_url in namespaces.items():
@@ -541,7 +541,7 @@ def _resolve_tag_expression_namespace(
 
 def _resolve_tag_to_tei_mapping_namespace(
         tag_to_tei_path_mapping: Dict[str, str],
-        namespaces: Dict[str, str]) -> Dict[str, str]:
+        namespaces: Optional[Dict[str, str]]) -> Dict[str, str]:
     return {
         key: _resolve_tag_expression_namespace(value, namespaces=namespaces)
         for key, value in tag_to_tei_path_mapping.items()
@@ -554,13 +554,13 @@ class AbstractAnnotatePipelineFactory(ABC):
             opt: argparse.Namespace,
             tei_filename_pattern: str,
             container_node_path: str,
-            tag_to_tei_path_mapping: Dict[str, str] = None,
+            tag_to_tei_path_mapping: Dict[str, str],
             output_fields: Optional[Set[str]] = None,
             preserve_sub_tags: bool = False,
             no_preserve_sub_fields: Set[str] = None,
             require_matching_fields: Set[str] = None,
             required_fields: Set[str] = None,
-            namespaces: Dict[str, str] = None):
+            namespaces: Optional[Dict[str, str]] = None):
         self.tei_filename_pattern = tei_filename_pattern
         self.container_node_path = container_node_path
         self.tag_to_tei_path_mapping = _resolve_tag_to_tei_mapping_namespace(
