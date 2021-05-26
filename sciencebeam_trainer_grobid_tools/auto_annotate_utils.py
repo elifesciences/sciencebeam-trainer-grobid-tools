@@ -6,7 +6,7 @@ import os
 from abc import ABC, abstractmethod
 from contextlib import ExitStack
 from functools import partial
-from typing import Callable, Dict, List, Optional, Set, Tuple
+from typing import Callable, Collection, Dict, List, Optional, Set, Tuple
 
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions, SetupOptions
@@ -277,7 +277,7 @@ def add_document_checks_arguments(parser: argparse.ArgumentParser):
 
 def add_fields_argument(
         parser: argparse.ArgumentParser,
-        default_fields: List[str] = None):
+        default_fields: Collection[str] = None):
     parser.add_argument(
         '--fields',
         type=get_plus_minus_comma_separated_str_to_list_fn(default_fields),
@@ -288,7 +288,7 @@ def add_fields_argument(
 
 def add_sub_fields_argument(
         parser: argparse.ArgumentParser,
-        default_sub_fields: List[str] = None):
+        default_sub_fields: Collection[str] = None):
     parser.add_argument(
         '--sub-fields',
         type=get_plus_minus_comma_separated_str_to_list_fn(default_sub_fields),
@@ -341,7 +341,7 @@ def get_sub_field_for_key_or_none(key: str) -> Optional[str]:
 
 def is_key_selected_sub_fields_or_no_sub_field(
         key: str,
-        sub_fields: List[str]) -> bool:
+        sub_fields: Set[str]) -> bool:
     sub_field = get_sub_field_for_key_or_none(key)
     if not sub_field:
         return True
@@ -350,7 +350,7 @@ def is_key_selected_sub_fields_or_no_sub_field(
 
 def get_xml_mapping_with_filtered_sub_fields(
         xml_mapping: Dict[str, Dict[str, str]],
-        sub_fields: List[str] = None) -> Dict[str, Dict[str, str]]:
+        sub_fields: Optional[Set[str]] = None) -> Dict[str, Dict[str, str]]:
     if not sub_fields:
         return xml_mapping
     LOGGER.debug('selecting sub_fields: %s', sub_fields)
