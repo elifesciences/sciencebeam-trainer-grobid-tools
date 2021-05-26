@@ -183,7 +183,7 @@ def get_target_annotations_from_annotator(
         annotators = [annotator]
     for _annotator in annotators:
         try:
-            return _annotator.target_annotations
+            return _annotator.target_annotations  # type: ignore
         except AttributeError:
             pass
     return None
