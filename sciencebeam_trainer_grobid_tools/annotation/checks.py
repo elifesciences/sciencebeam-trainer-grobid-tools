@@ -174,7 +174,7 @@ def is_structured_document_passing_checks(
 
 
 def get_target_annotations_from_annotator(
-        annotator: AbstractAnnotator) -> List[TargetAnnotation]:
+        annotator: AbstractAnnotator) -> Optional[List[TargetAnnotation]]:
     # this is slightly hacky, we just want to get hold of the target annotations
     # which are hidden in one of the annotator
     if isinstance(annotator, Annotator):
