@@ -1,5 +1,5 @@
 import logging
-from typing import Dict
+from typing import Mapping, Optional
 
 from sciencebeam_trainer_grobid_tools.core.structured_document import (
     split_tag_prefix,
@@ -25,7 +25,7 @@ LOGGER = logging.getLogger(__name__)
 class ReplaceTagsAnnotatorConfig:
     def __init__(
             self,
-            replaced_tag_by_tag: Dict[str, str]):
+            replaced_tag_by_tag: Mapping[str, Optional[str]]):
         self.replaced_tag_by_tag = replaced_tag_by_tag
 
 
