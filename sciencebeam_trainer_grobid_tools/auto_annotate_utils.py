@@ -395,7 +395,7 @@ def get_filtered_xml_mapping_and_fields(
 
 def get_xml_mapping_with_overrides(
         xml_mapping: Dict[str, Dict[str, str]],
-        xml_mapping_overrides: Dict[str, str]):
+        xml_mapping_overrides: Optional[Dict[str, str]]):
     if not xml_mapping_overrides:
         return xml_mapping
     return {
