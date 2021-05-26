@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import List, Union
+from typing import Dict, List, Union
 
 from lxml import etree
 from lxml.builder import E, ElementMaker
@@ -30,7 +30,7 @@ class SingleFileAutoAnnotateEndToEndTestHelper:
         self.xml_path.mkdir()
         self.tei_raw_file_path = self.tei_raw_path.joinpath(tei_filename)
         self.xml_file_path = self.xml_path.joinpath(XML_FILENAME_1)
-        self.main_args_dict = {
+        self.main_args_dict: Dict[str, Union[str, bool]] = {
             'source-base-path': self.tei_raw_path,
             'output-path': self.tei_auto_path,
             'xml-path': self.xml_path,
