@@ -739,7 +739,7 @@ class SimpleTagConfigProps:
     MAX_CHUNKS = 'max_chunks'
 
 
-def parse_regex(regex_str: str) -> str:
+def parse_regex(regex_str: Optional[str]) -> Optional[str]:
     LOGGER.debug('regex_str: %s', regex_str)
     if not regex_str:
         return regex_str
