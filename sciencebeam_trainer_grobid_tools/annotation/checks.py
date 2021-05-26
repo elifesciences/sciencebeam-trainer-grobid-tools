@@ -91,7 +91,7 @@ def get_required_target_annotation_by_name(
 def get_required_target_value_by_name(
         target_annotations: List[TargetAnnotation],
         require_matching_fields: Set[str]
-        ) -> Dict[str, List[TargetAnnotation]]:
+        ) -> Dict[str, str]:
     result = {}
     required_target_annotation_by_name = get_required_target_annotation_by_name(
         target_annotations=target_annotations,
