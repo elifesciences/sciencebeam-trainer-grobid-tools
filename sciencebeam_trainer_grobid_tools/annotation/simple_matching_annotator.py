@@ -651,9 +651,9 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                 'tag_block_name: %s (current_block_name: %s)',
                 tag_block_name, current_block_name
             )
-            grouped_target_annotations = list(grouped_target_annotations)
-            LOGGER.debug('grouped_target_annotations: %s', grouped_target_annotations)
-            for target_annotation in grouped_target_annotations:
+            grouped_target_annotations_list = list(grouped_target_annotations)
+            LOGGER.debug('grouped_target_annotations: %s', grouped_target_annotations_list)
+            for target_annotation in grouped_target_annotations_list:
                 text = SequencesText(current_pending_sequences.get_pending_sequences(
                     limit=self.config.lookahead_sequence_count
                 ))
