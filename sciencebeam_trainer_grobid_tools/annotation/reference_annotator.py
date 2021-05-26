@@ -3,6 +3,8 @@ import re
 from itertools import groupby
 from typing import Dict, List, Optional, Set, Iterable, Any, Tuple
 
+from sciencebeam_trainer_grobid_tools.utils.typing import T
+
 from sciencebeam_trainer_grobid_tools.core.structured_document import (
     AbstractStructuredDocument,
     split_tag_prefix,
@@ -70,7 +72,7 @@ def _iter_all_tokens(
 
 def _iter_group_tokens_by_tag_entity(
         structured_document: AbstractStructuredDocument,
-        tokens: Iterable[Any]) -> Iterable[List[Any]]:
+        tokens: Iterable[T]) -> Iterable[Tuple[Optional[str], List[T]]]:
     pending_tag_value = None
     pending_tokens = None
     for token in tokens:
