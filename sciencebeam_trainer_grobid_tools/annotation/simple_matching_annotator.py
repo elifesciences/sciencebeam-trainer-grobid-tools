@@ -376,7 +376,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
         }
 
     def get_fuzzy_matching_index_range_chunks(
-            self, haystack: str, needle, **kwargs) -> Optional[List[Tuple[int]]]:
+            self, haystack: str, needle, **kwargs) -> Optional[List[Tuple[int, int]]]:
         if len(needle) < self.config.min_token_length:
             return None
         target_value = normalise_str_or_list(needle)

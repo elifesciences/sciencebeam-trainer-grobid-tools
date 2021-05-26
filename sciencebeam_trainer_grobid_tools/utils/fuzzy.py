@@ -568,7 +568,7 @@ def fuzzy_search_index_range(*args, **kwargs) -> Optional[Tuple[int, int]]:
     return None
 
 
-def fuzzy_search_index_range_chunks(*args, **kwargs) -> Optional[Tuple[int, int]]:
+def fuzzy_search_index_range_chunks(*args, **kwargs) -> Optional[List[Tuple[int, int]]]:
     fm_chunks = fuzzy_search_chunks(*args, **kwargs)
     if not fm_chunks:
         return None
