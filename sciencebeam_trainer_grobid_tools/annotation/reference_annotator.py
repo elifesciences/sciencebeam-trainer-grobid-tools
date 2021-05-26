@@ -114,13 +114,16 @@ def get_prefix_extended_token_tags(
         token_texts: List[str],
         prefix_regex_by_tag_map: Dict[str, str],
         token_whitespaces: List[str] = None,
-        enabled_tags: Set[str] = None) -> List[str]:
-    result = []
+        enabled_tags: Set[str] = None) -> List[Optional[str]]:
+    result: List[Optional[str]] = []
     if token_whitespaces is None:
         token_whitespaces = [' '] * len(token_texts)
-    if enabled_tags is None:
-        enabled_tags = prefix_regex_by_tag_map.keys()
-    grouped_token_tags = [
+    _enabled_tags = (
+        enabled_tags
+        if enabled_tags is not None
+        else prefix_regex_by_tag_map.keys()
+    )
+    grouped_token_tags: List[List[Tuple[Optional[str], str, Optional[str]]]] = [
         list(group)
         for _, group in groupby(
             zip(token_tags, token_texts, token_whitespaces),
@@ -130,7 +133,10 @@ def get_prefix_extended_token_tags(
     LOGGER.debug('grouped_token_tags=%s', grouped_token_tags)
     for index, group in enumerate(grouped_token_tags):
         LOGGER.debug('group: unpacked=%s', group)
-        group_tags, group_texts, group_whitespaces = zip(*group)
+        group_tags: List[str]
+        group_texts: List[str]
+        group_whitespaces: Optional[List[str]]
+        group_tags, group_texts, group_whitespaces = zip(*group)  # type: ignore
         LOGGER.debug(
             'group: tags=%s, texts=%s, whitespace=%s',
             group_tags, group_texts, group_whitespaces
@@ -139,9 +145,10 @@ def get_prefix_extended_token_tags(
         next_group = grouped_token_tags[index + 1] if index + 1 < len(grouped_token_tags) else None
         first_next_tag = get_safe(get_safe(next_group, 0), 0)
         first_next_prefix, first_next_tag_value = split_tag_prefix(first_next_tag)
-        if first_group_tag or first_next_tag_value not in enabled_tags:
+        if first_group_tag or first_next_tag_value not in _enabled_tags:
             result.extend(group_tags)
             continue
+        assert first_next_tag_value is not None
         joined_text = JoinedText(group_texts, sep=' ', whitespace_list=group_whitespaces)
         prefix_regex = prefix_regex_by_tag_map[first_next_tag_value]
         m = re.search(prefix_regex, str(joined_text))
@@ -162,6 +169,7 @@ def get_prefix_extended_token_tags(
         result.extend([first_next_tag])
         result.extend([to_inside_tag(first_next_tag)] * (len(matching_tokens) - 1))
         if first_next_prefix == B_TAG_PREFIX:
+            assert next_group is not None
             next_group[0] = (
                 to_inside_tag(first_next_tag),
                 *next_group[0][1:]
