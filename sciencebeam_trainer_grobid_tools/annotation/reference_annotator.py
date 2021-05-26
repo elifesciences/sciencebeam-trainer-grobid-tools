@@ -358,6 +358,7 @@ class ReferencePostProcessingAnnotator(AbstractAnnotator):
         self.config = config
 
     def annotate(self, structured_document: AbstractStructuredDocument):
+        assert isinstance(structured_document, GrobidTrainingTeiStructuredDocument)
         all_tokens_iterable = _iter_all_tokens(structured_document)
         grouped_entity_tokens_iterable = _iter_group_tokens_by_tag_entity(
             structured_document,
