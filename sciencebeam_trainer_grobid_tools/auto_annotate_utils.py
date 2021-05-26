@@ -6,7 +6,7 @@ import os
 from abc import ABC, abstractmethod
 from contextlib import ExitStack
 from functools import partial
-from typing import Callable, Dict, List, Optional, Set
+from typing import Callable, Dict, List, Optional, Set, Tuple
 
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions, SetupOptions
@@ -365,10 +365,12 @@ def get_xml_mapping_with_filtered_sub_fields(
 
 
 def get_filtered_xml_mapping_and_fields(
-        xml_mapping: Dict[str, Dict[str, str]],
-        fields: List[str],
-        sub_fields: List[str] = None) -> Dict[str, Dict[str, str]]:
+    xml_mapping: Dict[str, Dict[str, str]],
+    fields: Optional[Set[str]],
+    sub_fields: Optional[Set[str]] = None
+) -> Tuple[Dict[str, Dict[str, str]], Set[str]]:
     if fields:
+        result_fields=fields
         xml_mapping = {
             top_level_key: {
                 k: v
@@ -378,7 +380,7 @@ def get_filtered_xml_mapping_and_fields(
             for top_level_key, field_mapping in xml_mapping.items()
         }
     else:
-        fields = {
+        result_fields = {
             k
             for top_level_key, field_mapping in xml_mapping.items()
             for k in field_mapping.keys()
@@ -388,7 +390,7 @@ def get_filtered_xml_mapping_and_fields(
         xml_mapping,
         sub_fields=sub_fields
     )
-    return xml_mapping, fields
+    return xml_mapping, result_fields
 
 
 def get_xml_mapping_with_overrides(
@@ -406,10 +408,11 @@ def get_xml_mapping_with_overrides(
 
 
 def get_xml_mapping_and_fields(
-        xml_mapping_path: str,
-        fields: List[str],
-        sub_fields: List[str] = None,
-        xml_mapping_overrides: Dict[str, str] = None) -> Dict[str, Dict[str, str]]:
+    xml_mapping_path: str,
+    fields: Optional[Set[str]],
+    sub_fields: List[str] = None,
+    xml_mapping_overrides: Optional[Dict[str, str]] = None
+) -> Tuple[Dict[str, Dict[str, str]], Set[str]]:
     return get_filtered_xml_mapping_and_fields(
         get_xml_mapping_with_overrides(
             parse_xml_mapping(xml_mapping_path),
@@ -552,7 +555,7 @@ class AbstractAnnotatePipelineFactory(ABC):
             tei_filename_pattern: str,
             container_node_path: str,
             tag_to_tei_path_mapping: Dict[str, str] = None,
-            output_fields: Set[str] = None,
+            output_fields: Optional[Set[str]] = None,
             preserve_sub_tags: bool = False,
             no_preserve_sub_fields: Set[str] = None,
             require_matching_fields: Set[str] = None,
@@ -607,7 +610,7 @@ class AbstractAnnotatePipelineFactory(ABC):
             os.path.basename(source_url)
         )
 
-    def get_tei_xml_failed_output_file_for_source_file(self, source_url: str) -> str:
+    def get_tei_xml_failed_output_file_for_source_file(self, source_url: str) -> Optional[str]:
         if not self.failed_output_path:
             return None
         return os.path.join(

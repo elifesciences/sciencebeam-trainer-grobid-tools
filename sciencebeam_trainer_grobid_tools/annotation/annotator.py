@@ -1,7 +1,9 @@
 import logging
 from collections import Counter
 from functools import partial
-from typing import Callable, List, Set
+from typing import Callable, List, Optional, Set
+
+from sciencebeam_trainer_grobid_tools.core.annotation.annotator import AbstractAnnotator
 
 from ..core.structured_document import (
     strip_tag_prefix
@@ -63,12 +65,12 @@ def _get_used_sub_tag_counts(
 
 def annotate_structured_document_inplace(
         structured_document: GrobidTrainingTeiStructuredDocument,
-        annotator,
+        annotator: AbstractAnnotator,
         preserve_tags: bool,
-        fields: List[str],
-        preserve_fields: List[str] = None,
+        fields: Optional[Set[str]],
+        preserve_fields: Optional[Set[str]] = None,
         preserve_sub_tags: bool = False,
-        no_preserve_sub_fields: Set[str] = None):
+        no_preserve_sub_fields: Optional[Set[str]] = None):
     if not fields:
         fields = set()
     if preserve_tags or preserve_fields:
@@ -144,14 +146,14 @@ def annotate_structured_document(
         target_structured_document_path: str,
         annotator,
         preserve_tags: bool,
-        fields: List[str],
-        always_preserve_fields: List[str] = None,
+        fields: Optional[Set[str]],
+        always_preserve_fields: Optional[Set[str]] = None,
         preserve_sub_tags: bool = False,
-        no_preserve_sub_fields: Set[str] = None,
-        is_structured_document_passing_checks: Callable[
+        no_preserve_sub_fields: Optional[Set[str]] = None,
+        is_structured_document_passing_checks: Optional[Callable[
             [GrobidTrainingTeiStructuredDocument], bool
-        ] = None,
-        failed_target_structured_document_path: str = None,
+        ]] = None,
+        failed_target_structured_document_path: Optional[str] = None,
         **kwargs):
     LOGGER.info('loading from: %s', source_structured_document_path)
     structured_document = load_grobid_training_tei_structured_document(

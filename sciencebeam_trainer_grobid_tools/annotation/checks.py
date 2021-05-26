@@ -1,6 +1,6 @@
 import logging
 from itertools import groupby
-from typing import Dict, Iterable, List, Set, Tuple
+from typing import Dict, Iterable, List, Optional, Set, Tuple
 
 from sciencebeam_alignment.levenshtein import get_levenshtein_ratio
 
@@ -134,8 +134,8 @@ def get_structured_document_entities_by_name(
 
 def is_structured_document_passing_checks(
         structured_document: GrobidTrainingTeiStructuredDocument,
-        require_matching_fields: Set[str],
-        required_fields: Set[str],
+        require_matching_fields: Optional[Set[str]],
+        required_fields: Optional[Set[str]],
         target_annotations: List[TargetAnnotation],
         threshold: float = 0.8) -> bool:
     require_matching_fields = set(require_matching_fields or set()) | set(required_fields or set())
