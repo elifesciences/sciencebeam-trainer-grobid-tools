@@ -2,7 +2,7 @@ import logging
 import re
 from distutils.util import strtobool
 from itertools import groupby
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple, cast
 
 from sciencebeam_trainer_grobid_tools.core.structured_document import (
     AbstractStructuredDocument
@@ -24,7 +24,7 @@ from sciencebeam_trainer_grobid_tools.core.structured_document import (
     I_TAG_PREFIX
 )
 
-from sciencebeam_trainer_grobid_tools.utils.misc import get_safe
+from sciencebeam_trainer_grobid_tools.utils.misc import get_safe, get_dict_safe
 
 from sciencebeam_trainer_grobid_tools.utils.fuzzy import (
     fuzzy_search_index_range_chunks,
@@ -258,7 +258,7 @@ def to_inside_tag(tag: Optional[str]) -> Optional[str]:
     )
 
 
-def to_begin_inside_tags(tag: str, length: int) -> List[str]:
+def to_begin_inside_tags(tag: Optional[str], length: int) -> List[Optional[str]]:
     if not length:
         return []
     prefix, tag_value = split_tag_prefix(tag)
@@ -270,7 +270,9 @@ def to_begin_inside_tags(tag: str, length: int) -> List[str]:
     )
 
 
-def get_merged_begin_inside_tags_of_same_tag_value(tags: List[str]) -> List[str]:
+def get_merged_begin_inside_tags_of_same_tag_value(
+    tags: Optional[List[Optional[str]]]
+) -> List[Optional[str]]:
     if not tags:
         return []
     prefix, tag_value = split_tag_prefix(tags[0])
@@ -283,11 +285,11 @@ def get_merged_begin_inside_tags_of_same_tag_value(tags: List[str]) -> List[str]
 
 
 def get_extended_line_token_tags(
-        line_token_tags: List[str],
+        line_token_tags: Sequence[Optional[str]],
         extend_to_line_enabled_map: Dict[str, bool] = None,
         merge_enabled_map: Dict[str, bool] = None,
         default_extend_to_line_enabled: bool = DEFAULT_EXTEND_TO_LINE_ENABLED,
-        default_merge_enabled: bool = DEFAULT_MERGE_ENABLED) -> List[str]:
+        default_merge_enabled: bool = DEFAULT_MERGE_ENABLED) -> List[Optional[str]]:
     if extend_to_line_enabled_map is None:
         extend_to_line_enabled_map = {}
     if merge_enabled_map is None:
@@ -296,20 +298,20 @@ def get_extended_line_token_tags(
         'line_token_tags: %s (extend_to_line_enabled_map: %s, merge_enabled_map: %s)',
         line_token_tags, extend_to_line_enabled_map, merge_enabled_map
     )
-    grouped_token_tags = [
+    grouped_token_tags: List[List[Optional[str]]] = [
         list(group)
         for _, group in groupby(line_token_tags, key=strip_tag_prefix)
     ]
     grouped_token_tags = [
-        (
+        cast(List[Optional[str]], (
             get_merged_begin_inside_tags_of_same_tag_value(group)
             if merge_enabled_map.get(strip_tag_prefix(group[0]), default_merge_enabled)
             else group
-        )
+        ))
         for group in grouped_token_tags
     ]
     LOGGER.debug('grouped_token_tags: %s', grouped_token_tags)
-    result = []
+    result: List[Optional[str]] = []
     for index, group in enumerate(grouped_token_tags):
         prev_group = grouped_token_tags[index - 1] if index > 0 else None
         next_group = grouped_token_tags[index + 1] if index + 1 < len(grouped_token_tags) else None
@@ -321,7 +323,7 @@ def get_extended_line_token_tags(
         elif prev_group and next_group:
             if (
                     last_prev_tag_value == first_next_tag_value
-                    and merge_enabled_map.get(last_prev_tag_value, default_merge_enabled)
+                    and get_dict_safe(merge_enabled_map, last_prev_tag_value, default_merge_enabled)
             ):
                 result.extend([to_inside_tag(prev_group[-1])] * len(group))
                 if first_next_prefix == B_TAG_PREFIX:
@@ -329,13 +331,20 @@ def get_extended_line_token_tags(
             else:
                 result.extend(group)
         elif (
-                prev_group and not extend_to_line_enabled_map.get(
-                    last_prev_tag_value, default_extend_to_line_enabled
-                )
+            prev_group
+            and not get_dict_safe(
+                extend_to_line_enabled_map,
+                last_prev_tag_value, default_extend_to_line_enabled
+            )
         ):
             result.extend(group)
-        elif next_group and not extend_to_line_enabled_map.get(
-                first_next_tag_value, default_extend_to_line_enabled):
+        elif (
+            next_group
+            and not get_dict_safe(
+                extend_to_line_enabled_map,
+                first_next_tag_value, default_extend_to_line_enabled
+            )
+        ):
             result.extend(group)
         elif prev_group and len(prev_group) > len(group):
             result.extend([to_inside_tag(prev_group[-1])] * len(group))
