@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import argparse
 import logging
-from typing import List, Set
+from typing import List, Optional, Set
 
 from .core.annotation.annotator import Annotator
 
@@ -106,8 +106,8 @@ def _get_annotator(
 
 def is_segmentation_structured_document_passing_checks(
         structured_document: GrobidTrainingTeiStructuredDocument,
-        require_matching_fields: Set[str],
-        required_fields: Set[str],
+        require_matching_fields: Optional[Set[str]],
+        required_fields: Optional[Set[str]],
         target_annotations: List[TargetAnnotation],
         segmentation_config: SegmentationConfig,
         threshold: float = 0.8) -> bool:
