@@ -409,7 +409,7 @@ class TestEndToEnd(object):
                 TEI_E.affiliation(
                     TEI_E.other1(other1_sub_tag_text),
                     TEI_E.marker(LABEL_1),
-                    get_nodes_text(untagged_text),
+                    get_nodes_text([untagged_text]),
                     TEI_E.other2(other2_sub_tag_text)
                 )
             ])
