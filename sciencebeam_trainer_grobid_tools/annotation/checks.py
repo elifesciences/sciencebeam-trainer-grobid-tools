@@ -1,6 +1,6 @@
 import logging
 from itertools import groupby
-from typing import Dict, Iterable, List, Optional, Set, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 from sciencebeam_alignment.levenshtein import get_levenshtein_ratio
 
@@ -56,7 +56,7 @@ def get_entities_name(entity_pair: Tuple[str, str]) -> str:
 def iter_structured_document_entities(
         structured_document: GrobidTrainingTeiStructuredDocument
         ) -> List[Tuple[str, str]]:
-    pending_tokens = []
+    pending_tokens: List[Any] = []
     pending_tag_value = None
     for token in _iter_all_tokens(structured_document):
         tag = structured_document.get_tag(token)
