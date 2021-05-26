@@ -31,6 +31,10 @@ from sciencebeam_trainer_grobid_tools.utils.fuzzy import (
     iter_fuzzy_search_all_index_ranges
 )
 
+from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei import (
+     GrobidTrainingTeiStructuredDocument
+)
+
 from sciencebeam_trainer_grobid_tools.annotation.matching_utils import (
     SequenceWrapper,
     PendingSequences,
@@ -482,6 +486,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             text: SequencesText,
             index_range: Tuple[int, int],
             tag_name: str):
+        assert isinstance(structured_document, GrobidTrainingTeiStructuredDocument)
         matching_tokens = list(text.iter_tokens_between(index_range))
         LOGGER.debug('setting matching_tokens to "%s": [%s]', tag_name, matching_tokens)
         LOGGER.debug(
