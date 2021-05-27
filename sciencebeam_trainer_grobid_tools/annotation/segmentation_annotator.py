@@ -242,7 +242,7 @@ class PageNumberCandidate(NamedTuple):
 
 
 def is_valid_page_number_candidate(text: str) -> bool:
-    return re.match(r'^\d+$', text)
+    return re.match(r'^\d+$', text) is not None
 
 
 def parse_page_number(text: str) -> int:
