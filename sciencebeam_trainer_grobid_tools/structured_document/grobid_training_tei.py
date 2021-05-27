@@ -78,12 +78,13 @@ class SvgStyleClasses(object):
 
 class TeiText(object):
     def __init__(
-            self,
-            text: str,
-            tag: str = None,
-            sub_tag: str = None,
-            whitespace: str = None,
-            attrib: Dict[str, str] = None):
+        self,
+        text: str,
+        tag: Optional[str] = None,
+        sub_tag: Optional[str] = None,
+        whitespace: Optional[str] = None,
+        attrib: Optional[Dict[str, str]] = None
+    ):
         self.text = text
         self.stripped_text = text.strip()
         self.attrib = attrib if attrib is not None else {}
@@ -91,7 +92,7 @@ class TeiText(object):
             self.attrib[TAG_ATTRIB_NAME] = tag
         if sub_tag is not None:
             self.attrib[SUB_TAG_ATTRIB_NAME] = sub_tag
-        self.line = None
+        self.line: Optional['TeiLine'] = None
         self.whitespace = whitespace
 
     @property
@@ -139,13 +140,13 @@ class TokenWriter:
     def reset_next_sub_tag(self):
         self.next_sub_tag = None
 
-    def set_next_tag(self, tag: str, begin_tag: bool = True):
+    def set_next_tag(self, tag: Optional[str], begin_tag: bool = True):
         self.next_tag = add_tag_prefix(
             tag,
             prefix=B_TAG_PREFIX if begin_tag else I_TAG_PREFIX
         )
 
-    def set_next_sub_tag(self, tag: str, begin_tag: bool = True):
+    def set_next_sub_tag(self, tag: Optional[str], begin_tag: bool = True):
         self.next_sub_tag = add_tag_prefix(
             tag,
             prefix=B_TAG_PREFIX if begin_tag else I_TAG_PREFIX
@@ -220,7 +221,7 @@ def get_logger():
     return logging.getLogger(__name__)
 
 
-def _iter_split_lower_to_upper_case(text: str) -> List[str]:
+def _iter_split_lower_to_upper_case(text: str) -> Iterable[str]:
     start = 0
     for index, c in enumerate(text):
         if index > 0 and c.isupper() and text[index - 1].islower():
@@ -320,7 +321,7 @@ def _iter_extract_lines_from_container_elements(
         container_elements: Iterable[etree.Element],
         **kwargs):
     line_buffer = LineBuffer()
-    current_path = []
+    current_path: List[str] = []
 
     for container_element in container_elements:
         lines = _iter_extract_lines_from_element(
@@ -401,8 +402,9 @@ def _split_path(path_str: str) -> List[str]:
 
 
 def _get_tag_required_path(
-        tag: str,
-        tag_to_tei_path_mapping: Dict[str, str] = None) -> List[str]:
+    tag: Optional[str],
+    tag_to_tei_path_mapping: Dict[str, str]
+) -> List[str]:
     if tag:
         required_path = _split_path(tag_to_tei_path_mapping.get(tag, tag))
     else:
@@ -416,7 +418,7 @@ def _get_tag_required_path(
 class XmlTreeWriter:
     def __init__(self, parent: etree.Element):
         self.current_element = parent
-        self.current_path = []
+        self.current_path: List[str] = []
 
     def append(self, element: etree.Element):
         self.current_element.append(element)
@@ -469,7 +471,7 @@ def _lines_to_tei(
             sub_required_path = (
                 _get_tag_required_path(sub_tag, tag_to_tei_path_mapping)
                 if sub_full_tag
-                else None
+                else []
             )
             if sub_full_tag and not _path_starts_with(main_required_path, sub_required_path):
                 LOGGER.debug(
@@ -507,7 +509,7 @@ def _lines_to_tei(
 
             pending_reset_tag_values.clear()
 
-            required_path = (
+            required_path: List[str] = (
                 sub_required_path if sub_full_tag
                 else main_required_path
             )
