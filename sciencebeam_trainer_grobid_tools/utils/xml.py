@@ -50,7 +50,7 @@ def _read_lines(source) -> Iterable[str]:
 @contextmanager
 def auto_download_and_fix_input_file(
         file_url_or_open_fn: Union[str, callable],
-        fix_xml: bool = True) -> str:
+        fix_xml: bool = True) -> Iterator[str]:
     with auto_download_input_file(file_url_or_open_fn) as temp_file:
         if not fix_xml:
             yield temp_file
