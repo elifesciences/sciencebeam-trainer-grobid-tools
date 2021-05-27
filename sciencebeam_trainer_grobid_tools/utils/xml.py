@@ -36,7 +36,7 @@ def iter_text_content_and_exclude(
 
 
 class XMLSyntaxErrorWithErrorLine(ValueError):
-    def __init__(self, *args, error_line: str, **kwargs):
+    def __init__(self, *args, error_line: bytes, **kwargs):
         super().__init__(*args, **kwargs)
         self.error_line = error_line
 
