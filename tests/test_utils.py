@@ -1,7 +1,7 @@
 import logging
 import inspect
 from functools import wraps
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Mapping, Optional, Union
 
 
 LOGGER = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ def log_on_exception(f: Union[callable, type]) -> callable:
     return wrapper
 
 
-def dict_to_args(args_dict: Dict[str, Optional[Union[str, bool, int]]]) -> List[str]:
+def dict_to_args(args_dict: Mapping[str, Optional[Union[str, bool, int]]]) -> List[str]:
     return [
         (
             '--%s' % key if isinstance(value, bool) and value
