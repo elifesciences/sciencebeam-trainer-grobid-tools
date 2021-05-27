@@ -1,7 +1,7 @@
 import logging
 import inspect
 from functools import wraps
-from typing import Dict, List, Mapping, Optional, Union
+from typing import List, Mapping, Optional, Union
 
 
 LOGGER = logging.getLogger(__name__)
