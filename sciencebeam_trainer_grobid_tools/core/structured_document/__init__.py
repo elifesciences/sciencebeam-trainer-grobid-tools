@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from copy import deepcopy
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 
 B_TAG_PREFIX = 'b-'
 I_TAG_PREFIX = 'i-'
@@ -9,6 +9,8 @@ SCOPE_ATTRIB_SEP = '-'
 LEVEL_ATTRIB_SEP = '_'
 
 SIMPLE_TAG_ATTRIB_NAME = 'tag'
+
+T_Tag_Level = Union[str, int]
 
 
 def merge_token_tag(
@@ -102,6 +104,12 @@ class AbstractStructuredDocument(ABC):
 
     def set_tag_with_prefix(self, parent, tag, scope=None, prefix=None):
         self.set_tag(parent, add_tag_prefix(tag, prefix), scope=scope)
+
+    def set_tag_only(
+            self, parent, tag: Optional[str],
+            scope: Optional[str] = None,
+            level: Optional[T_Tag_Level] = None):
+        self.set_tag(parent, tag, scope=scope, level=level)
 
     def get_sub_tag(self, parent, scope=None):
         return self.get_tag(parent, scope=scope, level=2)

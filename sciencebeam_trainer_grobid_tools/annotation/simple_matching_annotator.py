@@ -31,10 +31,6 @@ from sciencebeam_trainer_grobid_tools.utils.fuzzy import (
     iter_fuzzy_search_all_index_ranges
 )
 
-from sciencebeam_trainer_grobid_tools.structured_document.grobid_training_tei import (
-     GrobidTrainingTeiStructuredDocument
-)
-
 from sciencebeam_trainer_grobid_tools.annotation.matching_utils import (
     SequenceWrapper,
     PendingSequences,
@@ -63,6 +59,9 @@ def split_and_join_with_space(text: str) -> str:
 DEFAULT_MERGE_ENABLED = True
 DEFAULT_EXTEND_TO_LINE_ENABLED = True
 DEFAULT_MAX_CHUNKS = 1
+
+
+T_StructuredDocument = AbstractStructuredDocument
 
 
 class SimpleTagConfig:
@@ -491,11 +490,10 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
 
     def update_annotation_for_index_range(
             self,
-            structured_document: AbstractStructuredDocument,
+            structured_document: T_StructuredDocument,
             text: SequencesText,
             index_range: Tuple[int, int],
             tag_name: str):
-        assert isinstance(structured_document, GrobidTrainingTeiStructuredDocument)
         matching_tokens = list(text.iter_tokens_between(index_range))
         LOGGER.debug('setting matching_tokens to "%s": [%s]', tag_name, matching_tokens)
         LOGGER.debug(
@@ -519,7 +517,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
 
     def process_sub_annotations(
             self,
-            structured_document: AbstractStructuredDocument,
+            structured_document: T_StructuredDocument,
             text: SequencesText,
             index_range: Tuple[int, int],
             sub_annotations: List[TargetAnnotation]):
@@ -631,7 +629,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             if index_range_chunks:
                 yield from index_range_chunks
 
-    def extend_annotations_to_whole_line(self, structured_document: AbstractStructuredDocument):
+    def extend_annotations_to_whole_line(self, structured_document: T_StructuredDocument):
         for line in _iter_all_lines(structured_document):
             tokens = structured_document.get_tokens_of_line(line)
             line_token_tags = [structured_document.get_tag(token) for token in tokens]
@@ -652,7 +650,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
 
     def process_target_annotations(
             self,
-            structured_document: AbstractStructuredDocument,
+            structured_document: T_StructuredDocument,
             target_annotations: List[TargetAnnotation]):
         untagged_target_annotations = []
         pending_sequences = PendingSequences.from_structured_document(
@@ -732,7 +730,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                         )
         return untagged_target_annotations
 
-    def annotate(self, structured_document: AbstractStructuredDocument):
+    def _do_annotate(self, structured_document: T_StructuredDocument):
         untagged_target_annotations = self.target_annotations
         while untagged_target_annotations:
             remaing_untagged_target_annotations = self.process_target_annotations(
@@ -748,6 +746,11 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
         if self.config.extend_to_line_enabled:
             self.extend_annotations_to_whole_line(structured_document)
         return structured_document
+
+    def annotate(self, structured_document: AbstractStructuredDocument):
+        return self._do_annotate(
+            cast(T_StructuredDocument, structured_document)
+        )
 
 
 class SimpleTagConfigProps:

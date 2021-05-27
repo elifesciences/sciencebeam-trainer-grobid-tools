@@ -1,7 +1,7 @@
 import logging
 from collections import Counter
 from functools import partial
-from typing import Callable, Optional, Set
+from typing import Any, Callable, Optional, Set, cast
 
 from sciencebeam_trainer_grobid_tools.core.annotation.annotator import AbstractAnnotator
 
@@ -29,7 +29,14 @@ def _iter_all_tokens(structured_document):
     )
 
 
-def _map_token_tags(structured_document, tag_fn, **kwargs):
+T_GetMappedTagFunction = Callable[[Optional[str], Any], Optional[str]]
+
+
+def _map_token_tags(
+    structured_document,
+    tag_fn: T_GetMappedTagFunction,
+    **kwargs
+):
     for token in _iter_all_tokens(structured_document):
         tag = structured_document.get_tag_or_preserved_tag(token, **kwargs)
         updated_tag = tag_fn(tag, token)
@@ -73,17 +80,18 @@ def annotate_structured_document_inplace(
         no_preserve_sub_fields: Optional[Set[str]] = None):
     if not fields:
         fields = set()
+    tag_fn: T_GetMappedTagFunction
     if preserve_tags or preserve_fields:
         exclude_fields = set(fields) - set(preserve_fields or [])
         LOGGER.debug(
             'preserving tags, including %s, except for fields: %s',
             preserve_fields, exclude_fields
         )
-        tag_fn = partial(
+        tag_fn = cast(T_GetMappedTagFunction, partial(
             _preserve_tag_fn,
             include_fields=preserve_fields,
             exclude_fields=exclude_fields
-        )
+        ))
     else:
         LOGGER.debug('not preserving tags')
         tag_fn = _no_preserve_tag_fn
