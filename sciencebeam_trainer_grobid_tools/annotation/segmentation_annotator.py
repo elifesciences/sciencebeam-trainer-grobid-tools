@@ -111,7 +111,10 @@ def _set_line_tokens_tag(
         structured_document.set_tag(token, tag)
 
 
-def _get_line_token_tags(structured_document: AbstractStructuredDocument, line) -> List[str]:
+def _get_line_token_tags(
+    structured_document: AbstractStructuredDocument,
+    line
+) -> List[Optional[str]]:
     return [
         structured_document.get_tag(token)
         for token in structured_document.get_tokens_of_line(line)
@@ -122,7 +125,7 @@ def _to_tag_values(tags: List[Optional[str]]) -> List[Optional[str]]:
     return list(map(strip_tag_prefix, tags))
 
 
-def _get_line_token_tag_values(*args, **kwargs) -> List[str]:
+def _get_line_token_tag_values(*args, **kwargs) -> List[Optional[str]]:
     return _to_tag_values(_get_line_token_tags(*args, **kwargs))
 
 
