@@ -21,6 +21,11 @@ DEFAULT_WORD_SEPARATORS = ' .,-:;()[]\n\t'
 NOT_SET = 'NOT_SET'
 
 
+T_Matching_Block = Tuple[int, int, int]
+T_Matching_Blocks = List[T_Matching_Block]
+T_Matching_Blocks_Chunks = List[T_Matching_Blocks]
+
+
 def default_is_junk(s, i):
     try:
         ch = s[i]
