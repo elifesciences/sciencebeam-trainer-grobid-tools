@@ -1,6 +1,6 @@
-from typing import List, Tuple
-
 from sciencebeam_trainer_grobid_tools.utils.fuzzy import (
+    T_MatchingBlocks,
+    T_MatchingBlocksChunks,
     get_str_left_strided_matching_blocks_chunks,
     get_str_left_strided_matching_blocks,
     get_default_max_length_and_stride,
@@ -9,13 +9,19 @@ from sciencebeam_trainer_grobid_tools.utils.fuzzy import (
 )
 
 
-def _ignore_zero_length_blocks(matching_blocks: List[Tuple[int]]) -> List[Tuple[int]]:
+def _ignore_zero_length_blocks(
+    matching_blocks: T_MatchingBlocks
+) -> T_MatchingBlocks:
     return [t for t in matching_blocks if t[-1]]
 
 
 def _ignore_zero_length_blocks_in_chunks(
-        matching_blocks_chunks: List[List[Tuple[int]]]) -> List[Tuple[int]]:
-    return [[t for t in matching_blocks if t[-1]] for matching_blocks in matching_blocks_chunks]
+    matching_blocks_chunks: T_MatchingBlocksChunks
+) -> T_MatchingBlocksChunks:
+    return [
+        [t for t in matching_blocks if t[-1]]
+        for matching_blocks in matching_blocks_chunks
+    ]
 
 
 class TestGetStrLeftStridedMatchingBlocksChunks:

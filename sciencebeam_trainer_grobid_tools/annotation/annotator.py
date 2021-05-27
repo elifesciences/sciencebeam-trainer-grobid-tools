@@ -1,7 +1,9 @@
 import logging
 from collections import Counter
 from functools import partial
-from typing import Callable, List, Set
+from typing import Any, Callable, Optional, Set, cast
+
+from sciencebeam_trainer_grobid_tools.core.annotation.annotator import AbstractAnnotator
 
 from ..core.structured_document import (
     strip_tag_prefix
@@ -27,7 +29,14 @@ def _iter_all_tokens(structured_document):
     )
 
 
-def _map_token_tags(structured_document, tag_fn, **kwargs):
+T_GetMappedTagFunction = Callable[[Optional[str], Any], Optional[str]]
+
+
+def _map_token_tags(
+    structured_document,
+    tag_fn: T_GetMappedTagFunction,
+    **kwargs
+):
     for token in _iter_all_tokens(structured_document):
         tag = structured_document.get_tag_or_preserved_tag(token, **kwargs)
         updated_tag = tag_fn(tag, token)
@@ -39,8 +48,8 @@ def _map_token_tags(structured_document, tag_fn, **kwargs):
 def _preserve_tag_fn(
         existing_tag: str,
         token,  # pylint: disable=unused-argument
-        include_fields: List[str] = None,
-        exclude_fields: List[str] = None):
+        include_fields: Set[str] = None,
+        exclude_fields: Set[str] = None):
     simple_existing_tag = strip_tag_prefix(existing_tag)
     if exclude_fields and simple_existing_tag in exclude_fields:
         return None
@@ -63,25 +72,26 @@ def _get_used_sub_tag_counts(
 
 def annotate_structured_document_inplace(
         structured_document: GrobidTrainingTeiStructuredDocument,
-        annotator,
+        annotator: AbstractAnnotator,
         preserve_tags: bool,
-        fields: List[str],
-        preserve_fields: List[str] = None,
+        fields: Optional[Set[str]],
+        preserve_fields: Optional[Set[str]] = None,
         preserve_sub_tags: bool = False,
-        no_preserve_sub_fields: Set[str] = None):
+        no_preserve_sub_fields: Optional[Set[str]] = None):
     if not fields:
         fields = set()
+    tag_fn: T_GetMappedTagFunction
     if preserve_tags or preserve_fields:
         exclude_fields = set(fields) - set(preserve_fields or [])
         LOGGER.debug(
             'preserving tags, including %s, except for fields: %s',
             preserve_fields, exclude_fields
         )
-        tag_fn = partial(
+        tag_fn = cast(T_GetMappedTagFunction, partial(
             _preserve_tag_fn,
             include_fields=preserve_fields,
             exclude_fields=exclude_fields
-        )
+        ))
     else:
         LOGGER.debug('not preserving tags')
         tag_fn = _no_preserve_tag_fn
@@ -144,14 +154,14 @@ def annotate_structured_document(
         target_structured_document_path: str,
         annotator,
         preserve_tags: bool,
-        fields: List[str],
-        always_preserve_fields: List[str] = None,
-        preserve_sub_tags: bool = False,
-        no_preserve_sub_fields: Set[str] = None,
+        fields: Optional[Set[str]],
         is_structured_document_passing_checks: Callable[
             [GrobidTrainingTeiStructuredDocument], bool
-        ] = None,
-        failed_target_structured_document_path: str = None,
+        ],
+        always_preserve_fields: Optional[Set[str]] = None,
+        preserve_sub_tags: bool = False,
+        no_preserve_sub_fields: Optional[Set[str]] = None,
+        failed_target_structured_document_path: Optional[str] = None,
         **kwargs):
     LOGGER.info('loading from: %s', source_structured_document_path)
     structured_document = load_grobid_training_tei_structured_document(

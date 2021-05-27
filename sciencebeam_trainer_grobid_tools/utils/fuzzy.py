@@ -1,6 +1,6 @@
 import logging
 from difflib import SequenceMatcher
-from typing import List, Tuple
+from typing import Callable, Iterable, List, Optional, Tuple, cast
 
 from sciencebeam_alignment.align import (
     LocalSequenceMatcher
@@ -21,7 +21,16 @@ DEFAULT_WORD_SEPARATORS = ' .,-:;()[]\n\t'
 NOT_SET = 'NOT_SET'
 
 
-def default_is_junk(s, i):
+T_MatchingBlock = Tuple[int, int, int]
+T_MatchingBlocks = List[T_MatchingBlock]
+T_MatchingBlocksChunks = List[T_MatchingBlocks]
+
+T_IndexRange = Tuple[int, int]
+
+T_IsJunkFunction = Callable[[str, int], bool]
+
+
+def default_is_junk(s: str, i: int) -> bool:
     try:
         ch = s[i]
     except IndexError as exc:
@@ -64,7 +73,8 @@ class FuzzyMatchResult(_FuzzyMatchResult):
 
 
 def get_merged_matching_blocks_chunks(
-        matching_blocks_chunks: List[List[Tuple[int]]]) -> List[Tuple[int, int, int]]:
+    matching_blocks_chunks: T_MatchingBlocksChunks
+) -> T_MatchingBlocks:
     return [
         matching_block
         for matching_blocks in matching_blocks_chunks
@@ -134,7 +144,10 @@ def split_with_offset(s: str, sep: str, include_separators: bool = True):
     return tokens
 
 
-def get_no_junk_string_view(original_string: str, isjunk: bool = NOT_SET) -> StringView:
+def get_no_junk_string_view(
+    original_string: str,
+    isjunk: Optional[T_IsJunkFunction] = cast(T_IsJunkFunction, NOT_SET)
+) -> StringView:
     if isjunk == NOT_SET:
         isjunk = default_is_junk
     if isjunk is None:
@@ -145,7 +158,13 @@ def get_no_junk_string_view(original_string: str, isjunk: bool = NOT_SET) -> Str
 
 
 class WordSequenceMatcher(object):
-    def __init__(self, isjunk=None, a=None, b=None, sep=None):
+    def __init__(
+        self,
+        isjunk: Optional[T_IsJunkFunction] = None,
+        a=None,
+        b=None,
+        sep=None
+    ):
         if isjunk:
             raise ValueError('isjunk not supported')
         self.a = a
@@ -177,7 +196,8 @@ class WordSequenceMatcher(object):
 
 
 def get_str_matching_blocks_using_sequence_matcher(
-        haystack: str, needle: str) -> List[Tuple[int, int, int]]:
+    haystack: str, needle: str
+) -> T_MatchingBlocks:
     sm = LocalSequenceMatcher(a=haystack, b=needle, scoring=DEFAULT_SCORING)
     return sm.get_matching_blocks()
 
@@ -205,10 +225,11 @@ def get_str_matching_blocks_using_sequence_matcher(
 
 
 def get_matching_blocks_b_gap_ratio(
-        haystack: str,
-        needle: str,
-        matching_blocks,
-        isjunk: callable) -> float:
+    haystack: str,
+    needle: str,
+    matching_blocks: T_MatchingBlocks,
+    isjunk: Optional[T_IsJunkFunction]
+) -> float:
     fm = FuzzyMatchResult(
         haystack,
         needle,
@@ -219,11 +240,16 @@ def get_matching_blocks_b_gap_ratio(
     return fm.b_gap_ratio()
 
 
-def get_matching_blocks_size(matching_blocks: List[Tuple[int]]) -> int:
+def get_matching_blocks_size(
+    matching_blocks: T_MatchingBlocks
+) -> int:
     return sum(size for _, _, size in matching_blocks)
 
 
-def get_matching_blocks_end_offset(matching_blocks: List[Tuple[int]], seq_index: int) -> int:
+def get_matching_blocks_end_offset(
+    matching_blocks: T_MatchingBlocks,
+    seq_index: int
+) -> int:
     if not matching_blocks:
         return 0
     last_block = matching_blocks[-1]
@@ -233,7 +259,10 @@ def get_matching_blocks_end_offset(matching_blocks: List[Tuple[int]], seq_index:
     return last_block[seq_index] + last_block_size
 
 
-def get_matching_blocks_start_offset(matching_blocks: List[Tuple[int]], seq_index: int) -> int:
+def get_matching_blocks_start_offset(
+    matching_blocks: T_MatchingBlocks,
+    seq_index: int
+) -> Optional[int]:
     if not matching_blocks:
         return None
     first_block = matching_blocks[0]
@@ -243,12 +272,22 @@ def get_matching_blocks_start_offset(matching_blocks: List[Tuple[int]], seq_inde
     return first_block[seq_index]
 
 
+def get_required_matching_blocks_start_offset(
+    matching_blocks: T_MatchingBlocks,
+    seq_index: int
+) -> int:
+    start_offset = get_matching_blocks_start_offset(matching_blocks, seq_index)
+    assert start_offset is not None
+    return start_offset
+
+
 def get_first_chunk_matching_blocks(
-        haystack: str,
-        needle: str,
-        matching_blocks,
-        threshold: float,
-        isjunk: callable) -> List[Tuple[int]]:
+    haystack: str,
+    needle: str,
+    matching_blocks,
+    threshold: float,
+    isjunk: Optional[T_IsJunkFunction]
+) -> T_MatchingBlocks:
     block_count = len(matching_blocks) - 1
     while block_count:
         chunk_matching_blocks = matching_blocks[:block_count]
@@ -272,11 +311,12 @@ def get_first_chunk_matching_blocks(
 
 
 def get_last_chunk_matching_blocks(
-        haystack: str,
-        needle: str,
-        matching_blocks,
-        threshold: float,
-        isjunk: callable) -> List[Tuple[int]]:
+    haystack: str,
+    needle: str,
+    matching_blocks,
+    threshold: float,
+    isjunk: Optional[T_IsJunkFunction]
+) -> T_MatchingBlocks:
     block_start = 0
     while block_start < len(matching_blocks):
         chunk_matching_blocks = matching_blocks[block_start:]
@@ -303,7 +343,9 @@ def get_last_chunk_matching_blocks(
     return []
 
 
-def get_first_or_last_chunk_matching_blocks(*args, **kwargs) -> List[Tuple[int]]:
+def get_first_or_last_chunk_matching_blocks(
+    *args, **kwargs
+) -> Tuple[Optional[T_MatchingBlocks], Optional[T_MatchingBlocks]]:
     first_chunk_matching_blocks = get_first_chunk_matching_blocks(*args, **kwargs)
     if first_chunk_matching_blocks:
         return first_chunk_matching_blocks, None
@@ -311,9 +353,10 @@ def get_first_or_last_chunk_matching_blocks(*args, **kwargs) -> List[Tuple[int]]
 
 
 def get_offset_matching_blocks(
-        matching_blocks: List[Tuple[int]],
-        a_offset: int = 0,
-        b_offset: int = 0) -> List[Tuple[int]]:
+    matching_blocks: T_MatchingBlocks,
+    a_offset: int = 0,
+    b_offset: int = 0
+) -> T_MatchingBlocks:
     if not a_offset and not b_offset:
         return matching_blocks
     return [
@@ -323,13 +366,14 @@ def get_offset_matching_blocks(
 
 
 def get_str_left_strided_matching_blocks_chunks(
-        haystack: str, needle: str,
-        max_length: int,
-        stride: int,
-        threshold: float,
-        isjunk: callable = None,
-        max_chunks: int = 1,
-        start_index: int = 0) -> List[List[Tuple[int, int, int]]]:
+    haystack: str, needle: str,
+    max_length: int,
+    stride: int,
+    threshold: float,
+    isjunk: Optional[T_IsJunkFunction] = None,
+    max_chunks: int = 1,
+    start_index: int = 0
+) -> T_MatchingBlocksChunks:
     """
     LocalSequenceMatcher scales quadratically (O(n*m) with n=haystack length and m=needle length)
     By using a window, we are limiting the memory usage and stop early if we found a match.
@@ -381,7 +425,8 @@ def get_str_left_strided_matching_blocks_chunks(
                 remaining_needle = needle[first_chunk_needle_end:]
                 remaining_start_index = start_index + first_chunk_needle_end
             else:
-                first_chunk_needle_start = get_matching_blocks_start_offset(
+                assert last_chunk_matching_blocks
+                first_chunk_needle_start = get_required_matching_blocks_start_offset(
                     last_chunk_matching_blocks, 1
                 )
                 first_chunk_needle_end = len(needle)
@@ -403,6 +448,7 @@ def get_str_left_strided_matching_blocks_chunks(
                 continue
             if last_chunk_matching_blocks:
                 return remaining_matching_blocks_chunks + [last_chunk_matching_blocks]
+            assert first_chunk_matching_blocks is not None
             return [first_chunk_matching_blocks] + [
                 get_offset_matching_blocks(
                     remaining_matching_blocks,
@@ -419,16 +465,19 @@ def get_str_left_strided_matching_blocks_chunks(
     return []
 
 
-def get_str_left_strided_matching_blocks(*args, **kwargs) -> List[Tuple[int, int, int]]:
+def get_str_left_strided_matching_blocks(
+    *args, **kwargs
+) -> T_MatchingBlocks:
     matching_blocks_chunks = get_str_left_strided_matching_blocks_chunks(*args, **kwargs)
     return get_merged_matching_blocks_chunks(matching_blocks_chunks)
 
 
 def get_default_max_length_and_stride(
-        haystack_length: int,
-        needle_length: int,
-        threshold: float,
-        min_max_length: int = 1000) -> Tuple[int]:
+    haystack_length: int,
+    needle_length: int,
+    threshold: float,
+    min_max_length: int = 1000
+) -> Tuple[int, int]:
     if haystack_length <= min_max_length:
         return haystack_length, haystack_length
     max_l_dist = round(min(haystack_length, needle_length) * (1 - threshold))
@@ -439,9 +488,11 @@ def get_default_max_length_and_stride(
 
 
 def get_str_auto_left_strided_matching_blocks_chunks(
-        haystack: str, needle: str,
-        threshold: float,
-        **kwargs) -> List[List[Tuple[int, int, int]]]:
+    haystack: str,
+    needle: str,
+    threshold: float,
+    **kwargs
+) -> T_MatchingBlocksChunks:
     max_length, stride = get_default_max_length_and_stride(
         len(haystack), len(needle), threshold=threshold
     )
@@ -453,9 +504,10 @@ def get_str_auto_left_strided_matching_blocks_chunks(
 
 
 def get_str_auto_left_strided_matching_blocks(
-        haystack: str, needle: str,
-        threshold: float,
-        isjunk: callable) -> List[Tuple[int, int, int]]:
+    haystack: str, needle: str,
+    threshold: float,
+    isjunk: Optional[T_IsJunkFunction]
+) -> T_MatchingBlocks:
     max_length, stride = get_default_max_length_and_stride(
         len(haystack), len(needle), threshold=threshold
     )
@@ -466,12 +518,14 @@ def get_str_auto_left_strided_matching_blocks(
 
 
 def fuzzy_search_chunks(
-        haystack: str, needle: str,
-        threshold: float,
-        exact_word_match_threshold: int = 5,
-        max_chunks: int = 1,
-        start_index: int = 0,
-        isjunk: callable = None) -> ChunkedFuzzyMatchResult:
+    haystack: str,
+    needle: str,
+    threshold: float,
+    exact_word_match_threshold: int = 5,
+    max_chunks: int = 1,
+    start_index: int = 0,
+    isjunk: Optional[T_IsJunkFunction] = None
+) -> Optional[ChunkedFuzzyMatchResult]:
     original_haystack = haystack
     if start_index:
         haystack = haystack[start_index:]
@@ -542,14 +596,19 @@ def fuzzy_search_chunks(
     return fm_chunks
 
 
-def fuzzy_search(*args, **kwargs) -> FuzzyMatchResult:
+def fuzzy_search(*args, **kwargs) -> Optional[FuzzyMatchResult]:
     fms = fuzzy_search_chunks(*args, **kwargs)
     if not fms:
         return None
     return fms.merge()
 
 
-def iter_fuzzy_search_all(haystack: str, *args, start_index: int = 0, **kwargs) -> FuzzyMatchResult:
+def iter_fuzzy_search_all(
+    haystack: str,
+    *args,
+    start_index: int = 0,
+    **kwargs
+) -> Iterable[FuzzyMatchResult]:
     while start_index < len(haystack):
         fm = fuzzy_search(haystack, *args, **kwargs, start_index=start_index)
         if not fm:
@@ -561,14 +620,14 @@ def iter_fuzzy_search_all(haystack: str, *args, start_index: int = 0, **kwargs) 
         start_index = new_start_index
 
 
-def fuzzy_search_index_range(*args, **kwargs) -> Tuple[int, int]:
+def fuzzy_search_index_range(*args, **kwargs) -> Optional[T_IndexRange]:
     fm = fuzzy_search(*args, **kwargs)
     if fm:
         return fm.a_index_range()
     return None
 
 
-def fuzzy_search_index_range_chunks(*args, **kwargs) -> Tuple[int, int]:
+def fuzzy_search_index_range_chunks(*args, **kwargs) -> Optional[List[T_IndexRange]]:
     fm_chunks = fuzzy_search_chunks(*args, **kwargs)
     if not fm_chunks:
         return None
@@ -578,7 +637,7 @@ def fuzzy_search_index_range_chunks(*args, **kwargs) -> Tuple[int, int]:
     ]
 
 
-def iter_fuzzy_search_all_index_ranges(*args, **kwargs) -> Tuple[int, int]:
+def iter_fuzzy_search_all_index_ranges(*args, **kwargs) -> Iterable[T_IndexRange]:
     return (
         fm.a_index_range()
         for fm in iter_fuzzy_search_all(*args, **kwargs)

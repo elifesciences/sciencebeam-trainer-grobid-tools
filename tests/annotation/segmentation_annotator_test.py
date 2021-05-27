@@ -99,7 +99,7 @@ class TestParseSegmentationConfig:
             '[tags]',
             'front = title, abstract '
         ]))
-        config = parse_segmentation_config(config_path)
+        config = parse_segmentation_config(str(config_path))
         LOGGER.debug('config: %s', config)
         assert config.segmentation_mapping['front'] == {'title', 'abstract'}
 
@@ -111,7 +111,7 @@ class TestParseSegmentationConfig:
             '[config]',
             'front_max_start_line_index = 123 '
         ]))
-        config = parse_segmentation_config(config_path)
+        config = parse_segmentation_config(str(config_path))
         LOGGER.debug('config: %s', config)
         assert config.front_max_start_line_index == 123
 

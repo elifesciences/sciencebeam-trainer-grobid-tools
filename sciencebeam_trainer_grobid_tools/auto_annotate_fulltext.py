@@ -2,8 +2,9 @@ from __future__ import absolute_import
 
 import argparse
 import logging
+from typing import List
 
-from .core.annotation.annotator import Annotator
+from .core.annotation.annotator import AbstractAnnotator, Annotator
 
 from .structured_document.grobid_training_tei import (
     DEFAULT_TAG_KEY
@@ -150,7 +151,7 @@ def _get_annotator(
         preserve_sub_annotations=True,
         extend_to_line_enabled=not no_extend_to_line
     )
-    annotators = [
+    annotators: List[AbstractAnnotator] = [
         SimpleMatchingAnnotator(
             target_annotations,
             config=simple_annotator_config

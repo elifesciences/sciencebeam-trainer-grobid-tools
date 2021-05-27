@@ -1,10 +1,11 @@
 import logging
 import re
 from configparser import ConfigParser
-from collections import Counter
-from typing import Dict, List, NamedTuple, Optional, Set
+from typing import Counter, Dict, List, NamedTuple, Optional, Set
 
 from sciencebeam_utils.utils.string import parse_list
+
+from sciencebeam_trainer_grobid_tools.utils.misc import get_dict_safe
 
 from sciencebeam_trainer_grobid_tools.core.structured_document import (
     AbstractStructuredDocument,
@@ -105,23 +106,27 @@ def _iter_all_lines(structured_document: AbstractStructuredDocument):
 def _set_line_tokens_tag(
         structured_document: AbstractStructuredDocument,
         line,
-        tag: str):
+        tag: Optional[str]):
+    assert isinstance(structured_document, GrobidTrainingTeiStructuredDocument)
     for token in structured_document.get_all_tokens_of_line(line):
         structured_document.set_tag(token, tag)
 
 
-def _get_line_token_tags(structured_document: AbstractStructuredDocument, line) -> List[str]:
+def _get_line_token_tags(
+    structured_document: AbstractStructuredDocument,
+    line
+) -> List[Optional[str]]:
     return [
         structured_document.get_tag(token)
         for token in structured_document.get_tokens_of_line(line)
     ]
 
 
-def _to_tag_values(tags: List[str]) -> List[str]:
+def _to_tag_values(tags: List[Optional[str]]) -> List[Optional[str]]:
     return list(map(strip_tag_prefix, tags))
 
 
-def _get_line_token_tag_values(*args, **kwargs) -> List[str]:
+def _get_line_token_tag_values(*args, **kwargs) -> List[Optional[str]]:
     return _to_tag_values(_get_line_token_tags(*args, **kwargs))
 
 
@@ -134,7 +139,7 @@ def _get_line_token_tags_or_preserved_tags(
 
 
 def _clear_line_token_tags(
-        structured_document: GrobidTrainingTeiStructuredDocument, line) -> List[str]:
+        structured_document: GrobidTrainingTeiStructuredDocument, line):
     for token in structured_document.get_all_tokens_of_line(line):
         tag = structured_document.get_tag(token)
         if tag:
@@ -241,7 +246,7 @@ class PageNumberCandidate(NamedTuple):
 
 
 def is_valid_page_number_candidate(text: str) -> bool:
-    return re.match(r'^\d+$', text)
+    return re.match(r'^\d+$', text) is not None
 
 
 def parse_page_number(text: str) -> int:
@@ -351,9 +356,9 @@ def merge_lines(
     enabled_tags: Set[str],
     enabled_remaining_tags: Set[str]
 ):
-    condidate_lines = []
+    condidate_lines: List[SegmentationLine] = []
     previous_segmentation_tag: Optional[str] = SegmentationTagNames.FRONT
-    total_merged_line_counts = Counter()
+    total_merged_line_counts: Counter[Optional[str]] = Counter()
     ignored_segmentation_tags = {SegmentationTagNames.HEADNOTE, SegmentationTagNames.PAGE}
     for line in segmentation_lines:
         if line.segmentation_tag in ignored_segmentation_tags:
@@ -418,7 +423,10 @@ class SegmentationAnnotator(AbstractAnnotator):
             if not line_tag_counts:
                 continue
             majority_tag_name = line_tag_counts.most_common(1)[0][0]
-            segmentation_tag = self.segmentation_tag_name_by_tag_name.get(majority_tag_name)
+            segmentation_tag = get_dict_safe(
+                self.segmentation_tag_name_by_tag_name,
+                majority_tag_name
+            )
             LOGGER.debug(
                 'line_tag_counts: %s (%s -> %s)',
                 line_tag_counts, majority_tag_name, segmentation_tag

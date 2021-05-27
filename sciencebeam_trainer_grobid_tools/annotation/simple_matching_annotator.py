@@ -2,7 +2,7 @@ import logging
 import re
 from distutils.util import strtobool
 from itertools import groupby
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple, cast
 
 from sciencebeam_trainer_grobid_tools.core.structured_document import (
     AbstractStructuredDocument
@@ -24,7 +24,7 @@ from sciencebeam_trainer_grobid_tools.core.structured_document import (
     I_TAG_PREFIX
 )
 
-from sciencebeam_trainer_grobid_tools.utils.misc import get_safe
+from sciencebeam_trainer_grobid_tools.utils.misc import get_safe, get_dict_safe
 
 from sciencebeam_trainer_grobid_tools.utils.fuzzy import (
     fuzzy_search_index_range_chunks,
@@ -61,11 +61,14 @@ DEFAULT_EXTEND_TO_LINE_ENABLED = True
 DEFAULT_MAX_CHUNKS = 1
 
 
+T_StructuredDocument = AbstractStructuredDocument
+
+
 class SimpleTagConfig:
     def __init__(
             self,
             match_prefix_regex: str = None,
-            alternative_spellings: Dict[str, List[str]] = None,
+            alternative_spellings: Optional[Dict[str, List[str]]] = None,
             merge_enabled: bool = DEFAULT_MERGE_ENABLED,
             extend_to_line_enabled: bool = DEFAULT_EXTEND_TO_LINE_ENABLED,
             max_chunks: int = DEFAULT_MAX_CHUNKS,
@@ -206,7 +209,9 @@ def merge_related_clusters(clusters: List[IndexRangeCluster]) -> List[IndexRange
         clusters = merged_clusters
 
 
-def select_index_ranges(index_ranges: List[Tuple[int, int]]) -> Tuple[int, int]:
+def select_index_ranges(
+    index_ranges: List[Tuple[int, int]]
+) -> Tuple[List[Tuple[int, int]], List[Tuple[int, int]]]:
     if len(index_ranges) <= 1:
         return index_ranges, []
     index_ranges = sorted_index_ranges(index_ranges)
@@ -243,7 +248,7 @@ def to_begin_tag(tag: str) -> str:
     )
 
 
-def to_inside_tag(tag: str) -> str:
+def to_inside_tag(tag: Optional[str]) -> Optional[str]:
     prefix, tag_value = split_tag_prefix(tag)
     return (
         add_tag_prefix(tag_value, prefix=I_TAG_PREFIX)
@@ -252,7 +257,7 @@ def to_inside_tag(tag: str) -> str:
     )
 
 
-def to_begin_inside_tags(tag: str, length: int) -> List[str]:
+def to_begin_inside_tags(tag: Optional[str], length: int) -> List[Optional[str]]:
     if not length:
         return []
     prefix, tag_value = split_tag_prefix(tag)
@@ -264,7 +269,9 @@ def to_begin_inside_tags(tag: str, length: int) -> List[str]:
     )
 
 
-def get_merged_begin_inside_tags_of_same_tag_value(tags: List[str]) -> List[str]:
+def get_merged_begin_inside_tags_of_same_tag_value(
+    tags: Optional[List[Optional[str]]]
+) -> List[Optional[str]]:
     if not tags:
         return []
     prefix, tag_value = split_tag_prefix(tags[0])
@@ -277,11 +284,11 @@ def get_merged_begin_inside_tags_of_same_tag_value(tags: List[str]) -> List[str]
 
 
 def get_extended_line_token_tags(
-        line_token_tags: List[str],
+        line_token_tags: Sequence[Optional[str]],
         extend_to_line_enabled_map: Dict[str, bool] = None,
         merge_enabled_map: Dict[str, bool] = None,
         default_extend_to_line_enabled: bool = DEFAULT_EXTEND_TO_LINE_ENABLED,
-        default_merge_enabled: bool = DEFAULT_MERGE_ENABLED) -> List[str]:
+        default_merge_enabled: bool = DEFAULT_MERGE_ENABLED) -> List[Optional[str]]:
     if extend_to_line_enabled_map is None:
         extend_to_line_enabled_map = {}
     if merge_enabled_map is None:
@@ -290,20 +297,20 @@ def get_extended_line_token_tags(
         'line_token_tags: %s (extend_to_line_enabled_map: %s, merge_enabled_map: %s)',
         line_token_tags, extend_to_line_enabled_map, merge_enabled_map
     )
-    grouped_token_tags = [
+    grouped_token_tags: List[List[Optional[str]]] = [
         list(group)
         for _, group in groupby(line_token_tags, key=strip_tag_prefix)
     ]
     grouped_token_tags = [
-        (
+        cast(List[Optional[str]], (
             get_merged_begin_inside_tags_of_same_tag_value(group)
             if merge_enabled_map.get(strip_tag_prefix(group[0]), default_merge_enabled)
             else group
-        )
+        ))
         for group in grouped_token_tags
     ]
     LOGGER.debug('grouped_token_tags: %s', grouped_token_tags)
-    result = []
+    result: List[Optional[str]] = []
     for index, group in enumerate(grouped_token_tags):
         prev_group = grouped_token_tags[index - 1] if index > 0 else None
         next_group = grouped_token_tags[index + 1] if index + 1 < len(grouped_token_tags) else None
@@ -315,7 +322,7 @@ def get_extended_line_token_tags(
         elif prev_group and next_group:
             if (
                     last_prev_tag_value == first_next_tag_value
-                    and merge_enabled_map.get(last_prev_tag_value, default_merge_enabled)
+                    and get_dict_safe(merge_enabled_map, last_prev_tag_value, default_merge_enabled)
             ):
                 result.extend([to_inside_tag(prev_group[-1])] * len(group))
                 if first_next_prefix == B_TAG_PREFIX:
@@ -323,13 +330,20 @@ def get_extended_line_token_tags(
             else:
                 result.extend(group)
         elif (
-                prev_group and not extend_to_line_enabled_map.get(
-                    last_prev_tag_value, default_extend_to_line_enabled
-                )
+            prev_group
+            and not get_dict_safe(
+                extend_to_line_enabled_map,
+                last_prev_tag_value, default_extend_to_line_enabled
+            )
         ):
             result.extend(group)
-        elif next_group and not extend_to_line_enabled_map.get(
-                first_next_tag_value, default_extend_to_line_enabled):
+        elif (
+            next_group
+            and not get_dict_safe(
+                extend_to_line_enabled_map,
+                first_next_tag_value, default_extend_to_line_enabled
+            )
+        ):
             result.extend(group)
         elif prev_group and len(prev_group) > len(group):
             result.extend([to_inside_tag(prev_group[-1])] * len(group))
@@ -358,7 +372,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             config = SimpleSimpleMatchingConfig(**kwargs)
         elif kwargs:
             raise ValueError('either config or kwargs should be specified')
-        self.config = config
+        self.config: SimpleSimpleMatchingConfig = config
         LOGGER.debug('config: %s', config)
         self.merge_enabled_map = {
             tag: tag_confg.merge_enabled
@@ -370,7 +384,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
         }
 
     def get_fuzzy_matching_index_range_chunks(
-            self, haystack: str, needle, **kwargs) -> Optional[List[Tuple[int]]]:
+            self, haystack: str, needle, **kwargs) -> Optional[List[Tuple[int, int]]]:
         if len(needle) < self.config.min_token_length:
             return None
         target_value = normalise_str_or_list(needle)
@@ -401,7 +415,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             self,
             haystack: str,
             needle,
-            alternative_spellings: Dict[str, List[str]],
+            alternative_spellings: Optional[Dict[str, List[str]]],
             **kwargs):
         index_range = self.get_fuzzy_matching_index_range_chunks(haystack, needle, **kwargs)
         if index_range or not alternative_spellings:
@@ -420,7 +434,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
         return None
 
     def get_fuzzy_matching_index_range_with_alternative_spellings(
-            self, *args, **kwargs) -> Optional[Tuple[int]]:
+            self, *args, **kwargs) -> Optional[Tuple[int, int]]:
         index_range_chunks = self.get_fuzzy_matching_index_range_with_alternative_spellings_chunks(
             *args, **kwargs
         )
@@ -476,7 +490,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
 
     def update_annotation_for_index_range(
             self,
-            structured_document: AbstractStructuredDocument,
+            structured_document: T_StructuredDocument,
             text: SequencesText,
             index_range: Tuple[int, int],
             tag_name: str):
@@ -503,7 +517,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
 
     def process_sub_annotations(
             self,
-            structured_document: AbstractStructuredDocument,
+            structured_document: T_StructuredDocument,
             text: SequencesText,
             index_range: Tuple[int, int],
             sub_annotations: List[TargetAnnotation]):
@@ -565,7 +579,11 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             tag_config = self.config.tag_config_map.get(
                 target_annotation.name, DEFAULT_SIMPLE_TAG_CONFIG
             )
-            alternative_spellings = tag_config and tag_config.alternative_spellings
+            alternative_spellings = (
+                tag_config.alternative_spellings
+                if tag_config
+                else None
+            )
             LOGGER.debug('alternative_spellings: %s', alternative_spellings)
             text_str = str(text)
             LOGGER.debug('text: %s', text)
@@ -611,7 +629,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             if index_range_chunks:
                 yield from index_range_chunks
 
-    def extend_annotations_to_whole_line(self, structured_document: AbstractStructuredDocument):
+    def extend_annotations_to_whole_line(self, structured_document: T_StructuredDocument):
         for line in _iter_all_lines(structured_document):
             tokens = structured_document.get_tokens_of_line(line)
             line_token_tags = [structured_document.get_tag(token) for token in tokens]
@@ -632,7 +650,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
 
     def process_target_annotations(
             self,
-            structured_document: AbstractStructuredDocument,
+            structured_document: T_StructuredDocument,
             target_annotations: List[TargetAnnotation]):
         untagged_target_annotations = []
         pending_sequences = PendingSequences.from_structured_document(
@@ -651,9 +669,9 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                 'tag_block_name: %s (current_block_name: %s)',
                 tag_block_name, current_block_name
             )
-            grouped_target_annotations = list(grouped_target_annotations)
-            LOGGER.debug('grouped_target_annotations: %s', grouped_target_annotations)
-            for target_annotation in grouped_target_annotations:
+            grouped_target_annotations_list = list(grouped_target_annotations)
+            LOGGER.debug('grouped_target_annotations: %s', grouped_target_annotations_list)
+            for target_annotation in grouped_target_annotations_list:
                 text = SequencesText(current_pending_sequences.get_pending_sequences(
                     limit=self.config.lookahead_sequence_count
                 ))
@@ -712,7 +730,7 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
                         )
         return untagged_target_annotations
 
-    def annotate(self, structured_document: AbstractStructuredDocument):
+    def _do_annotate(self, structured_document: T_StructuredDocument):
         untagged_target_annotations = self.target_annotations
         while untagged_target_annotations:
             remaing_untagged_target_annotations = self.process_target_annotations(
@@ -729,6 +747,11 @@ class SimpleMatchingAnnotator(AbstractAnnotator):
             self.extend_annotations_to_whole_line(structured_document)
         return structured_document
 
+    def annotate(self, structured_document: AbstractStructuredDocument):
+        return self._do_annotate(
+            cast(T_StructuredDocument, structured_document)
+        )
+
 
 class SimpleTagConfigProps:
     MATCH_PREFIX_REGEX = 'match-prefix-regex'
@@ -739,7 +762,7 @@ class SimpleTagConfigProps:
     MAX_CHUNKS = 'max_chunks'
 
 
-def parse_regex(regex_str: str) -> str:
+def parse_regex(regex_str: Optional[str]) -> Optional[str]:
     LOGGER.debug('regex_str: %s', regex_str)
     if not regex_str:
         return regex_str
@@ -751,7 +774,7 @@ def parse_regex(regex_str: str) -> str:
     return regex_str
 
 
-def parse_alternative_spellings(alternative_spellings_str: str) -> Dict[str, List[str]]:
+def parse_alternative_spellings(alternative_spellings_str: Optional[str]) -> Dict[str, List[str]]:
     LOGGER.debug('alternative_spellings_str: %s', alternative_spellings_str)
     if not alternative_spellings_str:
         return {}

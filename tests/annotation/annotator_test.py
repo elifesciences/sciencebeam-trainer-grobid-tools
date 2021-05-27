@@ -81,7 +81,7 @@ class TestAnnotateStructuredDocumentInplace(object):
             structured_document,
             annotator=annotator,
             preserve_tags=False,
-            fields=['other']
+            fields={'other'}
         )
         assert len(_get_root(structured_document).xpath('//docTitle')) == 0
 
@@ -93,7 +93,7 @@ class TestAnnotateStructuredDocumentInplace(object):
             structured_document,
             annotator=annotator,
             preserve_tags=True,
-            fields=['other']
+            fields={'other'}
         )
         assert len(_get_root(structured_document).xpath('//docTitle')) == 1
 
@@ -105,7 +105,7 @@ class TestAnnotateStructuredDocumentInplace(object):
             structured_document,
             annotator=annotator,
             preserve_tags=True,
-            fields=['title']
+            fields={'title'}
         )
         assert len(_get_root(structured_document).xpath('//docTitle')) == 0
 
@@ -122,7 +122,7 @@ class TestAnnotateStructuredDocumentInplace(object):
             annotator=annotator,
             preserve_tags=True,
             preserve_sub_tags=True,
-            fields=['title']
+            fields={'title'}
         )
         assert get_xpath_text(_get_root(structured_document), '//sub1') == 'sub1'
         assert get_xpath_text(_get_root(structured_document), '//sub2') == 'sub2'
@@ -141,7 +141,7 @@ class TestAnnotateStructuredDocumentInplace(object):
             preserve_tags=True,
             preserve_sub_tags=True,
             no_preserve_sub_fields={'sub1'},
-            fields=['title']
+            fields={'title'}
         )
         assert get_xpath_text(_get_root(structured_document), '//sub1') == ''
         assert get_xpath_text(_get_root(structured_document), '//sub2') == 'sub2'
@@ -159,7 +159,7 @@ class TestAnnotateStructuredDocumentInplace(object):
             annotator=annotator,
             preserve_tags=True,
             preserve_sub_tags=False,
-            fields=['title']
+            fields={'title'}
         )
         assert get_xpath_text(_get_root(structured_document), '//sub1') == ''
         assert get_xpath_text(_get_root(structured_document), '//sub2') == ''

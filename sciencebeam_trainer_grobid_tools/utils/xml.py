@@ -6,7 +6,7 @@ from html.parser import HTMLParser
 from io import BufferedReader, StringIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import ContextManager, Iterable, List, Union
+from typing import Iterable, Iterator, List, Tuple, Union
 
 from lxml import etree
 
@@ -14,7 +14,10 @@ from sciencebeam_utils.beam_utils.io import read_all_from_path, save_file_conten
 
 from sciencebeam_utils.utils.xml import get_text_content_list
 
-from sciencebeam_trainer_grobid_tools.utils.io import auto_download_input_file
+from sciencebeam_trainer_grobid_tools.utils.io import (
+    T_BinaryIO_Open_Function,
+    auto_download_input_file
+)
 
 
 LOGGER = logging.getLogger(__name__)
@@ -36,8 +39,8 @@ def iter_text_content_and_exclude(
 
 
 class XMLSyntaxErrorWithErrorLine(ValueError):
-    def __init__(self, *args, error_line: str, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, *args, error_line: Union[bytes, str]):
+        super().__init__(*args)
         self.error_line = error_line
 
 
@@ -49,8 +52,9 @@ def _read_lines(source) -> Iterable[str]:
 
 @contextmanager
 def auto_download_and_fix_input_file(
-        file_url_or_open_fn: Union[str, callable],
-        fix_xml: bool = True) -> str:
+    file_url_or_open_fn: Union[str, T_BinaryIO_Open_Function],
+    fix_xml: bool = True
+) -> Iterator[str]:
     with auto_download_input_file(file_url_or_open_fn) as temp_file:
         if not fix_xml:
             yield temp_file
@@ -83,12 +87,14 @@ def parse_xml_or_get_error_line(
     with auto_download_and_fix_input_file(source, fix_xml=fix_xml) as temp_file:
         try:
             with open(temp_file, mode='rb') as temp_fp:
-                with BufferedReader(temp_fp) as reader:
+                # mypy: https://github.bajins.com/python/mypy/issues/10271
+                with BufferedReader(temp_fp) as reader:  # type: ignore
                     skip_spaces(reader)
                     return etree.parse(reader, **kwargs)
         except etree.XMLSyntaxError as exception:
             error_lineno = exception.lineno
             with open(temp_file, mode='rb') as temp_fp:
+                line_enumeration: Iterable[Tuple[int, Union[bytes, str]]]
                 try:
                     line_enumeration = enumerate(temp_fp, 1)
                 except TypeError:
@@ -239,7 +245,7 @@ def fix_source_file_to(source_url: str, target_url: str, encoding: str = 'utf-8'
 
 
 @contextmanager
-def get_fixed_source_url(source_url: str) -> ContextManager[str]:
+def get_fixed_source_url(source_url: str) -> Iterator[str]:
     with TemporaryDirectory(suffix='-fixed') as temp_dir:
         fixed_source_url = os.path.join(temp_dir, os.path.basename(source_url))
         fix_source_file_to(source_url, fixed_source_url)

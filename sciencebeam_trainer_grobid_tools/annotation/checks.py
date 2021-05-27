@@ -1,6 +1,6 @@
 import logging
 from itertools import groupby
-from typing import Dict, Iterable, List, Set, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 from sciencebeam_alignment.levenshtein import get_levenshtein_ratio
 
@@ -55,14 +55,15 @@ def get_entities_name(entity_pair: Tuple[str, str]) -> str:
 
 def iter_structured_document_entities(
         structured_document: GrobidTrainingTeiStructuredDocument
-        ) -> List[Tuple[str, str]]:
-    pending_tokens = []
-    pending_tag_value = None
+        ) -> Iterable[Tuple[str, str]]:
+    pending_tokens: List[Any] = []
+    pending_tag_value: Optional[str] = None
     for token in _iter_all_tokens(structured_document):
         tag = structured_document.get_tag(token)
         tag_prefix, tag_value = split_tag_prefix(tag)
         if pending_tokens:
             if pending_tag_value != tag_value or tag_prefix == B_TAG_PREFIX:
+                assert pending_tag_value is not None
                 yield pending_tag_value, get_token_text(pending_tokens)
                 pending_tokens = []
                 pending_tag_value = None
@@ -71,6 +72,7 @@ def iter_structured_document_entities(
         pending_tag_value = tag_value
         pending_tokens.append(token)
     if pending_tokens:
+        assert pending_tag_value is not None
         yield pending_tag_value, get_token_text(pending_tokens)
 
 
@@ -91,7 +93,7 @@ def get_required_target_annotation_by_name(
 def get_required_target_value_by_name(
         target_annotations: List[TargetAnnotation],
         require_matching_fields: Set[str]
-        ) -> Dict[str, List[TargetAnnotation]]:
+        ) -> Dict[str, str]:
     result = {}
     required_target_annotation_by_name = get_required_target_annotation_by_name(
         target_annotations=target_annotations,
@@ -134,8 +136,8 @@ def get_structured_document_entities_by_name(
 
 def is_structured_document_passing_checks(
         structured_document: GrobidTrainingTeiStructuredDocument,
-        require_matching_fields: Set[str],
-        required_fields: Set[str],
+        require_matching_fields: Optional[Set[str]],
+        required_fields: Optional[Set[str]],
         target_annotations: List[TargetAnnotation],
         threshold: float = 0.8) -> bool:
     require_matching_fields = set(require_matching_fields or set()) | set(required_fields or set())
@@ -174,7 +176,7 @@ def is_structured_document_passing_checks(
 
 
 def get_target_annotations_from_annotator(
-        annotator: AbstractAnnotator) -> List[TargetAnnotation]:
+        annotator: AbstractAnnotator) -> Optional[List[TargetAnnotation]]:
     # this is slightly hacky, we just want to get hold of the target annotations
     # which are hidden in one of the annotator
     if isinstance(annotator, Annotator):
@@ -183,7 +185,7 @@ def get_target_annotations_from_annotator(
         annotators = [annotator]
     for _annotator in annotators:
         try:
-            return _annotator.target_annotations
+            return _annotator.target_annotations  # type: ignore
         except AttributeError:
             pass
     return None

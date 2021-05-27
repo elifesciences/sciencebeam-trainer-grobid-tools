@@ -1,7 +1,9 @@
 import logging
 import re
 from itertools import groupby
-from typing import Dict, List, Set, Iterable, Any
+from typing import Dict, List, Optional, Set, Iterable, Any, Tuple
+
+from sciencebeam_trainer_grobid_tools.utils.typing import T
 
 from sciencebeam_trainer_grobid_tools.core.structured_document import (
     AbstractStructuredDocument,
@@ -70,7 +72,7 @@ def _iter_all_tokens(
 
 def _iter_group_tokens_by_tag_entity(
         structured_document: AbstractStructuredDocument,
-        tokens: Iterable[Any]) -> Iterable[List[Any]]:
+        tokens: Iterable[T]) -> Iterable[Tuple[Optional[str], List[T]]]:
     pending_tag_value = None
     pending_tokens = None
     for token in tokens:
@@ -97,7 +99,7 @@ def _iter_group_tokens_by_tag_entity(
 def _map_tag(tag: str, tag_map: Dict[str, str]) -> str:
     prefix, tag_value = split_tag_prefix(tag)
     return add_tag_prefix(
-        tag=tag_map.get(tag_value, tag_value),
+        tag=tag_map.get(tag_value, tag_value) if tag_value else tag_value,
         prefix=prefix
     )
 
@@ -114,13 +116,16 @@ def get_prefix_extended_token_tags(
         token_texts: List[str],
         prefix_regex_by_tag_map: Dict[str, str],
         token_whitespaces: List[str] = None,
-        enabled_tags: Set[str] = None) -> List[str]:
-    result = []
+        enabled_tags: Set[str] = None) -> List[Optional[str]]:
+    result: List[Optional[str]] = []
     if token_whitespaces is None:
         token_whitespaces = [' '] * len(token_texts)
-    if enabled_tags is None:
-        enabled_tags = prefix_regex_by_tag_map.keys()
-    grouped_token_tags = [
+    _enabled_tags = (
+        enabled_tags
+        if enabled_tags is not None
+        else prefix_regex_by_tag_map.keys()
+    )
+    grouped_token_tags: List[List[Tuple[Optional[str], str, Optional[str]]]] = [
         list(group)
         for _, group in groupby(
             zip(token_tags, token_texts, token_whitespaces),
@@ -130,7 +135,10 @@ def get_prefix_extended_token_tags(
     LOGGER.debug('grouped_token_tags=%s', grouped_token_tags)
     for index, group in enumerate(grouped_token_tags):
         LOGGER.debug('group: unpacked=%s', group)
-        group_tags, group_texts, group_whitespaces = zip(*group)
+        group_tags: List[str]
+        group_texts: List[str]
+        group_whitespaces: Optional[List[str]]
+        group_tags, group_texts, group_whitespaces = zip(*group)  # type: ignore
         LOGGER.debug(
             'group: tags=%s, texts=%s, whitespace=%s',
             group_tags, group_texts, group_whitespaces
@@ -139,9 +147,10 @@ def get_prefix_extended_token_tags(
         next_group = grouped_token_tags[index + 1] if index + 1 < len(grouped_token_tags) else None
         first_next_tag = get_safe(get_safe(next_group, 0), 0)
         first_next_prefix, first_next_tag_value = split_tag_prefix(first_next_tag)
-        if first_group_tag or first_next_tag_value not in enabled_tags:
+        if first_group_tag or first_next_tag_value not in _enabled_tags:
             result.extend(group_tags)
             continue
+        assert first_next_tag_value is not None
         joined_text = JoinedText(group_texts, sep=' ', whitespace_list=group_whitespaces)
         prefix_regex = prefix_regex_by_tag_map[first_next_tag_value]
         m = re.search(prefix_regex, str(joined_text))
@@ -162,6 +171,7 @@ def get_prefix_extended_token_tags(
         result.extend([first_next_tag])
         result.extend([to_inside_tag(first_next_tag)] * (len(matching_tokens) - 1))
         if first_next_prefix == B_TAG_PREFIX:
+            assert next_group is not None
             next_group[0] = (
                 to_inside_tag(first_next_tag),
                 *next_group[0][1:]
@@ -199,12 +209,12 @@ def _add_idno_text_prefix(
 def get_suffix_extended_token_tags(
         token_tags: List[str],
         token_texts: List[str],
-        token_whitespaces: List[str] = None,
-        enabled_tags: Set[str] = None) -> List[str]:
-    result = []
+        enabled_tags: Set[str],
+        token_whitespaces: Optional[List[str]] = None) -> List[Optional[str]]:
+    result: List[Optional[str]] = []
     if token_whitespaces is None:
         token_whitespaces = [' '] * len(token_texts)
-    grouped_token_tags = [
+    grouped_token_tags: List[List[Tuple[str, str, Optional[str]]]] = [
         list(group)
         for _, group in groupby(
             zip(token_tags, token_texts, token_whitespaces),
@@ -214,7 +224,10 @@ def get_suffix_extended_token_tags(
     LOGGER.debug('suffix grouped_token_tags=%s', grouped_token_tags)
     for index, group in enumerate(grouped_token_tags):
         LOGGER.debug('suffix group: unpacked=%s', group)
-        group_tags, group_texts, group_whitespaces = zip(*group)
+        group_tags: List[str]
+        group_texts: List[str]
+        group_whitespaces: Optional[List[str]]
+        group_tags, group_texts, group_whitespaces = zip(*group)  # type: ignore
         LOGGER.debug(
             'suffix group: tags=%s, texts=%s, whitespace=%s',
             group_tags, group_texts, group_whitespaces
@@ -222,7 +235,7 @@ def get_suffix_extended_token_tags(
         first_group_tag = group_tags[0]
 
         prev_group = grouped_token_tags[index - 1] if index > 0 else None
-        first_prev_tag = get_safe(get_safe(prev_group, 0), 0)
+        first_prev_tag: Optional[str] = get_safe(get_safe(prev_group, 0), 0)
         _, first_prev_tag_value = split_tag_prefix(first_prev_tag)
 
         if first_group_tag or first_prev_tag_value not in enabled_tags:
@@ -260,7 +273,7 @@ def _add_name_text_suffix(
     transformed_sub_tags = get_suffix_extended_token_tags(
         mapped_sub_tags,
         token_texts,
-        token_whitespaces,
+        token_whitespaces=token_whitespaces,
         enabled_tags=config.include_suffix_enabled_sub_tags
     )
     LOGGER.debug(
@@ -358,6 +371,7 @@ class ReferencePostProcessingAnnotator(AbstractAnnotator):
         self.config = config
 
     def annotate(self, structured_document: AbstractStructuredDocument):
+        assert isinstance(structured_document, GrobidTrainingTeiStructuredDocument)
         all_tokens_iterable = _iter_all_tokens(structured_document)
         grouped_entity_tokens_iterable = _iter_group_tokens_by_tag_entity(
             structured_document,

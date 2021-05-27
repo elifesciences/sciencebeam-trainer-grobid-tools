@@ -137,7 +137,7 @@ class FileList(object):
     def __bool__(self):
         return len(self) > 0
 
-    def __eq__(self, other: 'FileList') -> bool:
+    def __eq__(self, other) -> bool:
         if not isinstance(other, FileList):
             return False
         return (

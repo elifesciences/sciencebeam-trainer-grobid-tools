@@ -4,7 +4,7 @@ import copy
 import logging
 import re
 from itertools import zip_longest
-from typing import Dict, Iterable, List, Set
+from typing import Dict, Iterable, List, Optional, Set, Union
 
 import regex
 from apache_beam.io.filesystems import FileSystems
@@ -46,6 +46,7 @@ PRESERVED_SUB_TAG_ATTRIB_NAME = get_scoped_attrib_name(
     level=SUB_LEVEL
 )
 
+T_Tag_Level = Union[str, int]
 
 DEFAULT_TAG_KEY = ''
 
@@ -77,12 +78,13 @@ class SvgStyleClasses(object):
 
 class TeiText(object):
     def __init__(
-            self,
-            text: str,
-            tag: str = None,
-            sub_tag: str = None,
-            whitespace: str = None,
-            attrib: Dict[str, str] = None):
+        self,
+        text: str,
+        tag: Optional[str] = None,
+        sub_tag: Optional[str] = None,
+        whitespace: Optional[str] = None,
+        attrib: Optional[Dict[str, str]] = None
+    ):
         self.text = text
         self.stripped_text = text.strip()
         self.attrib = attrib if attrib is not None else {}
@@ -90,7 +92,7 @@ class TeiText(object):
             self.attrib[TAG_ATTRIB_NAME] = tag
         if sub_tag is not None:
             self.attrib[SUB_TAG_ATTRIB_NAME] = sub_tag
-        self.line = None
+        self.line: Optional['TeiLine'] = None
         self.whitespace = whitespace
 
     @property
@@ -138,13 +140,13 @@ class TokenWriter:
     def reset_next_sub_tag(self):
         self.next_sub_tag = None
 
-    def set_next_tag(self, tag: str, begin_tag: bool = True):
+    def set_next_tag(self, tag: Optional[str], begin_tag: bool = True):
         self.next_tag = add_tag_prefix(
             tag,
             prefix=B_TAG_PREFIX if begin_tag else I_TAG_PREFIX
         )
 
-    def set_next_sub_tag(self, tag: str, begin_tag: bool = True):
+    def set_next_sub_tag(self, tag: Optional[str], begin_tag: bool = True):
         self.next_sub_tag = add_tag_prefix(
             tag,
             prefix=B_TAG_PREFIX if begin_tag else I_TAG_PREFIX
@@ -219,7 +221,7 @@ def get_logger():
     return logging.getLogger(__name__)
 
 
-def _iter_split_lower_to_upper_case(text: str) -> List[str]:
+def _iter_split_lower_to_upper_case(text: str) -> Iterable[str]:
     start = 0
     for index, c in enumerate(text):
         if index > 0 and c.isupper() and text[index - 1].islower():
@@ -319,7 +321,7 @@ def _iter_extract_lines_from_container_elements(
         container_elements: Iterable[etree.Element],
         **kwargs):
     line_buffer = LineBuffer()
-    current_path = []
+    current_path: List[str] = []
 
     for container_element in container_elements:
         lines = _iter_extract_lines_from_element(
@@ -331,7 +333,7 @@ def _iter_extract_lines_from_container_elements(
             yield line_buffer.flush()
 
 
-def _get_tag_attrib_name(scope, level):
+def _get_tag_attrib_name(scope, level: Optional[T_Tag_Level]):
     return get_scoped_attrib_name(TAG_ATTRIB_NAME, scope=scope, level=level)
 
 
@@ -400,8 +402,9 @@ def _split_path(path_str: str) -> List[str]:
 
 
 def _get_tag_required_path(
-        tag: str,
-        tag_to_tei_path_mapping: Dict[str, str] = None) -> List[str]:
+    tag: Optional[str],
+    tag_to_tei_path_mapping: Dict[str, str]
+) -> List[str]:
     if tag:
         required_path = _split_path(tag_to_tei_path_mapping.get(tag, tag))
     else:
@@ -415,7 +418,7 @@ def _get_tag_required_path(
 class XmlTreeWriter:
     def __init__(self, parent: etree.Element):
         self.current_element = parent
-        self.current_path = []
+        self.current_path: List[str] = []
 
     def append(self, element: etree.Element):
         self.current_element.append(element)
@@ -468,7 +471,7 @@ def _lines_to_tei(
             sub_required_path = (
                 _get_tag_required_path(sub_tag, tag_to_tei_path_mapping)
                 if sub_full_tag
-                else None
+                else []
             )
             if sub_full_tag and not _path_starts_with(main_required_path, sub_required_path):
                 LOGGER.debug(
@@ -506,7 +509,7 @@ def _lines_to_tei(
 
             pending_reset_tag_values.clear()
 
-            required_path = (
+            required_path: List[str] = (
                 sub_required_path if sub_full_tag
                 else main_required_path
             )
@@ -627,7 +630,7 @@ class GrobidTrainingTeiStructuredDocument(AbstractStructuredDocument):
     def get_whitespace(self, parent):
         return parent.whitespace
 
-    def get_tag(self, parent, scope=None, level=None):
+    def get_tag(self, parent, scope=None, level: Optional[T_Tag_Level] = None):
         return parent.attrib.get(_get_tag_attrib_name(scope, level))
 
     def get_preserved_tag(self, parent, **kwargs):
@@ -640,12 +643,13 @@ class GrobidTrainingTeiStructuredDocument(AbstractStructuredDocument):
         return strip_tag_prefix(self.get_tag_or_preserved_tag(*args, **kwargs))
 
     def set_tag_only(
-            self, parent: TeiText, tag: str,
-            scope: str = None, level: str = None):
+            self, parent: TeiText, tag: Optional[str],
+            scope: str = None,
+            level: Optional[T_Tag_Level] = None):
         set_or_remove_attrib(parent.attrib, _get_tag_attrib_name(scope, level), tag)
 
     def set_sub_tag_only(
-            self, parent: TeiText, tag: str):
+            self, parent: TeiText, tag: Optional[str]):
         set_or_remove_attrib(parent.attrib, SUB_TAG_ATTRIB_NAME, tag)
 
     def clear_preserved_sub_tag(
@@ -660,7 +664,10 @@ class GrobidTrainingTeiStructuredDocument(AbstractStructuredDocument):
             None
         )
 
-    def set_tag(self, parent, tag, scope=None, level=None):
+    def set_tag(
+            self, parent, tag,
+            scope=None,
+            level: Optional[T_Tag_Level] = None):
         _previous_tag = self.get_tag_or_preserved_tag(parent, level=level)
         self.set_tag_only(parent, tag, scope=scope, level=level)
         if isinstance(parent, TeiSpace):
@@ -670,7 +677,7 @@ class GrobidTrainingTeiStructuredDocument(AbstractStructuredDocument):
             if level is None:
                 self._clear_same_preserved_tag_on_same_line(parent, level=SUB_LEVEL)
 
-    def _clear_same_preserved_tag_on_same_line(self, token, level: int = None):
+    def _clear_same_preserved_tag_on_same_line(self, token, level: T_Tag_Level = None):
         preserved_tag_attrib_name = get_scoped_attrib_name(PRESERVED_TAG_ATTRIB_NAME, level=level)
         preserved_tag = strip_tag_prefix(token.attrib.get(preserved_tag_attrib_name))
         if not preserved_tag:
@@ -681,7 +688,7 @@ class GrobidTrainingTeiStructuredDocument(AbstractStructuredDocument):
             if strip_tag_prefix(line_token.attrib.get(preserved_tag_attrib_name)) == preserved_tag:
                 self._set_preserved_tag(line_token, None, level=level)
 
-    def _set_preserved_tag(self, parent, tag, level: int = None):
+    def _set_preserved_tag(self, parent, tag, level: T_Tag_Level = None):
         set_or_remove_attrib(
             parent.attrib,
             get_scoped_attrib_name(PRESERVED_TAG_ATTRIB_NAME, level=level),

@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from copy import deepcopy
+from typing import Optional, Tuple, Union
 
 B_TAG_PREFIX = 'b-'
 I_TAG_PREFIX = 'i-'
@@ -8,6 +9,8 @@ SCOPE_ATTRIB_SEP = '-'
 LEVEL_ATTRIB_SEP = '_'
 
 SIMPLE_TAG_ATTRIB_NAME = 'tag'
+
+T_Tag_Level = Union[str, int]
 
 
 def merge_token_tag(
@@ -43,7 +46,7 @@ def get_simple_tag_attrib_name(scope, level=None):
     return get_scoped_attrib_name(SIMPLE_TAG_ATTRIB_NAME, scope, level)
 
 
-def split_tag_prefix(tag):
+def split_tag_prefix(tag: Optional[str]) -> Tuple[Optional[str], Optional[str]]:
     if tag:
         if tag.startswith(B_TAG_PREFIX):
             return B_TAG_PREFIX, tag[len(B_TAG_PREFIX):]
@@ -101,6 +104,12 @@ class AbstractStructuredDocument(ABC):
 
     def set_tag_with_prefix(self, parent, tag, scope=None, prefix=None):
         self.set_tag(parent, add_tag_prefix(tag, prefix), scope=scope)
+
+    def set_tag_only(
+            self, parent, tag: Optional[str],
+            scope: Optional[str] = None,
+            level: Optional[T_Tag_Level] = None):
+        self.set_tag(parent, tag, scope=scope, level=level)
 
     def get_sub_tag(self, parent, scope=None):
         return self.get_tag(parent, scope=scope, level=2)

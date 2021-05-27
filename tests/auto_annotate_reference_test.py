@@ -76,7 +76,7 @@ def _test_helper(temp_dir: Path) -> SingleFileAutoAnnotateEndToEndTestHelper:
 
 def get_jats_reference_node(
         label: str,
-        *children: List[Union[str, etree.Element]]) -> etree.Element:
+        *children: Union[str, etree.Element]) -> etree.Element:
     ref = E.ref()
     if label:
         ref.append(E.label(label))

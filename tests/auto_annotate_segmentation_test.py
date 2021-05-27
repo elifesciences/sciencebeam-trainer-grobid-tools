@@ -843,7 +843,7 @@ class TestEndToEnd(object):
             )
         )))
         failed_output_path = (
-            temp_dir / relative_failed_output_path
+            str(temp_dir / relative_failed_output_path)
             if relative_failed_output_path
             else ''
         )
@@ -859,6 +859,6 @@ class TestEndToEnd(object):
         if not expected_match:
             assert not test_helper.tei_auto_file_path.exists()
             if failed_output_path:
-                assert (failed_output_path / test_helper.tei_auto_file_path.name).exists()
+                assert (Path(failed_output_path) / test_helper.tei_auto_file_path.name).exists()
         else:
             assert test_helper.tei_auto_file_path.exists()

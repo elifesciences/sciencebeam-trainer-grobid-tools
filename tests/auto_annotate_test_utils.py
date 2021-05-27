@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import List, Union
+from typing import Dict, List, Optional, Union
 
 from lxml import etree
 from lxml.builder import E, ElementMaker
@@ -30,10 +30,10 @@ class SingleFileAutoAnnotateEndToEndTestHelper:
         self.xml_path.mkdir()
         self.tei_raw_file_path = self.tei_raw_path.joinpath(tei_filename)
         self.xml_file_path = self.xml_path.joinpath(XML_FILENAME_1)
-        self.main_args_dict = {
-            'source-base-path': self.tei_raw_path,
-            'output-path': self.tei_auto_path,
-            'xml-path': self.xml_path,
+        self.main_args_dict: Dict[str, Union[str, bool, int]] = {
+            'source-base-path': str(self.tei_raw_path),
+            'output-path': str(self.tei_auto_path),
+            'xml-path': str(self.xml_path),
             'xml-filename-regex': tei_filename_regex,
             'fields': 'title,abstract'
         }
@@ -52,7 +52,10 @@ class SingleFileAutoAnnotateEndToEndTestHelper:
         return tei_auto_root
 
 
-def _add_all(parent: etree.Element, children: List[Union[str, etree.Element]]):
+def _add_all(
+    parent: etree.Element,
+    children: Optional[List[Union[str, etree.Element]]]
+):
     if not children:
         return
     previous_child = None
@@ -86,7 +89,7 @@ def get_tei_nodes_for_text(
 
 
 def get_tei_nodes_for_lines(lines: List[str], *args, **kwargs) -> List[Union[str, etree.Element]]:
-    return get_tei_nodes_for_text(
+    return get_tei_nodes_for_text(  # type: ignore
         '\n'.join(lines),
         *args,
         trailing_line_feed=True,

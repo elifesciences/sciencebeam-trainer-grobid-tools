@@ -6,7 +6,7 @@ import os
 from abc import ABC, abstractmethod
 from contextlib import ExitStack
 from functools import partial
-from typing import Callable, Dict, List, Optional, Set
+from typing import Callable, Collection, Dict, List, Optional, Set, Tuple
 
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions, SetupOptions
@@ -47,7 +47,7 @@ from .annotation.target_annotation import (
 
 from .utils.string import (
     comma_separated_str_to_list,
-    get_plus_minus_comma_separated_str_to_list_fn,
+    get_plus_minus_comma_separated_str_to_set_fn,
     parse_dict
 )
 from .utils.regex import regex_change_name
@@ -277,10 +277,12 @@ def add_document_checks_arguments(parser: argparse.ArgumentParser):
 
 def add_fields_argument(
         parser: argparse.ArgumentParser,
-        default_fields: List[str] = None):
+        default_fields: Collection[str] = None):
     parser.add_argument(
         '--fields',
-        type=get_plus_minus_comma_separated_str_to_list_fn(default_fields),
+        type=get_plus_minus_comma_separated_str_to_set_fn(
+            set(default_fields or [])
+        ),
         default=','.join(default_fields) if default_fields else None,
         help='comma separated list of fields to annotate'
     )
@@ -288,10 +290,12 @@ def add_fields_argument(
 
 def add_sub_fields_argument(
         parser: argparse.ArgumentParser,
-        default_sub_fields: List[str] = None):
+        default_sub_fields: Optional[Collection[str]] = None):
     parser.add_argument(
         '--sub-fields',
-        type=get_plus_minus_comma_separated_str_to_list_fn(default_sub_fields),
+        type=get_plus_minus_comma_separated_str_to_set_fn(
+            set(default_sub_fields or [])
+        ),
         default=','.join(default_sub_fields) if default_sub_fields else None,
         help=(
             'comma separated list of sub fields to annotate.'
@@ -341,7 +345,7 @@ def get_sub_field_for_key_or_none(key: str) -> Optional[str]:
 
 def is_key_selected_sub_fields_or_no_sub_field(
         key: str,
-        sub_fields: List[str]) -> bool:
+        sub_fields: Set[str]) -> bool:
     sub_field = get_sub_field_for_key_or_none(key)
     if not sub_field:
         return True
@@ -350,7 +354,7 @@ def is_key_selected_sub_fields_or_no_sub_field(
 
 def get_xml_mapping_with_filtered_sub_fields(
         xml_mapping: Dict[str, Dict[str, str]],
-        sub_fields: List[str] = None) -> Dict[str, Dict[str, str]]:
+        sub_fields: Optional[Set[str]] = None) -> Dict[str, Dict[str, str]]:
     if not sub_fields:
         return xml_mapping
     LOGGER.debug('selecting sub_fields: %s', sub_fields)
@@ -365,10 +369,12 @@ def get_xml_mapping_with_filtered_sub_fields(
 
 
 def get_filtered_xml_mapping_and_fields(
-        xml_mapping: Dict[str, Dict[str, str]],
-        fields: List[str],
-        sub_fields: List[str] = None) -> Dict[str, Dict[str, str]]:
+    xml_mapping: Dict[str, Dict[str, str]],
+    fields: Optional[Set[str]],
+    sub_fields: Optional[Set[str]] = None
+) -> Tuple[Dict[str, Dict[str, str]], Set[str]]:
     if fields:
+        result_fields = fields
         xml_mapping = {
             top_level_key: {
                 k: v
@@ -378,7 +384,7 @@ def get_filtered_xml_mapping_and_fields(
             for top_level_key, field_mapping in xml_mapping.items()
         }
     else:
-        fields = {
+        result_fields = {
             k
             for top_level_key, field_mapping in xml_mapping.items()
             for k in field_mapping.keys()
@@ -388,12 +394,12 @@ def get_filtered_xml_mapping_and_fields(
         xml_mapping,
         sub_fields=sub_fields
     )
-    return xml_mapping, fields
+    return xml_mapping, result_fields
 
 
 def get_xml_mapping_with_overrides(
         xml_mapping: Dict[str, Dict[str, str]],
-        xml_mapping_overrides: Dict[str, str]):
+        xml_mapping_overrides: Optional[Dict[str, str]]):
     if not xml_mapping_overrides:
         return xml_mapping
     return {
@@ -406,10 +412,11 @@ def get_xml_mapping_with_overrides(
 
 
 def get_xml_mapping_and_fields(
-        xml_mapping_path: str,
-        fields: List[str],
-        sub_fields: List[str] = None,
-        xml_mapping_overrides: Dict[str, str] = None) -> Dict[str, Dict[str, str]]:
+    xml_mapping_path: str,
+    fields: Optional[Set[str]],
+    sub_fields: Set[str] = None,
+    xml_mapping_overrides: Optional[Dict[str, str]] = None
+) -> Tuple[Dict[str, Dict[str, str]], Set[str]]:
     return get_filtered_xml_mapping_and_fields(
         get_xml_mapping_with_overrides(
             parse_xml_mapping(xml_mapping_path),
@@ -420,7 +427,7 @@ def get_xml_mapping_and_fields(
     )
 
 
-def get_match_detail_reporter(debug_match: str) -> CsvMatchDetailReporter:
+def get_match_detail_reporter(debug_match: str) -> Optional[CsvMatchDetailReporter]:
     if not debug_match:
         return None
     return CsvMatchDetailReporter(
@@ -482,7 +489,7 @@ def get_default_annotators(
         xml_path, xml_mapping,
         annotator_config: AnnotatorConfig) -> List[AbstractAnnotator]:
 
-    annotators = []
+    annotators: List[AbstractAnnotator] = []
     if annotator_config.use_line_number_annotator:
         annotators.append(TextLineNumberAnnotator(
             config=annotator_config.line_number_annotator_config
@@ -524,7 +531,7 @@ def get_file_list_without_output_file(
 
 def _resolve_tag_expression_namespace(
         tag_expression: str,
-        namespaces: Dict[str, str]) -> str:
+        namespaces: Optional[Dict[str, str]]) -> str:
     if not tag_expression or not namespaces:
         return tag_expression
     for ns_name, ns_url in namespaces.items():
@@ -538,7 +545,7 @@ def _resolve_tag_expression_namespace(
 
 def _resolve_tag_to_tei_mapping_namespace(
         tag_to_tei_path_mapping: Dict[str, str],
-        namespaces: Dict[str, str]) -> Dict[str, str]:
+        namespaces: Optional[Dict[str, str]]) -> Dict[str, str]:
     return {
         key: _resolve_tag_expression_namespace(value, namespaces=namespaces)
         for key, value in tag_to_tei_path_mapping.items()
@@ -551,13 +558,13 @@ class AbstractAnnotatePipelineFactory(ABC):
             opt: argparse.Namespace,
             tei_filename_pattern: str,
             container_node_path: str,
-            tag_to_tei_path_mapping: Dict[str, str] = None,
-            output_fields: Set[str] = None,
+            tag_to_tei_path_mapping: Dict[str, str],
+            output_fields: Optional[Set[str]] = None,
             preserve_sub_tags: bool = False,
             no_preserve_sub_fields: Set[str] = None,
             require_matching_fields: Set[str] = None,
             required_fields: Set[str] = None,
-            namespaces: Dict[str, str] = None):
+            namespaces: Optional[Dict[str, str]] = None):
         self.tei_filename_pattern = tei_filename_pattern
         self.container_node_path = container_node_path
         self.tag_to_tei_path_mapping = _resolve_tag_to_tei_mapping_namespace(
@@ -607,7 +614,7 @@ class AbstractAnnotatePipelineFactory(ABC):
             os.path.basename(source_url)
         )
 
-    def get_tei_xml_failed_output_file_for_source_file(self, source_url: str) -> str:
+    def get_tei_xml_failed_output_file_for_source_file(self, source_url: str) -> Optional[str]:
         if not self.failed_output_path:
             return None
         return os.path.join(
