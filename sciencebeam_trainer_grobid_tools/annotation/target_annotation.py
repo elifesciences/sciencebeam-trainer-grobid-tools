@@ -49,11 +49,11 @@ def contains_raw_text(element: etree.Element) -> bool:
 
 
 def is_ends_with_word(text: str) -> bool:
-    return re.match(r'.*\w$', text)
+    return re.match(r'.*\w$', text) is not None
 
 
 def is_starts_with_word(text: str) -> bool:
-    return re.match(r'^\w.*', text)
+    return re.match(r'^\w.*', text) is not None
 
 
 def match_xpaths(parent, xpaths):
