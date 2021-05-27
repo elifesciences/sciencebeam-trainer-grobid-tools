@@ -6,7 +6,7 @@ from html.parser import HTMLParser
 from io import BufferedReader, StringIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Iterable, Iterator, List, Union
+from typing import Iterable, Iterator, List, Tuple, Union
 
 from lxml import etree
 
@@ -36,7 +36,7 @@ def iter_text_content_and_exclude(
 
 
 class XMLSyntaxErrorWithErrorLine(ValueError):
-    def __init__(self, *args, error_line: bytes, **kwargs):
+    def __init__(self, *args, error_line: Union[bytes, str], **kwargs):
         super().__init__(*args, **kwargs)
         self.error_line = error_line
 
@@ -89,6 +89,7 @@ def parse_xml_or_get_error_line(
         except etree.XMLSyntaxError as exception:
             error_lineno = exception.lineno
             with open(temp_file, mode='rb') as temp_fp:
+                line_enumeration: Iterable[Tuple[int, Union[bytes, str]]]
                 try:
                     line_enumeration = enumerate(temp_fp, 1)
                 except TypeError:
