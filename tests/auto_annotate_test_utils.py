@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
 
 from lxml import etree
 from lxml.builder import E, ElementMaker
@@ -52,7 +52,10 @@ class SingleFileAutoAnnotateEndToEndTestHelper:
         return tei_auto_root
 
 
-def _add_all(parent: etree.Element, children: List[Union[str, etree.Element]]):
+def _add_all(
+    parent: etree.Element,
+    children: Optional[List[Union[str, etree.Element]]]
+):
     if not children:
         return
     previous_child = None
