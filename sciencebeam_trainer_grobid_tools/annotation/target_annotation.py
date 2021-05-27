@@ -63,7 +63,7 @@ def match_xpaths(parent, xpaths):
 
 
 def get_raw_text_content(element: etree.Element, exclude_childrens: List[str] = None) -> str:
-    text_list = []
+    text_list: List[str] = []
     for text in iter_text_content_and_exclude(element, exclude=exclude_childrens):
         if text_list and is_ends_with_word(text_list[-1]) and is_starts_with_word(text):
             text_list.append(' ')
