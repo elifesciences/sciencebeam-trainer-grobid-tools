@@ -32,6 +32,7 @@ def auto_download_input_file(
             open_fn = partial(FileSystems.open, file_url)
         else:
             temp_file = os.path.join(temp_dir, 'temp.file')
+        assert open_fn is not None
         with open_fn() as source:
             with open(temp_file, mode='wb') as temp_fp:
                 copyfileobj(source, temp_fp)
