@@ -147,12 +147,12 @@ def annotate_structured_document(
         annotator,
         preserve_tags: bool,
         fields: Optional[Set[str]],
+        is_structured_document_passing_checks: Callable[
+            [GrobidTrainingTeiStructuredDocument], bool
+        ],
         always_preserve_fields: Optional[Set[str]] = None,
         preserve_sub_tags: bool = False,
         no_preserve_sub_fields: Optional[Set[str]] = None,
-        is_structured_document_passing_checks: Optional[Callable[
-            [GrobidTrainingTeiStructuredDocument], bool
-        ]] = None,
         failed_target_structured_document_path: Optional[str] = None,
         **kwargs):
     LOGGER.info('loading from: %s', source_structured_document_path)
