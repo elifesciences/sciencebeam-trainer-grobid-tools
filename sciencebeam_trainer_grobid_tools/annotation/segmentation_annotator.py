@@ -138,7 +138,7 @@ def _get_line_token_tags_or_preserved_tags(
 
 
 def _clear_line_token_tags(
-        structured_document: GrobidTrainingTeiStructuredDocument, line) -> List[str]:
+        structured_document: GrobidTrainingTeiStructuredDocument, line):
     for token in structured_document.get_all_tokens_of_line(line):
         tag = structured_document.get_tag(token)
         if tag:
