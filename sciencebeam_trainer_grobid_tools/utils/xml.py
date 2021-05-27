@@ -14,7 +14,10 @@ from sciencebeam_utils.beam_utils.io import read_all_from_path, save_file_conten
 
 from sciencebeam_utils.utils.xml import get_text_content_list
 
-from sciencebeam_trainer_grobid_tools.utils.io import auto_download_input_file
+from sciencebeam_trainer_grobid_tools.utils.io import (
+    T_BinaryIO_Open_Function,
+    auto_download_input_file
+)
 
 
 LOGGER = logging.getLogger(__name__)
@@ -49,8 +52,9 @@ def _read_lines(source) -> Iterable[str]:
 
 @contextmanager
 def auto_download_and_fix_input_file(
-        file_url_or_open_fn: Union[str, callable],
-        fix_xml: bool = True) -> Iterator[str]:
+    file_url_or_open_fn: Union[str, T_BinaryIO_Open_Function],
+    fix_xml: bool = True
+) -> Iterator[str]:
     with auto_download_input_file(file_url_or_open_fn) as temp_file:
         if not fix_xml:
             yield temp_file

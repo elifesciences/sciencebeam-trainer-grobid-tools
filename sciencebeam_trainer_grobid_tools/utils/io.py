@@ -4,13 +4,18 @@ from functools import partial
 from pathlib import Path
 from shutil import copyfileobj
 from tempfile import TemporaryDirectory
-from typing import Iterator, Union
+from typing import BinaryIO, Callable, Iterator, Union
 
 from apache_beam.io.filesystems import FileSystems
 
 
+T_BinaryIO_Open_Function = Callable[[], BinaryIO]
+
+
 @contextmanager
-def auto_download_input_file(file_url_or_open_fn: Union[str, callable]) -> Iterator[str]:
+def auto_download_input_file(
+    file_url_or_open_fn: Union[str, T_BinaryIO_Open_Function]
+) -> Iterator[str]:
     file_url = None
     open_fn = None
     if isinstance(file_url_or_open_fn, (Path, str)):
