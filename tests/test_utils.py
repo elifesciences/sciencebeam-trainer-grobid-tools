@@ -1,10 +1,14 @@
 import logging
 import inspect
 from functools import wraps
-from typing import List, Mapping, Optional, Union
+from typing import Callable, List, Mapping, Optional, TypeVar, Union
 
 
 LOGGER = logging.getLogger(__name__)
+
+
+T_WrappedCallable = TypeVar('T_WrappedCallable', bound=Callable)
+T_WrappedCallableOrType = Union[T_WrappedCallable, type]
 
 
 def wrap_class_methods(cls, wrapper):
@@ -14,7 +18,7 @@ def wrap_class_methods(cls, wrapper):
     return cls
 
 
-def log_on_exception(f: Union[callable, type]) -> callable:
+def log_on_exception(f: T_WrappedCallableOrType) -> T_WrappedCallableOrType:
     """
     Wraps function to log error on exception.
     That is useful for tests that log a lot of things,
