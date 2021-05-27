@@ -3,4 +3,4 @@ FROM ${base_image}
 
 COPY tests ./tests
 
-COPY .flake8 .pylintrc project-tests.sh ./
+COPY .flake8 .pylintrc ./
