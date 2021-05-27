@@ -117,7 +117,7 @@ def _get_line_token_tags(structured_document: AbstractStructuredDocument, line) 
     ]
 
 
-def _to_tag_values(tags: List[str]) -> List[str]:
+def _to_tag_values(tags: List[Optional[str]]) -> List[Optional[str]]:
     return list(map(strip_tag_prefix, tags))
 
 
