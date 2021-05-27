@@ -40,7 +40,7 @@ class ReplaceTagsPostProcessingAnnotator(AbstractAnnotator):
         for token in all_tokens_iterable:
             tag = structured_document.get_tag_or_preserved_tag(token)
             tag_prefix, tag_value = split_tag_prefix(tag)
-            if tag_value not in self.config.replaced_tag_by_tag:
+            if not tag_value or tag_value not in self.config.replaced_tag_by_tag:
                 ignored_token_tag_values.add(tag_value)
                 continue
             replaced_tag_value = self.config.replaced_tag_by_tag[tag_value]
