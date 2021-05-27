@@ -21,9 +21,9 @@ DEFAULT_WORD_SEPARATORS = ' .,-:;()[]\n\t'
 NOT_SET = 'NOT_SET'
 
 
-T_Matching_Block = Tuple[int, int, int]
-T_Matching_Blocks = List[T_Matching_Block]
-T_Matching_Blocks_Chunks = List[T_Matching_Blocks]
+T_MatchingBlock = Tuple[int, int, int]
+T_MatchingBlocks = List[T_MatchingBlock]
+T_MatchingBlocksChunks = List[T_MatchingBlocks]
 
 T_IndexRange = Tuple[int, int]
 
@@ -73,8 +73,8 @@ class FuzzyMatchResult(_FuzzyMatchResult):
 
 
 def get_merged_matching_blocks_chunks(
-    matching_blocks_chunks: T_Matching_Blocks_Chunks
-) -> T_Matching_Blocks:
+    matching_blocks_chunks: T_MatchingBlocksChunks
+) -> T_MatchingBlocks:
     return [
         matching_block
         for matching_blocks in matching_blocks_chunks
@@ -197,7 +197,7 @@ class WordSequenceMatcher(object):
 
 def get_str_matching_blocks_using_sequence_matcher(
     haystack: str, needle: str
-) -> T_Matching_Blocks:
+) -> T_MatchingBlocks:
     sm = LocalSequenceMatcher(a=haystack, b=needle, scoring=DEFAULT_SCORING)
     return sm.get_matching_blocks()
 
@@ -227,7 +227,7 @@ def get_str_matching_blocks_using_sequence_matcher(
 def get_matching_blocks_b_gap_ratio(
     haystack: str,
     needle: str,
-    matching_blocks: T_Matching_Blocks,
+    matching_blocks: T_MatchingBlocks,
     isjunk: Optional[T_IsJunkFunction]
 ) -> float:
     fm = FuzzyMatchResult(
@@ -241,13 +241,13 @@ def get_matching_blocks_b_gap_ratio(
 
 
 def get_matching_blocks_size(
-    matching_blocks: T_Matching_Blocks
+    matching_blocks: T_MatchingBlocks
 ) -> int:
     return sum(size for _, _, size in matching_blocks)
 
 
 def get_matching_blocks_end_offset(
-    matching_blocks: T_Matching_Blocks,
+    matching_blocks: T_MatchingBlocks,
     seq_index: int
 ) -> int:
     if not matching_blocks:
@@ -260,7 +260,7 @@ def get_matching_blocks_end_offset(
 
 
 def get_matching_blocks_start_offset(
-    matching_blocks: T_Matching_Blocks,
+    matching_blocks: T_MatchingBlocks,
     seq_index: int
 ) -> Optional[int]:
     if not matching_blocks:
@@ -273,7 +273,7 @@ def get_matching_blocks_start_offset(
 
 
 def get_required_matching_blocks_start_offset(
-    matching_blocks: T_Matching_Blocks,
+    matching_blocks: T_MatchingBlocks,
     seq_index: int
 ) -> int:
     start_offset = get_matching_blocks_start_offset(matching_blocks, seq_index)
@@ -287,7 +287,7 @@ def get_first_chunk_matching_blocks(
     matching_blocks,
     threshold: float,
     isjunk: Optional[T_IsJunkFunction]
-) -> T_Matching_Blocks:
+) -> T_MatchingBlocks:
     block_count = len(matching_blocks) - 1
     while block_count:
         chunk_matching_blocks = matching_blocks[:block_count]
@@ -316,7 +316,7 @@ def get_last_chunk_matching_blocks(
     matching_blocks,
     threshold: float,
     isjunk: Optional[T_IsJunkFunction]
-) -> T_Matching_Blocks:
+) -> T_MatchingBlocks:
     block_start = 0
     while block_start < len(matching_blocks):
         chunk_matching_blocks = matching_blocks[block_start:]
@@ -345,7 +345,7 @@ def get_last_chunk_matching_blocks(
 
 def get_first_or_last_chunk_matching_blocks(
     *args, **kwargs
-) -> Tuple[Optional[T_Matching_Blocks], Optional[T_Matching_Blocks]]:
+) -> Tuple[Optional[T_MatchingBlocks], Optional[T_MatchingBlocks]]:
     first_chunk_matching_blocks = get_first_chunk_matching_blocks(*args, **kwargs)
     if first_chunk_matching_blocks:
         return first_chunk_matching_blocks, None
@@ -353,10 +353,10 @@ def get_first_or_last_chunk_matching_blocks(
 
 
 def get_offset_matching_blocks(
-    matching_blocks: T_Matching_Blocks,
+    matching_blocks: T_MatchingBlocks,
     a_offset: int = 0,
     b_offset: int = 0
-) -> T_Matching_Blocks:
+) -> T_MatchingBlocks:
     if not a_offset and not b_offset:
         return matching_blocks
     return [
@@ -373,7 +373,7 @@ def get_str_left_strided_matching_blocks_chunks(
     isjunk: Optional[T_IsJunkFunction] = None,
     max_chunks: int = 1,
     start_index: int = 0
-) -> T_Matching_Blocks_Chunks:
+) -> T_MatchingBlocksChunks:
     """
     LocalSequenceMatcher scales quadratically (O(n*m) with n=haystack length and m=needle length)
     By using a window, we are limiting the memory usage and stop early if we found a match.
@@ -467,7 +467,7 @@ def get_str_left_strided_matching_blocks_chunks(
 
 def get_str_left_strided_matching_blocks(
     *args, **kwargs
-) -> T_Matching_Blocks:
+) -> T_MatchingBlocks:
     matching_blocks_chunks = get_str_left_strided_matching_blocks_chunks(*args, **kwargs)
     return get_merged_matching_blocks_chunks(matching_blocks_chunks)
 
@@ -492,7 +492,7 @@ def get_str_auto_left_strided_matching_blocks_chunks(
     needle: str,
     threshold: float,
     **kwargs
-) -> T_Matching_Blocks_Chunks:
+) -> T_MatchingBlocksChunks:
     max_length, stride = get_default_max_length_and_stride(
         len(haystack), len(needle), threshold=threshold
     )
@@ -507,7 +507,7 @@ def get_str_auto_left_strided_matching_blocks(
     haystack: str, needle: str,
     threshold: float,
     isjunk: Optional[T_IsJunkFunction]
-) -> T_Matching_Blocks:
+) -> T_MatchingBlocks:
     max_length, stride = get_default_max_length_and_stride(
         len(haystack), len(needle), threshold=threshold
     )
