@@ -374,7 +374,7 @@ def get_filtered_xml_mapping_and_fields(
     sub_fields: Optional[Set[str]] = None
 ) -> Tuple[Dict[str, Dict[str, str]], Set[str]]:
     if fields:
-        result_fields=fields
+        result_fields = fields
         xml_mapping = {
             top_level_key: {
                 k: v
