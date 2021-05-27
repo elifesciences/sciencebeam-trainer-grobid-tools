@@ -6,6 +6,8 @@ from typing import Dict, List, NamedTuple, Optional, Set
 
 from sciencebeam_utils.utils.string import parse_list
 
+from sciencebeam_trainer_grobid_tools.utils.misc import get_dict_safe
+
 from sciencebeam_trainer_grobid_tools.core.structured_document import (
     AbstractStructuredDocument,
     strip_tag_prefix
@@ -418,7 +420,10 @@ class SegmentationAnnotator(AbstractAnnotator):
             if not line_tag_counts:
                 continue
             majority_tag_name = line_tag_counts.most_common(1)[0][0]
-            segmentation_tag = self.segmentation_tag_name_by_tag_name.get(majority_tag_name)
+            segmentation_tag = get_dict_safe(
+                self.segmentation_tag_name_by_tag_name,
+                majority_tag_name
+            )
             LOGGER.debug(
                 'line_tag_counts: %s (%s -> %s)',
                 line_tag_counts, majority_tag_name, segmentation_tag
