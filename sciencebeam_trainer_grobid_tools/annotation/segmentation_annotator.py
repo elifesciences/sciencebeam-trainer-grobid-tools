@@ -352,7 +352,7 @@ def merge_lines(
     enabled_tags: Set[str],
     enabled_remaining_tags: Set[str]
 ):
-    condidate_lines = []
+    condidate_lines: List[SegmentationLine] = []
     previous_segmentation_tag: Optional[str] = SegmentationTagNames.FRONT
     total_merged_line_counts: Counter[Optional[str]] = Counter()
     ignored_segmentation_tags = {SegmentationTagNames.HEADNOTE, SegmentationTagNames.PAGE}
