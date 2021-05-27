@@ -106,7 +106,7 @@ def _iter_all_lines(structured_document: AbstractStructuredDocument):
 def _set_line_tokens_tag(
         structured_document: AbstractStructuredDocument,
         line,
-        tag: str):
+        tag: Optional[str]):
     for token in structured_document.get_all_tokens_of_line(line):
         structured_document.set_tag(token, tag)
 
