@@ -90,7 +90,7 @@ class ExpandToFollowingUntaggedLinesPostProcessingAnnotator(AbstractAnnotator):
     def annotate(self, structured_document: GrobidTrainingTeiStructuredDocument):
         all_tokens_iterable = iter_all_tokens_excluding_space(structured_document)
         previous_enabled_tag_value: Optional[str] = None
-        previous_included_tokens = []
+        previous_included_tokens: List[Any] = []
         ignored_token_tag_values = set()
         for token in all_tokens_iterable:
             tag_value = structured_document.get_tag_or_preserved_tag_value(token)
