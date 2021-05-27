@@ -17,6 +17,8 @@ def get_dict_safe(
 
 
 def get_safe(a: Optional[Sequence[T]], key: int, default_value: Optional[T] = None) -> Optional[T]:
+    if a is None:
+        return default_value
     try:
         return a[key]
     except (IndexError, TypeError):
