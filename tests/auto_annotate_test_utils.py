@@ -31,9 +31,9 @@ class SingleFileAutoAnnotateEndToEndTestHelper:
         self.tei_raw_file_path = self.tei_raw_path.joinpath(tei_filename)
         self.xml_file_path = self.xml_path.joinpath(XML_FILENAME_1)
         self.main_args_dict: Dict[str, Union[str, bool, int]] = {
-            'source-base-path': self.tei_raw_path,
-            'output-path': self.tei_auto_path,
-            'xml-path': self.xml_path,
+            'source-base-path': str(self.tei_raw_path),
+            'output-path': str(self.tei_auto_path),
+            'xml-path': str(self.xml_path),
             'xml-filename-regex': tei_filename_regex,
             'fields': 'title,abstract'
         }
