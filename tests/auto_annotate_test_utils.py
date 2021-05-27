@@ -89,7 +89,7 @@ def get_tei_nodes_for_text(
 
 
 def get_tei_nodes_for_lines(lines: List[str], *args, **kwargs) -> List[Union[str, etree.Element]]:
-    return get_tei_nodes_for_text(
+    return get_tei_nodes_for_text(  # type: ignore
         '\n'.join(lines),
         *args,
         trailing_line_feed=True,
