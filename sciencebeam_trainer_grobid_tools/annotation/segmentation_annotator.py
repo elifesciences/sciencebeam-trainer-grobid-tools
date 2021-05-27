@@ -107,6 +107,7 @@ def _set_line_tokens_tag(
         structured_document: AbstractStructuredDocument,
         line,
         tag: Optional[str]):
+    assert isinstance(structured_document, GrobidTrainingTeiStructuredDocument)
     for token in structured_document.get_all_tokens_of_line(line):
         structured_document.set_tag(token, tag)
 
