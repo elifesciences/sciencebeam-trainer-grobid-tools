@@ -1,6 +1,17 @@
 import logging
 from itertools import islice
-from typing import Callable, Iterable, List, Tuple, Union
+from typing import (
+    Callable,
+    Generic,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+    cast
+)
 
 from sciencebeam_utils.utils.collection import (
     iter_flatten
@@ -24,6 +35,9 @@ THIN_SPACE = u'\u2009'
 EN_DASH = u'\u2013'
 EM_DASH = u'\u2014'
 APOS = u'&apos;'
+
+T_Item = TypeVar('T_Item')
+T_Token = TypeVar('T_Token')
 
 
 def DEFAULT_ISJUNK(*_, **__):
@@ -53,16 +67,23 @@ def normalise_and_remove_junk_str(
     return remove_junk(normalise_str(text), is_junk_fn)
 
 
+T_Text_Or_Text_List = TypeVar('T_Text_Or_Text_List', bound=Union[str, List[str]])
+
+
 def normalise_and_remove_junk_str_or_list(
-        text_or_list: Union[str, List[str]],
-        is_junk_fn: Callable[[str, int], bool] = None) -> str:
+    text_or_list: T_Text_Or_Text_List,
+    is_junk_fn: Callable[[str, int], bool] = None
+) -> T_Text_Or_Text_List:
     if isinstance(text_or_list, list):
-        return [
+        return cast(T_Text_Or_Text_List, [
             normalise_and_remove_junk_str(s, is_junk_fn=is_junk_fn)
             for s in text_or_list
-        ]
+        ])
     else:
-        return normalise_and_remove_junk_str(text_or_list, is_junk_fn=is_junk_fn)
+        return cast(T_Text_Or_Text_List, normalise_and_remove_junk_str(
+            cast(str, text_or_list),
+            is_junk_fn=is_junk_fn
+        ))
 
 
 def iter_lines(structured_document: AbstractStructuredDocument):
@@ -85,7 +106,7 @@ def join_tokens_text(tokens: List[TeiText]) -> str:
     return ' '.join([token.text for token in tokens])
 
 
-def get_token_whitespace(token: TeiText) -> str:
+def get_token_whitespace(token: T_Token) -> str:
     whitespace = getattr(token, 'whitespace', None)
     if whitespace is not None:
         return whitespace
@@ -93,10 +114,11 @@ def get_token_whitespace(token: TeiText) -> str:
 
 
 def join_with_index_ranges(
-        items: List[str],
-        sep: str,
-        pad: str = '',
-        whitespace_list: List[str] = None) -> Tuple[str, List[Tuple[int, int]]]:
+    items: List[T_Item],
+    sep: str,
+    pad: str = '',
+    whitespace_list: List[str] = None
+) -> Tuple[str, List[Tuple[int, int]]]:
     item_str_list = [pad + str(item) + pad for item in items]
     if whitespace_list:
         whitespace_list = [
@@ -120,13 +142,14 @@ def join_with_index_ranges(
     return text, index_ranges
 
 
-class JoinedText:
+class JoinedText(Generic[T_Item]):
     def __init__(
-            self,
-            items: List[str],
-            sep: str,
-            pad: str = '',
-            whitespace_list: List[str] = None):
+        self,
+        items: List[T_Item],
+        sep: str,
+        pad: str = '',
+        whitespace_list: List[str] = None
+    ):
         self._items = items
         self._text, self._item_index_ranges = join_with_index_ranges(
             items, sep=sep, pad=pad, whitespace_list=whitespace_list
@@ -163,12 +186,12 @@ class JoinedText:
         return self.get_text()
 
 
-class SequenceWrapper:
+class SequenceWrapper(Generic[T_Token]):
     def __init__(
             self,
             structured_document: AbstractStructuredDocument,
-            tokens: list,
-            str_filter_f: callable = None):
+            tokens: List[T_Token],
+            str_filter_f: Optional[Callable[[str], str]] = None):
         self.structured_document = structured_document
         self.str_filter_f = str_filter_f
         self.tokens = tokens
@@ -184,11 +207,11 @@ class SequenceWrapper:
         )
         self.tokens_as_str = str(self.joined_text)
 
-    def tokens_between(self, index_range: Tuple[int, int]) -> list:
+    def tokens_between(self, index_range: Tuple[int, int]) -> Iterable[T_Token]:
         for index, _ in self.joined_text.iter_item_indices_and_index_range_between(index_range):
             yield self.tokens[index]
 
-    def sub_sequence_for_tokens(self, tokens: list):
+    def sub_sequence_for_tokens(self, tokens: List[T_Token]):
         return SequenceWrapper(self.structured_document, tokens, str_filter_f=self.str_filter_f)
 
     def untagged_sub_sequences(self) -> Iterable['SequenceWrapper']:
@@ -235,7 +258,7 @@ class SequenceWrapperWithPosition(SequenceWrapper):
 
 
 class PendingSequences:
-    def __init__(self, sequences: List[SequenceWrapper]):
+    def __init__(self, sequences: Sequence[SequenceWrapper]):
         self._sequences = sequences
 
     def iter_pending_sequences(self, limit: int = None):
@@ -252,7 +275,7 @@ class PendingSequences:
     @staticmethod
     def from_structured_document(
             structured_document: AbstractStructuredDocument, normalize_fn: Callable[[str], str]):
-        pending_sequences = []
+        pending_sequences: List[SequenceWrapper] = []
         for line in iter_lines(structured_document):
             tokens = get_untagged_line_tokens(structured_document, line)
             if tokens:
