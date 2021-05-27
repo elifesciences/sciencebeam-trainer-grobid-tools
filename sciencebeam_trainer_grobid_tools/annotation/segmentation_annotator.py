@@ -1,8 +1,7 @@
 import logging
 import re
 from configparser import ConfigParser
-from collections import Counter
-from typing import Dict, List, NamedTuple, Optional, Set
+from typing import Counter, Dict, List, NamedTuple, Optional, Set
 
 from sciencebeam_utils.utils.string import parse_list
 
@@ -355,7 +354,7 @@ def merge_lines(
 ):
     condidate_lines = []
     previous_segmentation_tag: Optional[str] = SegmentationTagNames.FRONT
-    total_merged_line_counts = Counter()
+    total_merged_line_counts: Counter[Optional[str]] = Counter()
     ignored_segmentation_tags = {SegmentationTagNames.HEADNOTE, SegmentationTagNames.PAGE}
     for line in segmentation_lines:
         if line.segmentation_tag in ignored_segmentation_tags:
