@@ -2,7 +2,7 @@ apache_beam[gcp]==2.31.0
 gcloud==0.18.3
 google-api-python-client==2.13.0
 lxml==4.6.3
-numpy==1.20.3
+numpy==1.21.0
 regex==2021.7.6
 sciencebeam-alignment==0.0.5
 sciencebeam-utils==0.1.4
