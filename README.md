@@ -1,5 +1,13 @@
 # ScienceBeam Trainer Tools for GROBID
 
+## ⚠️ Under new stewardship
+
+eLife have handed over stewardship of ScienceBeam to The Coko Foundation. You can now find the updated code repository at https://gitlab.coko.foundation/sciencebeam/sciencebeam-trainer-grobid-tools and continue the conversation on Coko's Mattermost chat server: https://mattermost.coko.foundation/
+
+For more information on why we're doing this read our latest update on our new technology direction: https://elifesciences.org/inside-elife/daf1b699/elife-latest-announcing-a-new-technology-direction
+
+## Overview
+
 Whereas [sciencebeam-trainer-grobid](https://github.com/elifesciences/sciencebeam-trainer-grobid) is a lightweight wrapper around [GROBID](https://github.com/kermitt2/grobid), intended to be used as Docker container. This project provides additional tools that can be used to prepare the data for GROBID and complete the process after training (e.g. build a new Docker container with the trained model).
 
 The intention is to use cloud storage as the storage between the steps. But one could also just use a data volume.
